@@ -15,15 +15,18 @@
  * silently truncate the sitemap, which is the opposite of the SEO goal.
  */
 
-import type { Product, Category, PaginatedResponse } from './api';
+import type { Product, Category } from './api';
 import type { ReviewAggregate } from './seo';
+import { armToProduct, armToCategory } from './arm-adapter';
+import type { ArmDistributorProduct, ArmCategory, ArmPaginated } from './arm-types';
 
 const BFF_INTERNAL_URL = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000').replace(
   /\/+$/,
   '',
 );
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'tenant_snailmarket';
-const STOREFRONT_BASE = `${BFF_INTERNAL_URL}/public/oms/storefront`;
+const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
+const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
+const STOREFRONT_BASE = `${BFF_INTERNAL_URL}/public/arm/storefront`;
 
 // Catalog data is cached at the BFF/CDN already; re-fetch server-side at most
 // every 5 min so metadata/sitemap stay fresh without hammering the BFF.
@@ -52,7 +55,10 @@ async function bffGet<T>(path: string): Promise<T | null> {
     // `next.revalidate` is added to fetch options by the Next runtime; typed via
     // an intersection so plain `tsc` (no Next augmentation) still compiles.
     const init: RequestInit & { next?: { revalidate?: number } } = {
-      headers: { 'X-Tenant-ID': TENANT_ID },
+      headers: {
+        'X-Tenant-ID': TENANT_ID,
+        ...(STOREFRONT_KEY ? { 'X-Storefront-Key': STOREFRONT_KEY } : {}),
+      },
       next: { revalidate: REVALIDATE_SECONDS },
     };
     res = await fetch(`${STOREFRONT_BASE}${path}`, init);
@@ -73,8 +79,10 @@ async function bffGet<T>(path: string): Promise<T | null> {
  * @throws {BffUnavailableError} on a transient BFF failure.
  */
 export async function fetchProductServer(idOrSlug: string): Promise<Product | null> {
-  const res = await bffGet<{ data: Product }>(`/products/${encodeURIComponent(idOrSlug)}`);
-  return res?.data ?? null;
+  const res = await bffGet<{ data: ArmDistributorProduct }>(
+    `/products/${encodeURIComponent(idOrSlug)}`,
+  );
+  return res?.data ? armToProduct(res.data) : null;
 }
 
 /**
@@ -87,17 +95,9 @@ export async function fetchProductServer(idOrSlug: string): Promise<Product | nu
 export async function fetchProductReviewAggregateServer(
   productId: string,
 ): Promise<ReviewAggregate | null> {
-  try {
-    const res = await bffGet<{ meta?: { total?: number; average?: number } }>(
-      `/reviews?product=${encodeURIComponent(productId)}&limit=1`,
-    );
-    const total = res?.meta?.total ?? 0;
-    const average = res?.meta?.average ?? 0;
-    if (total <= 0) return null;
-    return { average, count: total };
-  } catch {
-    return null;
-  }
+  // ARM не имеет storefront-отзывов — агрегат всегда отсутствует (зачистка вызова — Phase 6).
+  void productId;
+  return null;
 }
 
 /**
@@ -107,11 +107,11 @@ export async function fetchProductReviewAggregateServer(
  * (the endpoint returns `200 + []` when there are genuinely no categories).
  */
 export async function fetchCategoriesServer(): Promise<Category[]> {
-  const res = await bffGet<{ data: Category[] }>('/categories');
+  const res = await bffGet<{ data: ArmCategory[] }>('/categories');
   if (res === null) {
     throw new BffUnavailableError(404, 'Storefront BFF responded 404 for /categories');
   }
-  return res.data ?? [];
+  return (res.data ?? []).map(armToCategory);
 }
 
 /**
@@ -126,12 +126,14 @@ export async function fetchAllProductsServer(): Promise<Product[]> {
   const MAX_PAGES = 100;
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const res = await bffGet<PaginatedResponse<Product>>(`/products?limit=${limit}&page=${page}`);
+    const res = await bffGet<ArmPaginated<ArmDistributorProduct>>(
+      `/products?limit=${limit}&page=${page}`,
+    );
     if (res === null) {
       throw new BffUnavailableError(404, `Storefront BFF responded 404 for /products page ${page}`);
     }
     if (!res.data?.length) break;
-    all.push(...res.data);
+    all.push(...res.data.map(armToProduct));
     const totalPages = res.meta?.totalPages ?? page;
     if (page >= totalPages) break;
   }

@@ -83,6 +83,8 @@ export interface PaginatedResponse<T> {
 // ---------- API Functions (with mock fallback for local dev) ----------
 
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
+import { armToProduct, armToCategory } from './arm-adapter';
+import type { ArmDistributorProduct, ArmCategory, ArmPaginated } from './arm-types';
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
@@ -116,8 +118,8 @@ export async function fetchProducts(params?: {
       meta: { total: items.length, page, limit, totalPages: Math.ceil(items.length / limit) },
     };
   }
-  const { data } = await api.get('/products', { params });
-  return data;
+  const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>('/products', { params });
+  return { data: data.data.map(armToProduct), meta: data.meta };
 }
 
 export async function fetchProduct(id: string): Promise<{ data: Product }> {
@@ -126,14 +128,14 @@ export async function fetchProduct(id: string): Promise<{ data: Product }> {
     if (!product) throw new Error('Product not found');
     return { data: product };
   }
-  const { data } = await api.get(`/products/${id}`);
-  return data;
+  const { data } = await api.get<{ data: ArmDistributorProduct }>(`/products/${id}`);
+  return { data: armToProduct(data.data) };
 }
 
 export async function fetchCategories(): Promise<{ data: Category[] }> {
   if (USE_MOCKS) return { data: MOCK_CATEGORIES };
-  const { data } = await api.get('/categories');
-  return data;
+  const { data } = await api.get<{ data: ArmCategory[] }>('/categories');
+  return { data: data.data.map(armToCategory) };
 }
 
 // ---------- Product Reviews (FBG-69) ----------
