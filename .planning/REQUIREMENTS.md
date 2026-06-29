@@ -20,12 +20,12 @@
 
 ### Cart & Checkout
 
-- [ ] **CART-01**: Добавление в корзину оперирует `distributorProductId`
-- [ ] **CART-02**: Корзина валидирует сток/цену против ARM (`/cart/validate`)
-- [ ] **CART-03**: Расчёт доставки для TR (FedEx `/shipping/rates` или упрощённый/самовывоз)
-- [ ] **CART-04**: Оформление заказа создаёт заказ в ARM (`POST /orders`)
+- [x] **CART-01**: Добавление в корзину оперирует `distributorProductId`
+- [x] **CART-02**: Корзина валидирует сток/цену против ARM (`/cart/validate`)
+- [x] **CART-03**: Расчёт доставки для TR (FedEx `/shipping/rates` или упрощённый/самовывоз)
+- [x] **CART-04**: Оформление заказа создаёт заказ в ARM (`POST /orders`)
 - [ ] **CART-05**: Оплата Stripe (test mode) + страница подтверждения заказа
-- [ ] **CART-06**: Применение промокода через ARM (`/promo/validate`)
+- [x] **CART-06**: Применение промокода через ARM (`/promo/validate`)
 
 ### Auth & Account
 
@@ -87,12 +87,12 @@
 | CAT-03 | Phase 1 | Complete |
 | CAT-04 | Phase 1 | Complete |
 | CAT-05 | Phase 1 | Complete |
-| CART-01 | Phase 2 | Pending |
-| CART-02 | Phase 2 | Pending |
-| CART-03 | Phase 2 | Pending |
-| CART-04 | Phase 2 | Pending |
+| CART-01 | Phase 2 | Complete |
+| CART-02 | Phase 2 | Complete |
+| CART-03 | Phase 2 | Complete |
+| CART-04 | Phase 2 | Complete |
 | CART-05 | Phase 2 | Pending |
-| CART-06 | Phase 2 | Pending |
+| CART-06 | Phase 2 | Complete |
 | AUTH-01 | Phase 3 | Pending |
 | AUTH-02 | Phase 3 | Pending |
 | AUTH-03 | Phase 3 | Pending |
@@ -111,6 +111,7 @@
 | DATA-01 | Phase 7 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 29 total (2 Foundation complete + 27 active)
 - Mapped to phases: 29
 - Unmapped: 0 ✓
