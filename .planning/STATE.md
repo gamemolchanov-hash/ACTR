@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: "Phase 2 спланирована (02-01 data-layer ARM, 02-02 UI+Stripe embedded). Следующий шаг — выполнение: начать с 02-01 (нужен `make up` demo + `npm run dev`). Запускать из /home/lexun/work/puz/ACTR."
-last_updated: "2026-06-29T20:37:46.006Z"
-last_activity: 2026-06-29 -- Phase 02 execution started
+status: planning
+stopped_at: Phase 3 context gathered (auth/account on ARM, mirror FBG)
+last_updated: "2026-06-29T21:23:27.721Z"
+last_activity: 2026-06-29 -- Phase 02 verified complete (tsc clean, storefront key server-side, OMS/CDEK removed)
 progress:
   total_phases: 7
   completed_phases: 2
@@ -78,6 +78,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-29T20:32:58.369Z
-Stopped at: Phase 2 ВЫПОЛНЕНА и верифицирована (5/5 критериев, tsc чисто). 02-01 (data-layer ARM) + 02-02 (UI+Stripe Embedded) закоммичены в main. Открыт 1 human-gate: live-оплата Stripe требует demo payment_config с тест-ключами в Portal. Следующий шаг — Phase 3 (auth/ЛК): /gsd-discuss-phase 3 → /gsd-plan-phase 3.
-Resume file: .planning/phases/02-checkout/VERIFICATION.md
+Last session: 2026-06-29T21:23:27.718Z
+Stopped at: Phase 3 context gathered (auth/account on ARM, mirror FBG)
+Resume file: .planning/phases/03-account/03-CONTEXT.md
