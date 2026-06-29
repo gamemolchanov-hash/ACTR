@@ -12,11 +12,11 @@
 
 ### Catalog
 
-- [ ] **CAT-01**: Витрина ходит в ARM API `/public/arm/storefront/*` с server-side `X-Storefront-Key`
-- [ ] **CAT-02**: Листинг каталога рендерит товары из ARM (адаптер `distributorProduct` → `Product`)
-- [ ] **CAT-03**: Карточка товара рендерится из ARM
-- [ ] **CAT-04**: Навигация по категориям из ARM
-- [ ] **CAT-05**: Картинки товаров грузятся из ARM (MinIO, схема `/images/:tenantId/*`)
+- [x] **CAT-01**: Витрина ходит в ARM API `/public/arm/storefront/*` с server-side `X-Storefront-Key`
+- [x] **CAT-02**: Листинг каталога рендерит товары из ARM (адаптер `distributorProduct` → `Product`)
+- [x] **CAT-03**: Карточка товара рендерится из ARM
+- [x] **CAT-04**: Навигация по категориям из ARM
+- [x] **CAT-05**: Картинки товаров грузятся из ARM (MinIO, схема `/images/:tenantId/*`)
 
 ### Cart & Checkout
 
@@ -82,11 +82,11 @@
 |-------------|-------|--------|
 | BOOT-01 | Phase 0 | Complete |
 | BOOT-02 | Phase 0 | Complete |
-| CAT-01 | Phase 1 | Pending |
-| CAT-02 | Phase 1 | Pending |
-| CAT-03 | Phase 1 | Pending |
-| CAT-04 | Phase 1 | Pending |
-| CAT-05 | Phase 1 | Pending |
+| CAT-01 | Phase 1 | Complete |
+| CAT-02 | Phase 1 | Complete |
+| CAT-03 | Phase 1 | Complete |
+| CAT-04 | Phase 1 | Complete |
+| CAT-05 | Phase 1 | Complete |
 | CART-01 | Phase 2 | Pending |
 | CART-02 | Phase 2 | Pending |
 | CART-03 | Phase 2 | Pending |
