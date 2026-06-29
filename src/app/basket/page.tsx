@@ -29,9 +29,7 @@ import {
 } from '@/lib/api';
 import { palette } from '@/lib/theme';
 import { imgCart, imgCartSm } from '@/lib/image-url';
-// BOGO HOOK START
-import { useAutoPromo, PromoPlashka, type AutoPromoData } from '@/features/promo-bogo';
-// BOGO HOOK END
+import { fmtMoney } from '@/lib/money';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = '"Futura PT", Helvetica';
@@ -49,7 +47,7 @@ const c = {
   '40': 'rgba(173, 183, 217, 1)', // #adb7d9
 };
 
-const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
+const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD';
 
 /* ---- Table column widths (from Figma absolute positions) ---- */
 const COL_PRICE = 181;
@@ -62,12 +60,6 @@ export default function BasketPage() {
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  // BOGO HOOK START
-  const [cartValidateData, setCartValidateData] = useState<{
-    auto_promo?: AutoPromoData | null;
-  } | null>(null);
-  const autoPromo = useAutoPromo(cartValidateData);
-  // BOGO HOOK END
 
   // Promo code state
   const [promoInput, setPromoInput] = useState('');
@@ -79,9 +71,6 @@ export default function BasketPage() {
     if (items.length === 0) {
       setValidated([]);
       setSubtotal(0);
-      // BOGO HOOK START
-      setCartValidateData(null);
-      // BOGO HOOK END
       return;
     }
     let cancelled = false;
@@ -91,9 +80,6 @@ export default function BasketPage() {
         if (cancelled) return;
         setValidated(res.data.items);
         setSubtotal(res.data.subtotal);
-        // BOGO HOOK START
-        setCartValidateData(res.data);
-        // BOGO HOOK END
       })
       .catch(() => {})
       .finally(() => {
@@ -104,11 +90,11 @@ export default function BasketPage() {
     };
   }, [items]);
 
-  // Re-validate promo when cart changes
+  // Re-validate promo when subtotal changes (items added/removed)
   useEffect(() => {
-    if (!promoResult?.valid || !promoResult.code) return;
+    if (!promoResult?.valid || !promoResult.code || subtotal === 0) return;
     // Silently re-validate to update discount_amount
-    validatePromo(promoResult.code, items)
+    validatePromo(promoResult.code, subtotal)
       .then((res) => {
         if (res.data.valid) {
           setPromoResult(res.data);
@@ -122,7 +108,7 @@ export default function BasketPage() {
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [subtotal]);
 
   const handleApplyPromo = async () => {
     const code = promoInput.trim();
@@ -130,18 +116,18 @@ export default function BasketPage() {
     setPromoLoading(true);
     setPromoError(null);
     try {
-      const res = await validatePromo(code, items);
+      const res = await validatePromo(code, subtotal);
       if (res.data.valid) {
         setPromoResult(res.data);
         setPromoError(null);
         sessionStorage.setItem('checkout_promo', JSON.stringify(res.data));
       } else {
         setPromoResult(null);
-        setPromoError(res.data.error || 'Промокод недействителен');
+        setPromoError(res.data.error || 'Promo code is not valid');
         sessionStorage.removeItem('checkout_promo');
       }
     } catch {
-      setPromoError('Ошибка проверки промокода');
+      setPromoError('Error validating promo code');
     } finally {
       setPromoLoading(false);
     }
@@ -154,11 +140,7 @@ export default function BasketPage() {
     sessionStorage.removeItem('checkout_promo');
   };
 
-  // BOGO HOOK START — auto_promo takes precedence over manual when both could apply
-  const autoPromoDiscount = autoPromo?.discount_amount ?? 0;
-  // BOGO HOOK END
-  const manualPromoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
-  const promoDiscount = autoPromoDiscount > 0 ? autoPromoDiscount : manualPromoDiscount;
+  const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
   const finalTotal = Math.max(0, subtotal - promoDiscount);
 
   /* ---- Breadcrumbs ---- */
@@ -173,7 +155,7 @@ export default function BasketPage() {
         underline="hover"
         sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}
       >
-        Главная
+        Home
       </MuiLink>
       <MuiLink
         component={Link}
@@ -181,10 +163,10 @@ export default function BasketPage() {
         underline="hover"
         sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}
       >
-        Каталог
+        Catalog
       </MuiLink>
       <Typography sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}>
-        Корзина
+        Basket
       </Typography>
     </Breadcrumbs>
   );
@@ -195,20 +177,20 @@ export default function BasketPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1, textTransform: 'uppercase', color: c.main, mb: 3 }}>
-          Корзина
+          Basket
         </Typography>
-        <Typography sx={{ ...text, color: c.main, mb: 1 }}>Корзина пока пуста</Typography>
+        <Typography sx={{ ...text, color: c.main, mb: 1 }}>Your basket is empty</Typography>
         <Typography sx={{ ...text, color: c.main }}>
-          Вы можете перейти в{' '}
+          Go to{' '}
           <MuiLink
             component={Link}
             href="/catalog"
             underline="hover"
             sx={{ fontWeight: 700, color: c.main }}
           >
-            Каталог
-          </MuiLink>
-          , чтобы продолжить покупки
+            Catalog
+          </MuiLink>{' '}
+          to continue shopping
         </Typography>
       </Box>
     );
@@ -219,7 +201,7 @@ export default function BasketPage() {
     <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
       {breadcrumbs}
       <Typography sx={{ ...h1, textTransform: 'uppercase', color: c.main, mb: 4 }}>
-        Корзина
+        Basket
       </Typography>
 
       {/* ====== Promo + Summary row ====== */}
@@ -234,105 +216,90 @@ export default function BasketPage() {
       >
         {/* Promo — left */}
         <Box sx={{ flex: 1 }}>
-          {/* BOGO HOOK START */}
-          {autoPromo ? (
-            <>
-              <Typography sx={{ ...text, color: c.main, mb: 1.5 }}>Применена акция</Typography>
-              <PromoPlashka data={autoPromo} />
-            </>
+          <Typography sx={{ ...text, color: c.main, mb: 1.5 }}>
+            Enter promo code for a discount
+          </Typography>
+          {promoResult?.valid ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  bgcolor: '#e8f5e9',
+                  border: '1px solid #4caf50',
+                  borderRadius: '10px',
+                  px: 2,
+                  py: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <Typography sx={{ ...text, color: '#2e7d32', fontWeight: 500 }}>
+                  {promoResult.code}
+                </Typography>
+                <Typography sx={{ ...info, color: '#4caf50' }}>
+                  {promoResult.discount_type === 'percent'
+                    ? `−${promoResult.discount_value}%`
+                    : `−${fmtMoney(promoResult.discount_value || 0, currency)}`}
+                </Typography>
+                <IconButton size="small" onClick={handleRemovePromo} sx={{ ml: 0.5, p: 0.25 }}>
+                  <CloseIcon sx={{ fontSize: 18, color: '#2e7d32' }} />
+                </IconButton>
+              </Box>
+              {promoResult.description && (
+                <Typography sx={{ ...info, color: c['40'] }}>{promoResult.description}</Typography>
+              )}
+            </Box>
           ) : (
-            <>
-              {/* BOGO HOOK END */}
-              <Typography sx={{ ...text, color: c.main, mb: 1.5 }}>
-                Введите промокод для скидки
-              </Typography>
-              {promoResult?.valid ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Box
-                    sx={{
-                      bgcolor: '#e8f5e9',
-                      border: '1px solid #4caf50',
-                      borderRadius: '10px',
-                      px: 2,
-                      py: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                    }}
-                  >
-                    <Typography sx={{ ...text, color: '#2e7d32', fontWeight: 500 }}>
-                      {promoResult.code}
-                    </Typography>
-                    <Typography sx={{ ...info, color: '#4caf50' }}>
-                      {promoResult.discount_type === 'percent'
-                        ? `−${promoResult.discount_value}%`
-                        : `−${fmt(promoResult.discount_value || 0)}`}
-                    </Typography>
-                    <IconButton size="small" onClick={handleRemovePromo} sx={{ ml: 0.5, p: 0.25 }}>
-                      <CloseIcon sx={{ fontSize: 18, color: '#2e7d32' }} />
-                    </IconButton>
-                  </Box>
-                  {promoResult.description && (
-                    <Typography sx={{ ...info, color: c['40'] }}>
-                      {promoResult.description}
-                    </Typography>
-                  )}
-                </Box>
-              ) : (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <InputBase
-                    value={promoInput}
-                    onChange={(e) => setPromoInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleApplyPromo();
-                    }}
-                    placeholder="ПРОМОКОД"
-                    disabled={promoLoading}
-                    sx={{
-                      border: '0.5px solid',
-                      borderColor: promoError ? '#d32f2f' : c.main,
-                      borderRadius: '10px',
-                      px: 2,
-                      height: 50,
-                      flex: 1,
-                      maxWidth: 419,
-                      ...text,
-                      color: c.main,
-                    }}
-                  />
-                  <Box
-                    component="button"
-                    onClick={handleApplyPromo}
-                    disabled={promoLoading}
-                    sx={{
-                      width: 50,
-                      height: 50,
-                      bgcolor: promoLoading ? c['40'] : c.main,
-                      border: 'none',
-                      borderRadius: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: promoLoading ? 'default' : 'pointer',
-                      flexShrink: 0,
-                      '&:hover': { bgcolor: promoLoading ? c['40'] : '#2a3d85' },
-                    }}
-                  >
-                    {promoLoading ? (
-                      <CircularProgress size={20} sx={{ color: 'white' }} />
-                    ) : (
-                      <ArrowForwardIcon sx={{ color: 'white', fontSize: 24 }} />
-                    )}
-                  </Box>
-                </Box>
-              )}
-              {promoError && (
-                <Typography sx={{ ...info, color: '#d32f2f', mt: 0.75 }}>{promoError}</Typography>
-              )}
-              {/* BOGO HOOK START */}
-            </>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <InputBase
+                value={promoInput}
+                onChange={(e) => setPromoInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleApplyPromo();
+                }}
+                placeholder="PROMO CODE"
+                disabled={promoLoading}
+                sx={{
+                  border: '0.5px solid',
+                  borderColor: promoError ? '#d32f2f' : c.main,
+                  borderRadius: '10px',
+                  px: 2,
+                  height: 50,
+                  flex: 1,
+                  maxWidth: 419,
+                  ...text,
+                  color: c.main,
+                }}
+              />
+              <Box
+                component="button"
+                onClick={handleApplyPromo}
+                disabled={promoLoading}
+                sx={{
+                  width: 50,
+                  height: 50,
+                  bgcolor: promoLoading ? c['40'] : c.main,
+                  border: 'none',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: promoLoading ? 'default' : 'pointer',
+                  flexShrink: 0,
+                  '&:hover': { bgcolor: promoLoading ? c['40'] : '#2a3d85' },
+                }}
+              >
+                {promoLoading ? (
+                  <CircularProgress size={20} sx={{ color: 'white' }} />
+                ) : (
+                  <ArrowForwardIcon sx={{ color: 'white', fontSize: 24 }} />
+                )}
+              </Box>
+            </Box>
           )}
-          {/* BOGO HOOK END */}
+          {promoError && (
+            <Typography sx={{ ...info, color: '#d32f2f', mt: 0.75 }}>{promoError}</Typography>
+          )}
         </Box>
 
         {/* Summary card — right, aligned with Price/Qty/Total columns */}
@@ -355,16 +322,16 @@ export default function BasketPage() {
             {promoDiscount > 0 && (
               <>
                 <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
-                  Подитог: {fmt(subtotal)}
+                  Subtotal: {fmtMoney(subtotal, currency)}
                 </Typography>
                 <Typography sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
-                  Скидка: −{fmt(promoDiscount)}
+                  Discount: −{fmtMoney(promoDiscount, currency)}
                 </Typography>
               </>
             )}
-            <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>Итого:</Typography>
+            <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>Total:</Typography>
             <Typography sx={{ ...h2, color: c.main, lineHeight: 1.2 }}>
-              {fmt(finalTotal)}
+              {fmtMoney(finalTotal, currency)}
             </Typography>
           </Box>
           <Button
@@ -383,7 +350,7 @@ export default function BasketPage() {
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >
-            Оформить заказ
+            Place Order
           </Button>
         </Box>
       </Box>
@@ -396,12 +363,12 @@ export default function BasketPage() {
         <>
           {/* ====== Desktop table ====== */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0 }}>
-            {/* ---- LEFT: НАИМЕНОВАНИЕ + product rows ---- */}
+            {/* ---- LEFT: PRODUCT NAME + product rows ---- */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               {/* Header */}
               <Box sx={{ height: 90, display: 'flex', alignItems: 'center' }}>
                 <Typography sx={{ ...h3, color: c.main, textTransform: 'uppercase' }}>
-                  Наименование
+                  Product
                 </Typography>
               </Box>
               {/* Separator */}
@@ -437,7 +404,7 @@ export default function BasketPage() {
                           sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                         />
                       ) : (
-                        <Typography sx={{ fontSize: 11, color: c['40'] }}>Нет фото</Typography>
+                        <Typography sx={{ fontSize: 11, color: c['40'] }}>No photo</Typography>
                       )}
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
@@ -463,7 +430,7 @@ export default function BasketPage() {
 
             {/* ---- RIGHT: 3-column table with bgLight cells ---- */}
             <Box sx={{ display: 'flex', flexShrink: 0 }}>
-              {/* ЦЕНА, ШТ. column */}
+              {/* PRICE column */}
               <Box sx={{ width: COL_PRICE }}>
                 <Box
                   sx={{
@@ -478,7 +445,7 @@ export default function BasketPage() {
                   <Typography
                     sx={{ ...h3, color: c.main, textTransform: 'uppercase', textAlign: 'center' }}
                   >
-                    Цена, шт.
+                    Price / pc
                   </Typography>
                 </Box>
                 {validated.map((item, idx) => (
@@ -495,7 +462,7 @@ export default function BasketPage() {
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.unitPrice != null ? fmt(item.unitPrice) : '—'}
+                      {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'}
                     </Typography>
                   </Box>
                 ))}
@@ -504,7 +471,7 @@ export default function BasketPage() {
               {/* Vertical separator */}
               <Box sx={{ width: '1px', bgcolor: c['20'] }} />
 
-              {/* КОЛИЧЕСТВО, ШТ. column */}
+              {/* QUANTITY column */}
               <Box sx={{ width: COL_QTY }}>
                 <Box
                   sx={{
@@ -524,9 +491,9 @@ export default function BasketPage() {
                       lineHeight: 1.3,
                     }}
                   >
-                    Количество,
+                    Quantity,
                     <br />
-                    шт.
+                    pcs
                   </Typography>
                 </Box>
                 {validated.map((item) => (
@@ -591,7 +558,7 @@ export default function BasketPage() {
               {/* Vertical separator */}
               <Box sx={{ width: '1px', bgcolor: c['20'] }} />
 
-              {/* ИТОГО column */}
+              {/* TOTAL column */}
               <Box sx={{ width: COL_TOTAL }}>
                 <Box
                   sx={{
@@ -606,7 +573,7 @@ export default function BasketPage() {
                   <Typography
                     sx={{ ...h3, color: c.main, textTransform: 'uppercase', textAlign: 'center' }}
                   >
-                    Итого
+                    Total
                   </Typography>
                 </Box>
                 {validated.map((item, idx) => (
@@ -623,7 +590,7 @@ export default function BasketPage() {
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.lineTotal != null ? fmt(item.lineTotal) : '—'}
+                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency) : '—'}
                     </Typography>
                   </Box>
                 ))}
@@ -665,7 +632,7 @@ export default function BasketPage() {
                       sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                     />
                   ) : (
-                    <Typography sx={{ fontSize: 10, color: c['40'] }}>Нет фото</Typography>
+                    <Typography sx={{ fontSize: 10, color: c['40'] }}>No photo</Typography>
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -681,7 +648,7 @@ export default function BasketPage() {
                     {item.name}
                   </Typography>
                   <Typography sx={{ fontSize: 14, color: c.main, mb: 1 }}>
-                    {item.unitPrice != null ? fmt(item.unitPrice) : '—'}
+                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'}
                   </Typography>
                   <Box
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
@@ -729,7 +696,7 @@ export default function BasketPage() {
                       </IconButton>
                     </Box>
                     <Typography sx={{ fontSize: 15, fontWeight: 500, color: c.main }}>
-                      {item.lineTotal != null ? fmt(item.lineTotal) : '—'}
+                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency) : '—'}
                     </Typography>
                   </Box>
                 </Box>
