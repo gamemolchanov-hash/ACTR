@@ -63,9 +63,11 @@ export interface ArmCartValidationItem {
   name?: string;
   sku?: string;
   unitPrice?: number;
-  quantity: number;
+  /** Present for valid items; absent when valid=false (product_not_found). */
+  quantity?: number;
   available?: number;
   lineTotal?: number;
+  vatRate?: number;
   image?: string | null;
   error?: string | null;
 }
@@ -76,16 +78,29 @@ export interface ArmCartValidation {
   allValid: boolean;
 }
 
-export interface ArmPromoValidation {
-  valid: boolean;
-  code?: string;
-  discount_type?: string;
-  discount_value?: number;
-  discount_amount?: number;
-  free_shipping?: boolean;
-  description?: string | null;
-  error?: string;
-}
+/**
+ * ARM promo validation response (actual BFF contract from storefront-api.ts).
+ * The BFF returns a discriminated union on `status`, not a `valid: boolean` field.
+ */
+export type ArmPromoValidation =
+  | {
+      status: 'applied';
+      promo: {
+        id: string;
+        code: string;
+        discount_type: string;
+        discount_value: number;
+        description: string | null;
+      };
+      discount_amount: number;
+      free_shipping: boolean;
+    }
+  | { status: 'invalid' }
+  | { status: 'not_yet_valid'; validFrom: string }
+  | { status: 'expired' }
+  | { status: 'used_up' }
+  | { status: 'customer_limit'; limit: number }
+  | { status: 'min_order'; minAmount: number };
 
 export interface ArmShippingRate {
   id: string;
@@ -128,7 +143,8 @@ export interface ArmOrder {
   date_created: string;
   total: number;
   currency: string;
-  status: { code: string; name: string; color: string };
+  /** ARM v2 status is a relation; only code+name are reliably fetched server-side. */
+  status: { code: string; name: string; color?: string };
   track_number?: string | null;
   track_url?: string | null;
   items: {

@@ -77,7 +77,8 @@ export function armToValidatedCart(v: ArmCartValidation): {
       name: it.name,
       sku: it.sku,
       unitPrice: it.unitPrice,
-      quantity: it.quantity,
+      // quantity is absent for product_not_found invalid items — default to 0
+      quantity: it.quantity ?? 0,
       available: it.available,
       lineTotal: it.lineTotal,
       image: it.image ?? null,
@@ -89,23 +90,41 @@ export function armToValidatedCart(v: ArmCartValidation): {
 }
 
 /**
- * Maps ARM PromoValidation response to the vitrine's PromoValidationResult shape.
- * Normalises discount_type to 'percent' | 'fixed' where applicable.
+ * Maps ARM PromoValidation response (discriminated union on `status`) to the
+ * vitrine's PromoValidationResult shape.
+ *
+ * ARM contract (storefront-api.ts PromoValidateResult):
+ *   { status: 'applied'; promo:{code,discount_type,discount_value,description}; discount_amount; free_shipping }
+ *   | { status: 'invalid' | 'expired' | 'used_up' | 'not_yet_valid' | 'customer_limit' | 'min_order'; ... }
  */
 export function armToPromoResult(p: ArmPromoValidation): PromoValidationResult {
+  if (p.status !== 'applied') {
+    const errorMap: Record<ArmPromoValidation['status'], string> = {
+      applied: '',
+      invalid: 'Promo code is not valid',
+      not_yet_valid: 'Promo code is not yet active',
+      expired: 'Promo code has expired',
+      used_up: 'Promo code has been used up',
+      customer_limit: 'Promo code usage limit reached',
+      min_order: 'Order total does not meet the minimum for this promo',
+    };
+    return { valid: false, error: errorMap[p.status] || 'Promo code is not valid' };
+  }
+
   let discountType: 'percent' | 'fixed' | undefined;
-  if (p.discount_type === 'percent' || p.discount_type === 'percentage') {
+  const dt = p.promo.discount_type;
+  if (dt === 'percent' || dt === 'percentage') {
     discountType = 'percent';
-  } else if (p.discount_type === 'fixed' || p.discount_type === 'amount') {
+  } else if (dt === 'fixed' || dt === 'amount') {
     discountType = 'fixed';
   }
+
   return {
-    valid: p.valid,
-    code: p.code,
+    valid: true,
+    code: p.promo.code,
     discount_type: discountType,
-    discount_value: p.discount_value,
+    discount_value: p.promo.discount_value,
     discount_amount: p.discount_amount,
-    description: p.description ?? null,
-    error: p.error,
+    description: p.promo.description,
   };
 }
