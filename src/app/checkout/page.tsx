@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Box,
   Typography,
@@ -23,22 +24,32 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { SelectChangeEvent } from '@mui/material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
 import {
   validateCart,
+  validatePromo,
+  fetchShippingRates,
   createOrder,
-  searchCdekCities,
-  fetchCdekPoints,
+  createPaymentSession,
   type ValidatedCartItem,
-  type CdekCity,
-  type CdekPoint,
   type PromoValidationResult,
 } from '@/lib/api';
 import { palette } from '@/lib/theme';
 import { imgCart } from '@/lib/image-url';
+import { fmtMoney } from '@/lib/money';
+import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
+
+/* Stripe Embedded Checkout — client-side only */
+const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbeddedCheckout'), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+      <CircularProgress sx={{ color: '#334a9f' }} size={32} />
+    </Box>
+  ),
+});
 
 /* ---- Figma design tokens ---- */
 const font = '"Futura PT", Helvetica';
@@ -67,7 +78,7 @@ const c = {
   red: '#ff002d',
 };
 
-const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' \u20BD';
+const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD';
 
 /* ---- Input sx shared ---- */
 const inputSx = {
@@ -105,10 +116,9 @@ interface FormData {
   email: string;
   name: string;
   phone: string;
+  /** ISO-3166-1 alpha-2, default TR */
   country: string;
   city: string;
-  region: string;
-  district: string;
   street: string;
   building: string;
   block: string;
@@ -120,10 +130,8 @@ const INITIAL_FORM: FormData = {
   email: '',
   name: '',
   phone: '',
-  country: '',
+  country: 'TR',
   city: '',
-  region: '',
-  district: '',
   street: '',
   building: '',
   block: '',
@@ -131,10 +139,21 @@ const INITIAL_FORM: FormData = {
   zip: '',
 };
 
+/** Countries available in the TR-focused checkout. ISO-2 code + display name. */
+const COUNTRIES: { code: string; name: string }[] = [
+  { code: 'TR', name: 'Turkey' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'AE', name: 'United Arab Emirates' },
+];
+
 const STORAGE_KEY = 'checkout_form';
 const STORAGE_STEP_KEY = 'checkout_step';
-const STORAGE_DELIVERY_KEY = 'checkout_delivery';
-const STORAGE_POINT_KEY = 'checkout_point';
 
 function loadFromSession<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -152,51 +171,9 @@ function saveToSession(key: string, value: unknown) {
   } catch {}
 }
 
-const COUNTRIES = ['Россия', 'Беларусь', 'Казахстан'];
-
-/** Guess country from region/address string */
-function guessCountry(
-  region?: string | null,
-  address?: string | null,
-  city?: string | null,
-): string {
-  const text = [region, address, city].filter(Boolean).join(' ').toLowerCase();
-  if (/беларус|минск|гомель|брест|гродно|витебск|могилёв|могилев/.test(text)) return 'Беларусь';
-  if (/казахстан|алматы|астана|нур-султан|шымкент|караганд/.test(text)) return 'Казахстан';
-  return 'Россия';
-}
-
-// СДЭК delivery options (all free) — tariff codes for BetaPro
-interface CdekDeliveryOption {
-  id: string;
-  name: string;
-  tariff: string;
-  needsPoint: boolean;
-  pointType?: 'PVZ' | 'POSTAMAT';
-}
-
-const CDEK_OPTIONS: CdekDeliveryOption[] = [
-  { id: 'cdek_courier', name: 'СДЭК Доставка курьером', tariff: '137', needsPoint: false },
-  {
-    id: 'cdek_postamat',
-    name: 'СДЭК Постамат',
-    tariff: '136',
-    needsPoint: true,
-    pointType: 'POSTAMAT',
-  },
-  {
-    id: 'cdek_pvz',
-    name: 'СДЭК Пункт выдачи заказов',
-    tariff: '136',
-    needsPoint: true,
-    pointType: 'PVZ',
-  },
-];
-
 export default function CheckoutPage() {
-  const { items, removeItem, clearCart } = useCart();
-  const router = useRouter();
-  const { customer, address: savedAddress, isLogged } = useAuth();
+  const { items, removeItem } = useCart();
+  const { customer, isLogged } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
@@ -207,35 +184,30 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Saved addresses
+  // Saved addresses (logged-in)
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [isNewAddress, setIsNewAddress] = useState(false);
 
-  // Step 2 state
-  const [selectedDelivery, setSelectedDelivery] = useState<string>('');
-  const [cdekCityCode, setCdekCityCode] = useState<number | null>(null);
-  const [cdekPoints, setCdekPoints] = useState<CdekPoint[]>([]);
-  const [selectedPoint, setSelectedPoint] = useState<string>('');
-  const [pointsLoading, setPointsLoading] = useState(false);
+  // ARM shipping rates
+  const [shippingRates, setShippingRates] = useState<ArmShippingRate[]>([]);
+  const [shippingUnavailable, setShippingUnavailable] = useState(false);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [selectedRateId, setSelectedRateId] = useState<string>('');
 
   // Promo code (restored from sessionStorage, set by basket page)
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
-  const customerDiscountPercent = (customer as any)?.discount_percent
-    ? parseFloat((customer as any).discount_percent)
-    : 0;
-  const afterPromo = subtotal - promoDiscount;
-  const customerDiscount =
-    customerDiscountPercent > 0 ? Math.round(afterPromo * customerDiscountPercent) / 100 : 0;
-  const finalTotal = Math.max(0, afterPromo - customerDiscount);
+  const finalTotal = Math.max(0, subtotal - promoDiscount);
+
+  // Payment session (Stripe Embedded)
+  const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
 
   // Hydrate from sessionStorage on mount (client only)
   useEffect(() => {
-    setForm(loadFromSession(STORAGE_KEY, INITIAL_FORM));
+    const saved = loadFromSession<Partial<FormData>>(STORAGE_KEY, {});
+    setForm((prev) => ({ ...prev, ...saved }));
     setStep(loadFromSession(STORAGE_STEP_KEY, 1));
-    setSelectedDelivery(loadFromSession(STORAGE_DELIVERY_KEY, ''));
-    setSelectedPoint(loadFromSession(STORAGE_POINT_KEY, ''));
     // Restore promo code from basket page
     try {
       const stored = sessionStorage.getItem('checkout_promo');
@@ -253,44 +225,33 @@ export default function CheckoutPage() {
       email: prev.email || customer.email || '',
       phone: prev.phone || customer.phone || '',
     }));
-    // Load addresses
     getMyAddresses()
       .then((addrs) => {
         setSavedAddresses(addrs);
-        // Auto-select default address
         const def = addrs.find((a) => a.is_default) || addrs[0];
         if (def && !form.city && !form.street) {
           setSelectedAddressId(def.id);
           setForm((prev) => ({
             ...prev,
             city: def.city || '',
-            region: def.region || '',
-            district: def.district || '',
             street: def.street || '',
             building: def.building || '',
             block: def.block || '',
             apartment: def.apartment || '',
             zip: def.postal_code || '',
-            country: prev.country || guessCountry(def.region, def.address, def.city),
           }));
         }
       })
       .catch(() => {});
   }, [hydrated, isLogged, customer]);
 
-  // Persist to sessionStorage (only after hydration to avoid overwriting with defaults)
+  // Persist form to sessionStorage (only after hydration)
   useEffect(() => {
     if (hydrated) saveToSession(STORAGE_KEY, form);
   }, [form, hydrated]);
   useEffect(() => {
     if (hydrated) saveToSession(STORAGE_STEP_KEY, step);
   }, [step, hydrated]);
-  useEffect(() => {
-    if (hydrated) saveToSession(STORAGE_DELIVERY_KEY, selectedDelivery);
-  }, [selectedDelivery, hydrated]);
-  useEffect(() => {
-    if (hydrated) saveToSession(STORAGE_POINT_KEY, selectedPoint);
-  }, [selectedPoint, hydrated]);
 
   // Validate cart on mount / items change
   useEffect(() => {
@@ -317,45 +278,37 @@ export default function CheckoutPage() {
     };
   }, [items]);
 
-  // Resolve CDEK city code when entering step 2
+  // Fetch ARM shipping rates when on step 2 with country+zip filled
   useEffect(() => {
-    if (!hydrated || step !== 2 || !form.city) return;
+    if (!hydrated || step !== 2 || !form.country || !form.zip || items.length === 0) return;
     let cancelled = false;
-    searchCdekCities(form.city)
+    setShippingLoading(true);
+    setShippingRates([]);
+    setShippingUnavailable(false);
+    fetchShippingRates({ country: form.country, postalCode: form.zip, items })
       .then((res) => {
-        if (cancelled || !res.data.length) return;
-        setCdekCityCode(res.data[0].code);
+        if (cancelled) return;
+        if (!res.fedex_configured || !res.rates?.length) {
+          setShippingUnavailable(true);
+        } else {
+          setShippingRates(res.rates);
+          // Auto-select first available rate
+          if (res.rates.length > 0 && !selectedRateId) {
+            setSelectedRateId(res.rates[0].id);
+          }
+        }
       })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [step, form.city]);
-
-  // Fetch CDEK points when delivery option with points is selected
-  const selectedOption = CDEK_OPTIONS.find((o) => o.id === selectedDelivery);
-  useEffect(() => {
-    if (!hydrated) return; // wait for sessionStorage hydration
-    if (!selectedOption?.needsPoint) {
-      setCdekPoints([]);
-      setSelectedPoint('');
-      return;
-    }
-    if (!cdekCityCode) return; // wait for city code, don't clear point
-    let cancelled = false;
-    setPointsLoading(true);
-    fetchCdekPoints(cdekCityCode, selectedOption.pointType || 'ALL')
-      .then((res) => {
-        if (!cancelled) setCdekPoints(res.data);
+      .catch(() => {
+        if (!cancelled) setShippingUnavailable(true);
       })
-      .catch(() => {})
       .finally(() => {
-        if (!cancelled) setPointsLoading(false);
+        if (!cancelled) setShippingLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [selectedDelivery, cdekCityCode, selectedOption?.needsPoint, selectedOption?.pointType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, form.country, form.zip]);
 
   const handleField = (name: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [name]: e.target.value }));
@@ -372,7 +325,6 @@ export default function CheckoutPage() {
       form.phone &&
       form.country &&
       form.city &&
-      form.region &&
       form.street &&
       form.building &&
       form.zip
@@ -385,31 +337,25 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isStep2Valid = useMemo(() => {
-    if (!selectedDelivery) return false;
-    const opt = CDEK_OPTIONS.find((o) => o.id === selectedDelivery);
-    if (opt?.needsPoint && !selectedPoint) return false;
-    return true;
-  }, [selectedDelivery, selectedPoint]);
+  const selectedRate = shippingRates.find((r) => r.id === selectedRateId) || null;
+  const shippingCost = selectedRate?.price ?? 0;
+  const totalWithShipping = Math.max(0, finalTotal + shippingCost);
 
   const handleSubmit = async () => {
-    if (!isStep2Valid || submitting) return;
+    if (submitting) return;
     setError(null);
     setSubmitting(true);
     try {
-      const opt = CDEK_OPTIONS.find((o) => o.id === selectedDelivery)!;
-
-      // Compose display address from structured fields
       const addressParts = [
         form.street,
-        form.building && `д. ${form.building}`,
-        form.block && `к. ${form.block}`,
-        form.apartment && `${form.apartment}`,
+        form.building && `No: ${form.building}`,
+        form.block && `Block: ${form.block}`,
+        form.apartment && `Apt: ${form.apartment}`,
       ]
         .filter(Boolean)
         .join(', ');
 
-      const res = await createOrder({
+      const orderRes = await createOrder({
         customer: {
           name: form.name,
           phone: form.phone,
@@ -420,56 +366,47 @@ export default function CheckoutPage() {
           city: form.city,
           zip: form.zip,
           country: form.country,
-          region: form.region || undefined,
-          district: form.district || undefined,
           street: form.street || undefined,
           building: form.building || undefined,
           block: form.block || undefined,
           apartment: form.apartment || undefined,
-          delivery_type: opt.name,
-          delivery_cost: 0,
-          delivery_tariff_type: opt.tariff,
-          pickup_point_code: opt.needsPoint ? selectedPoint : undefined,
+          cost: selectedRate?.price,
+          method: selectedRateId || undefined,
         },
         items,
-        payment_method: 'card_online',
-        promo_code: promoResult?.valid ? promoResult.code : undefined,
+        promoCode: promoResult?.valid ? promoResult.code : undefined,
       });
-      clearCart();
+
+      const origin = window.location.origin;
+      const sessionRes = await createPaymentSession(
+        orderRes.data.id,
+        `${origin}/checkout/success?order=${orderRes.data.id}`,
+        `${origin}/checkout`,
+      );
+
+      // Clear session storage (cart cleared on success page after payment)
       sessionStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(STORAGE_STEP_KEY);
-      sessionStorage.removeItem(STORAGE_DELIVERY_KEY);
-      sessionStorage.removeItem(STORAGE_POINT_KEY);
       sessionStorage.removeItem('checkout_promo');
 
-      // Submit POST form to PayKeeper for payment
-      if (res.data.paymentUrl && res.data.paymentFields) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = res.data.paymentUrl;
-        form.acceptCharset = 'utf-8';
-        for (const [key, value] of Object.entries(
-          res.data.paymentFields as Record<string, string>,
-        )) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        }
-        document.body.appendChild(form);
-        form.submit();
+      if (sessionRes.data.redirectUrl) {
+        // Hosted Stripe Checkout (ui_mode=hosted fallback)
+        window.location.assign(sessionRes.data.redirectUrl);
+      } else if (sessionRes.data.clientSecret && sessionRes.data.publishableKey) {
+        // Embedded Stripe Checkout (ui_mode=embedded)
+        setPaymentSession(sessionRes.data);
+        setSubmitting(false);
       } else {
-        router.push(`/checkout/success?order=${res.data.number}&total=${res.data.total}`);
+        // Fallback: direct redirect to success
+        window.location.assign(`${origin}/checkout/success?order=${orderRes.data.id}`);
       }
     } catch (err: any) {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'Ошибка при создании заказа';
+        'Error creating order';
       setError(msg);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -481,9 +418,9 @@ export default function CheckoutPage() {
       sx={{ mb: 1, '& .MuiBreadcrumbs-separator': { color: c['20'], mx: 0.5 } }}
     >
       {[
-        { label: 'Главная', href: '/' },
-        { label: 'Каталог', href: '/catalog' },
-        { label: 'Корзина', href: '/basket' },
+        { label: 'Home', href: '/' },
+        { label: 'Catalog', href: '/catalog' },
+        { label: 'Basket', href: '/basket' },
       ].map((b) => (
         <MuiLink
           key={b.href}
@@ -496,7 +433,7 @@ export default function CheckoutPage() {
         </MuiLink>
       ))}
       <Typography sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}>
-        Оформление заказа
+        Checkout
       </Typography>
     </Breadcrumbs>
   );
@@ -507,17 +444,17 @@ export default function CheckoutPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 3 }}>
-          Оформление заказа
+          Checkout
         </Typography>
         <Typography sx={{ ...textSm, color: c.main }}>
-          Корзина пуста.{' '}
+          Your cart is empty.{' '}
           <MuiLink
             component={Link}
             href="/catalog"
             underline="hover"
             sx={{ fontWeight: 700, color: c.main }}
           >
-            Перейти в каталог
+            Go to catalog
           </MuiLink>
         </Typography>
       </Box>
@@ -558,7 +495,6 @@ export default function CheckoutPage() {
   /* ---- Stepper visual ---- */
   const stepper = (
     <Box sx={{ mb: 3 }}>
-      {/* Step 1: ПОКУПАТЕЛЬ */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography
           sx={{
@@ -568,7 +504,7 @@ export default function CheckoutPage() {
             fontWeight: step === 1 ? 500 : 400,
           }}
         >
-          Покупатель
+          Customer
         </Typography>
         {step > 1 && (
           <Typography
@@ -580,19 +516,18 @@ export default function CheckoutPage() {
               '&:hover': { textDecoration: 'underline' },
             }}
           >
-            Изменить
+            Edit
           </Typography>
         )}
       </Stack>
 
-      {/* Step 1 summary (when on step 2) */}
       {step > 1 && (
         <Stack spacing={'9px'} sx={{ mt: 1, mb: 1 }}>
           {[
-            { label: 'ФИО', value: form.name },
+            { label: 'Name', value: form.name },
             { label: 'Email', value: form.email },
-            { label: 'Город', value: form.city },
-            { label: 'Телефон', value: form.phone },
+            { label: 'City', value: form.city },
+            { label: 'Phone', value: form.phone },
           ].map((f) => (
             <Typography key={f.label} sx={{ color: c.main, ...text }}>
               {f.value || f.label}
@@ -603,7 +538,6 @@ export default function CheckoutPage() {
 
       <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', my: 2 }} />
 
-      {/* Step 2: ДОСТАВКА */}
       <Typography
         sx={{
           ...h2Sx,
@@ -612,13 +546,13 @@ export default function CheckoutPage() {
           fontWeight: step === 2 ? 500 : 400,
         }}
       >
-        Доставка
+        Delivery
       </Typography>
 
       {step < 2 && (
         <>
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', my: 2 }} />
-          <Typography sx={{ color: c.main, ...text }}>Оплата</Typography>
+          <Typography sx={{ color: c.main, ...text }}>Payment</Typography>
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', mt: 2 }} />
         </>
       )}
@@ -630,12 +564,12 @@ export default function CheckoutPage() {
     <>
       <Stack spacing={2.5}>
         {field('Email', 'email')}
-        {field('ФИО', 'name')}
-        {field('Телефон', 'phone')}
+        {field('Full Name', 'name')}
+        {field('Phone', 'phone')}
 
         <Box>
           <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
-            Страна, регион{' '}
+            Country{' '}
             <Box component="span" sx={{ color: c.red }}>
               *
             </Box>
@@ -647,16 +581,18 @@ export default function CheckoutPage() {
               displayEmpty
               renderValue={(selected) =>
                 selected ? (
-                  <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
+                  <Typography sx={{ color: c.main, fontSize: '16px' }}>
+                    {COUNTRIES.find((ct) => ct.code === selected)?.name || selected}
+                  </Typography>
                 ) : (
-                  <Typography sx={{ color: c['20'], fontSize: '16px' }}>Выберите страну</Typography>
+                  <Typography sx={{ color: c['20'], fontSize: '16px' }}>Select country</Typography>
                 )
               }
               sx={selectSx}
             >
-              {COUNTRIES.map((country) => (
-                <MenuItem key={country} value={country}>
-                  {country}
+              {COUNTRIES.map((ct) => (
+                <MenuItem key={ct.code} value={ct.code}>
+                  {ct.name}
                 </MenuItem>
               ))}
             </Select>
@@ -666,7 +602,7 @@ export default function CheckoutPage() {
         {/* Saved address cards (logged in, has addresses) */}
         {isLogged && savedAddresses.length > 0 && (
           <Box>
-            <Typography sx={{ color: c.main, ...textSm, mb: 1 }}>Адрес доставки</Typography>
+            <Typography sx={{ color: c.main, ...textSm, mb: 1 }}>Delivery address</Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
               {savedAddresses.map((addr) => (
                 <Box
@@ -677,14 +613,11 @@ export default function CheckoutPage() {
                     setForm((prev) => ({
                       ...prev,
                       city: addr.city || '',
-                      region: addr.region || '',
-                      district: addr.district || '',
                       street: addr.street || '',
                       building: addr.building || '',
                       block: addr.block || '',
                       apartment: addr.apartment || '',
                       zip: addr.postal_code || '',
-                      country: guessCountry(addr.region, addr.address, addr.city),
                     }));
                   }}
                   sx={{
@@ -715,8 +648,6 @@ export default function CheckoutPage() {
                             setForm((prev) => ({
                               ...prev,
                               city: '',
-                              region: '',
-                              district: '',
                               street: '',
                               building: '',
                               block: '',
@@ -764,8 +695,6 @@ export default function CheckoutPage() {
                   setForm((prev) => ({
                     ...prev,
                     city: '',
-                    region: '',
-                    district: '',
                     street: '',
                     building: '',
                     block: '',
@@ -785,22 +714,20 @@ export default function CheckoutPage() {
                   '&:hover': { borderColor: c.main },
                 }}
               >
-                <Typography sx={{ fontSize: 14, color: c.main }}>+ Новый адрес</Typography>
+                <Typography sx={{ fontSize: 14, color: c.main }}>+ New address</Typography>
               </Box>
             </Stack>
           </Box>
         )}
 
-        {field('Город (населённый пункт)', 'city')}
-        {field('Область / регион', 'region')}
-        {optField('Район', 'district')}
-        {field('Улица', 'street')}
+        {field('City', 'city')}
+        {field('Street', 'street')}
         <Stack direction="row" spacing={1.5}>
-          <Box sx={{ flex: 1 }}>{field('Дом', 'building')}</Box>
-          <Box sx={{ flex: 1 }}>{optField('Корпус', 'block')}</Box>
-          <Box sx={{ flex: 1 }}>{optField('Квартира / офис', 'apartment')}</Box>
+          <Box sx={{ flex: 1 }}>{field('Building / No', 'building')}</Box>
+          <Box sx={{ flex: 1 }}>{optField('Block', 'block')}</Box>
+          <Box sx={{ flex: 1 }}>{optField('Apartment / Office', 'apartment')}</Box>
         </Stack>
-        {field('Индекс', 'zip')}
+        {field('Postal Code', 'zip')}
       </Stack>
 
       <Button
@@ -810,12 +737,12 @@ export default function CheckoutPage() {
         onClick={handleStep1Continue}
         sx={btnSx}
       >
-        Продолжить
+        Continue
       </Button>
 
       {/* Collapsed future steps */}
       <Box sx={{ mt: 4 }}>
-        {['Выбор доставки', 'Оплата'].map((label, idx) => (
+        {['Choose delivery', 'Payment'].map((label, idx) => (
           <Box key={label}>
             <Divider sx={{ borderColor: c.main, borderWidth: '0.5px' }} />
             <Typography sx={{ color: c.main, ...text, py: '14px' }}>{label}</Typography>
@@ -826,95 +753,93 @@ export default function CheckoutPage() {
     </>
   );
 
-  /* ---- Step 2: Delivery selection ---- */
+  /* ---- Step 2: ARM Shipping rates selection + Payment ---- */
   const step2Content = (
     <>
-      <RadioGroup
-        value={selectedDelivery}
-        onChange={(e) => {
-          setSelectedDelivery(e.target.value);
-          setSelectedPoint('');
-        }}
-      >
-        {CDEK_OPTIONS.map((opt) => (
-          <Stack
-            key={opt.id}
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 1 }}
-          >
-            <FormControlLabel
-              value={opt.id}
-              control={<Radio sx={{ color: c.main, '&.Mui-checked': { color: c.main } }} />}
-              label={<Typography sx={{ color: c.main, ...text }}>{opt.name}</Typography>}
-            />
-            <Typography sx={{ color: c.main, ...btn, textAlign: 'right' }}>0{'\u20BD'}</Typography>
-          </Stack>
-        ))}
-      </RadioGroup>
-
-      {/* CDEK points dropdown (shown for Постамат / ПВЗ) */}
-      {selectedOption?.needsPoint && (
+      {/* If payment session is active, show Stripe Embedded Checkout */}
+      {paymentSession && paymentSession.clientSecret && paymentSession.publishableKey ? (
         <Box sx={{ mt: 2 }}>
-          <FormControl fullWidth>
-            <Select
-              displayEmpty
-              value={selectedPoint}
-              onChange={(e: SelectChangeEvent) => setSelectedPoint(e.target.value)}
-              sx={selectSx}
-              MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
-              renderValue={(val) => {
-                if (!val)
-                  return (
-                    <Typography sx={{ color: c['20'], fontSize: '16px' }}>
-                      {pointsLoading
-                        ? 'Загрузка пунктов...'
-                        : `Выберите ${selectedOption?.pointType === 'POSTAMAT' ? 'постамат' : 'пункт выдачи'}`}
-                    </Typography>
-                  );
-                const pt = cdekPoints.find((p) => p.code === val);
-                return (
-                  <Typography sx={{ color: c.main, fontSize: '14px' }} noWrap>
-                    {pt?.name || val}
-                  </Typography>
-                );
-              }}
-            >
-              <MenuItem value="" disabled>
-                <Typography sx={{ color: c['20'], fontSize: '16px' }}>
-                  {pointsLoading
-                    ? 'Загрузка пунктов...'
-                    : `Выберите ${selectedOption.pointType === 'POSTAMAT' ? 'постамат' : 'пункт выдачи'}`}
-                </Typography>
-              </MenuItem>
-              {cdekPoints.map((pt) => (
-                <MenuItem key={pt.code} value={pt.code}>
-                  <Box>
-                    <Typography sx={{ fontSize: 14, color: c.main }}>{pt.name}</Typography>
-                    <Typography sx={{ fontSize: 12, color: c['40'] }}>
-                      {pt.location.address_full || pt.location.address}
-                    </Typography>
-                    {pt.work_time && (
-                      <Typography sx={{ fontSize: 11, color: c['40'] }}>{pt.work_time}</Typography>
-                    )}
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase', mb: 2 }}>
+            Payment
+          </Typography>
+          <StripeEmbeddedCheckout
+            clientSecret={paymentSession.clientSecret}
+            publishableKey={paymentSession.publishableKey}
+          />
         </Box>
-      )}
+      ) : (
+        <>
+          {/* Shipping rates */}
+          {shippingLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress sx={{ color: c.main }} size={28} />
+            </Box>
+          ) : shippingUnavailable || shippingRates.length === 0 ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Shipping rates temporarily unavailable. You can still place your order — we will
+              contact you to confirm delivery.
+            </Alert>
+          ) : (
+            <RadioGroup
+              value={selectedRateId}
+              onChange={(e) => setSelectedRateId(e.target.value)}
+            >
+              {shippingRates.map((rate) => (
+                <Stack
+                  key={rate.id}
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ mb: 1 }}
+                >
+                  <FormControlLabel
+                    value={rate.id}
+                    control={<Radio sx={{ color: c.main, '&.Mui-checked': { color: c.main } }} />}
+                    label={
+                      <Box>
+                        <Typography sx={{ color: c.main, ...text }}>
+                          {rate.name}
+                          {rate.carrier ? ` (${rate.carrier})` : ''}
+                        </Typography>
+                        {(rate.estimated_days_min || rate.estimated_days_max) && (
+                          <Typography sx={{ color: c['40'], ...info }}>
+                            {rate.estimated_days_min === rate.estimated_days_max
+                              ? `${rate.estimated_days_min} days`
+                              : `${rate.estimated_days_min}–${rate.estimated_days_max} days`}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <Typography sx={{ color: c.main, ...btn, textAlign: 'right', flexShrink: 0 }}>
+                    {rate.is_free ? 'Free' : fmtMoney(rate.price, currency)}
+                  </Typography>
+                </Stack>
+              ))}
+            </RadioGroup>
+          )}
 
-      <Button
-        variant="contained"
-        fullWidth
-        disabled={!isStep2Valid || submitting}
-        onClick={handleSubmit}
-        sx={btnSx}
-      >
-        {submitting ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Перейти к оплате'}
-      </Button>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            variant="contained"
+            fullWidth
+            disabled={submitting}
+            onClick={handleSubmit}
+            sx={btnSx}
+          >
+            {submitting ? (
+              <CircularProgress size={24} sx={{ color: 'white' }} />
+            ) : (
+              'Proceed to Payment'
+            )}
+          </Button>
+        </>
+      )}
     </>
   );
 
@@ -933,7 +858,7 @@ export default function CheckoutPage() {
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase' }}>
-          Ваш заказ
+          Your Order
         </Typography>
         <MuiLink
           component={Link}
@@ -941,7 +866,7 @@ export default function CheckoutPage() {
           underline="none"
           sx={{ color: c['40'], ...text, cursor: 'pointer' }}
         >
-          Изменить
+          Edit
         </MuiLink>
       </Stack>
 
@@ -990,10 +915,10 @@ export default function CheckoutPage() {
                     {item.name}
                   </Typography>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
-                    {item.quantity} шт
+                    {item.quantity} pcs
                   </Typography>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
-                    {item.unitPrice != null ? fmt(item.unitPrice) : '—'} /шт
+                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'} /pc
                   </Typography>
                 </Box>
                 <DeleteOutlineIcon
@@ -1005,39 +930,45 @@ export default function CheckoutPage() {
 
           <Box sx={{ mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography sx={{ color: c.main, ...text }}>Стоимость товара:</Typography>
-              <Typography sx={{ color: c.main, ...text }}>{fmt(subtotal)}</Typography>
+              <Typography sx={{ color: c.main, ...text }}>Subtotal:</Typography>
+              <Typography sx={{ color: c.main, ...text }}>{fmtMoney(subtotal, currency)}</Typography>
             </Stack>
             {promoDiscount > 0 && (
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
                 <Typography sx={{ color: '#2e7d32', ...text }}>
-                  Скидка{promoResult?.code ? ` (${promoResult.code})` : ''}:
+                  Discount{promoResult?.code ? ` (${promoResult.code})` : ''}:
                 </Typography>
-                <Typography sx={{ color: '#2e7d32', ...text }}>−{fmt(promoDiscount)}</Typography>
-              </Stack>
-            )}
-            {customerDiscount > 0 && (
-              <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
                 <Typography sx={{ color: '#2e7d32', ...text }}>
-                  Персональная скидка ({customerDiscountPercent}%):
+                  −{fmtMoney(promoDiscount, currency)}
                 </Typography>
-                <Typography sx={{ color: '#2e7d32', ...text }}>−{fmt(customerDiscount)}</Typography>
               </Stack>
             )}
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography sx={{ color: c.main, ...text }}>Стоимость доставки:</Typography>
-              <Typography sx={{ color: c.main, ...text }}>0 {'\u20BD'}</Typography>
+              <Typography sx={{ color: c.main, ...text }}>Shipping:</Typography>
+              <Typography sx={{ color: c.main, ...text }}>
+                {step < 2
+                  ? '—'
+                  : shippingLoading
+                    ? '...'
+                    : selectedRate
+                      ? selectedRate.is_free
+                        ? 'Free'
+                        : fmtMoney(selectedRate.price, currency)
+                      : shippingUnavailable
+                        ? 'TBD'
+                        : '—'}
+              </Typography>
             </Stack>
           </Box>
 
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', mb: 2 }} />
 
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography sx={{ ...h2Sx, color: c.main }}>ИТОГО:</Typography>
-            <Typography sx={{ ...h2Sx, color: c.main }}>{fmt(finalTotal)}</Typography>
+            <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
+            <Typography sx={{ ...h2Sx, color: c.main }}>
+              {fmtMoney(step < 2 ? finalTotal : totalWithShipping, currency)}
+            </Typography>
           </Stack>
-
-          <Typography sx={{ color: c.main, ...info, mt: 1 }}>*Доставка бесплатная</Typography>
         </>
       )}
     </Paper>
@@ -1048,37 +979,31 @@ export default function CheckoutPage() {
       {breadcrumbs}
 
       <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 1.5 }}>
-        Оформление заказа
+        Checkout
       </Typography>
 
       {!isLogged && (
         <Typography sx={{ ...textSm, color: c.main, mb: 4 }}>
-          Уже есть аккаунт?{' '}
+          Already have an account?{' '}
           <MuiLink
             component={Link}
             href="/login"
             underline="always"
             sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
           >
-            Войдите
+            Sign in
           </MuiLink>{' '}
-          или{' '}
+          or{' '}
           <MuiLink
             component={Link}
             href="/login/register"
             underline="always"
             sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
           >
-            зарегистрируйтесь
+            register
           </MuiLink>{' '}
-          для быстрого оформления.
+          for faster checkout.
         </Typography>
-      )}
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
       )}
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems="flex-start">
