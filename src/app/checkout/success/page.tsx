@@ -1,20 +1,47 @@
 'use client';
 
-import { Suspense } from 'react';
-import { Box, Typography, Button, Paper } from '@mui/material';
+import { Suspense, useEffect, useState } from 'react';
+import { Box, Typography, Button, Paper, CircularProgress } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useCart } from '@/providers/CartProvider';
+import { fetchOrder } from '@/lib/api';
+import { fmtMoney } from '@/lib/money';
 import { palette } from '@/lib/theme';
+import type { ArmOrder } from '@/lib/arm-types';
 
 const font = '"Futura PT", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
-const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' \u20BD';
 
 function SuccessContent() {
   const params = useSearchParams();
-  const orderNumber = params.get('order') || '';
-  const total = Number(params.get('total') || 0);
+  /** `order` query param holds the ARM order UUID returned by createOrder */
+  const orderId = params.get('order') || '';
+  const { clearCart } = useCart();
+
+  const [order, setOrder] = useState<ArmOrder | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // Clear cart at the point of confirmed payment success
+  useEffect(() => {
+    clearCart();
+    try {
+      sessionStorage.removeItem('checkout_promo');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch order details from ARM GET /orders/{id}
+  useEffect(() => {
+    if (!orderId) return;
+    setOrderLoading(true);
+    fetchOrder(orderId)
+      .then((res) => setOrder(res.data))
+      .catch(() => setOrderError('Could not load order details.'))
+      .finally(() => setOrderLoading(false));
+  }, [orderId]);
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 8, textAlign: 'center' }}>
@@ -30,7 +57,7 @@ function SuccessContent() {
           mb: 2,
         }}
       >
-        Заказ оформлен
+        Order Placed
       </Typography>
 
       <Paper
@@ -42,18 +69,40 @@ function SuccessContent() {
           mb: 4,
         }}
       >
-        {orderNumber && (
-          <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-            Номер заказа: <strong>{orderNumber}</strong>
+        {orderLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress sx={{ color: c.main }} size={32} />
+          </Box>
+        )}
+
+        {orderError && (
+          <Typography sx={{ fontFamily: font, fontSize: 16, color: '#d32f2f', mb: 1 }}>
+            {orderError}
           </Typography>
         )}
-        {total > 0 && (
-          <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-            Сумма: <strong>{fmt(total)}</strong>
+
+        {order && (
+          <>
+            <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
+              Order number: <strong>{order.number}</strong>
+            </Typography>
+            <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
+              Total: <strong>{fmtMoney(order.total, order.currency)}</strong>
+            </Typography>
+            <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
+              Status: {order.status.name}
+            </Typography>
+          </>
+        )}
+
+        {!order && !orderLoading && !orderError && orderId && (
+          <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main }}>
+            Order ID: {orderId}
           </Typography>
         )}
+
         <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main, mt: 2 }}>
-          Мы свяжемся с вами для подтверждения заказа.
+          We will contact you to confirm your order.
         </Typography>
       </Paper>
 
@@ -73,7 +122,7 @@ function SuccessContent() {
           '&:hover': { bgcolor: '#2a3d8a' },
         }}
       >
-        Продолжить покупки
+        Continue Shopping
       </Button>
     </Box>
   );
@@ -84,7 +133,10 @@ export default function CheckoutSuccessPage() {
     <Suspense
       fallback={
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <Typography sx={{ fontFamily: font, color: palette.primary }}>Загрузка...</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <CircularProgress sx={{ color: palette.primary }} size={40} />
+            <Typography sx={{ fontFamily: font, color: palette.primary }}>Loading...</Typography>
+          </Box>
         </Box>
       }
     >
