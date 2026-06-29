@@ -1,0 +1,12 @@
+<svg width="32" height="36" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Handle -->
+<path d="M20.125 6.25V3.625C20.125 2.929 19.848 2.261 19.356 1.769C18.864 1.277 18.196 1 17.5 1H14.5C13.804 1 13.136 1.277 12.644 1.769C12.152 2.261 11.875 2.929 11.875 3.625V6.25" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- Lid -->
+<path d="M30 7H2" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- Body -->
+<path d="M27 7V32.7C27 33.045 26.883 33.375 26.675 33.619C26.466 33.863 26.184 34 25.889 34H6.111C5.816 34 5.534 33.863 5.325 33.619C5.117 33.375 5 33.045 5 32.7V7" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- 3 vertical lines -->
+<path d="M12 14V27.5" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16 14V27.5" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M20 14V27.5" stroke="#334A9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

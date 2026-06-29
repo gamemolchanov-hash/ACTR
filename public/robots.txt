@@ -1,0 +1,11 @@
+# American Creator — robots.txt (FBG-67)
+User-agent: *
+Allow: /
+
+# Private / transactional areas — no SEO value, keep out of the index
+Disallow: /account
+Disallow: /basket
+Disallow: /checkout
+Disallow: /login
+
+Sitemap: https://american-creator.ru/sitemap.xml
