@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered (auth/account on ARM, mirror FBG)
-last_updated: "2026-06-29T21:23:27.721Z"
-last_activity: 2026-06-29 -- Phase 02 verified complete (tsc clean, storefront key server-side, OMS/CDEK removed)
+stopped_at: "Phase 3 ПЛАНИРОВАНИЕ почти готово — 3 плана написаны (03-01/02/03), plan-checker ещё НЕ запускался. Пауза до завтра."
+last_updated: "2026-06-30T00:50:00.000Z"
+last_activity: 2026-06-30 -- Phase 03 planned (3 plans written; pending plan-checker)
 progress:
   total_phases: 7
   completed_phases: 2
@@ -21,16 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 3 — Авторизация и личный кабинет (next)
+**Current focus:** Phase 3 — Авторизация и личный кабинет (ПЛАНИРОВАНИЕ, пауза)
 
 ## Current Position
 
-Phase: 02 (checkout) — COMPLETE ✅ (verified 5/5; live Stripe payment pending demo-setup gate)
-Plan: 2 of 2 complete
-Status: complete — ready to plan Phase 3
-Last activity: 2026-06-29 -- Phase 02 verified complete (tsc clean, storefront key server-side, OMS/CDEK removed)
+Phase: 03 (account) — PLANNED (3 плана написаны), pending plan-checker → execution
+Plan: 0 of 3 executed
+Status: ⏸ ПАУЗА до завтра — discuss✅ research✅ validation✅ patterns✅ 3 плана✅; осталось: plan-checker → execute
+Last activity: 2026-06-30 -- Phase 03 spланирован (03-01/02/03), plan-checker не запускался
 
 Progress: [███░░░░░░░] 29%
+
+### ▶ Как продолжить завтра (resume)
+1. `cd /home/lexun/work/puz/ACTR`
+2. `/gsd-progress` — увидеть статус, ИЛИ сразу:
+3. **Опц.** прогнать гейт качества планов: `/gsd-plan-phase 3` (предложит «Add/View/Replan» — планы уже есть; можно сразу к execute) — или пропустить.
+4. **Выполнить фазу:** `/gsd-execute-phase 3` — wave 1: 03-01 (фундамент сессии), затем wave 2: 03-02 + 03-03 (могут параллельно — не пересекаются по файлам, оба depends 03-01).
+   - Нужен живой demo-BFF: `make up` (autoCRM :4000) + `npm run dev` (ACTR). AUTH-07 без setup-гейта (в отличие от Stripe в Phase 2).
+5. Контекст/контракт — всё в `.planning/phases/03-account/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION + 3 PLAN). Эталон реализации — FBG (`~/work/puz/FBG`).
 
 ## Performance Metrics
 
@@ -78,6 +86,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-29T21:23:27.718Z
-Stopped at: Phase 3 context gathered (auth/account on ARM, mirror FBG)
-Resume file: .planning/phases/03-account/03-CONTEXT.md
+Last session: 2026-06-30 (пауза)
+Stopped at: Phase 3 спланирована — 3 плана (03-01 фундамент сессии · 03-02 ЛК orders/addresses · 03-03 settings+GDPR+checkout-linking), покрытие AUTH-01..07 полное. plan-checker НЕ запускался. Завтра: (опц.) plan-checker → /gsd-execute-phase 3 (нужен `make up` :4000 + `npm run dev`).
+Resume file: .planning/phases/03-account/03-01-PLAN.md
