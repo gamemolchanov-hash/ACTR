@@ -146,19 +146,9 @@ const nextConfig = {
     return redirects;
   },
 
-  async rewrites() {
-    const bffUrl = process.env.BFF_INTERNAL_URL || 'http://localhost:4000';
-    return [
-      {
-        source: '/api/storefront/:path*',
-        destination: `${bffUrl}/public/oms/storefront/:path*`,
-      },
-      {
-        source: '/product-images/:path*',
-        destination: `${bffUrl}/product-images/:path*`,
-      },
-    ];
-  },
+  // Phase 1: `/api/storefront/*` теперь обслуживает ARM route-handler
+  // (src/app/api/storefront/[...path]/route.ts) с server-side X-Storefront-Key.
+  // Картинки идут туда же (ARM `/images/:tenantId/*`). Прежний OMS-rewrite убран.
 };
 
 module.exports = withSentryConfig(nextConfig, {
