@@ -53,3 +53,89 @@ export interface ArmPaginated<T> {
   data: T[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
+
+// ---------- Checkout ARM types ----------
+
+/** Item in ARM CartValidation response. */
+export interface ArmCartValidationItem {
+  distributorProductId: string;
+  valid: boolean;
+  name?: string;
+  sku?: string;
+  unitPrice?: number;
+  quantity: number;
+  available?: number;
+  lineTotal?: number;
+  image?: string | null;
+  error?: string | null;
+}
+
+export interface ArmCartValidation {
+  items: ArmCartValidationItem[];
+  subtotal: number;
+  allValid: boolean;
+}
+
+export interface ArmPromoValidation {
+  valid: boolean;
+  code?: string;
+  discount_type?: string;
+  discount_value?: number;
+  discount_amount?: number;
+  free_shipping?: boolean;
+  description?: string | null;
+  error?: string;
+}
+
+export interface ArmShippingRate {
+  id: string;
+  slug: 'economy' | 'standard' | 'express' | 'overnight';
+  name: string;
+  carrier: string;
+  estimated_days_min: number;
+  estimated_days_max: number;
+  price: number;
+  original_price?: number;
+  is_free?: boolean;
+  free_threshold?: number | null;
+  live_rate?: boolean;
+}
+
+export interface ArmShippingRatesResponse {
+  fedex_configured: boolean;
+  rates: ArmShippingRate[];
+}
+
+export interface ArmOrderCreateResponse {
+  data: {
+    id: string;
+    number: string;
+    total: number;
+    currency: string;
+  };
+}
+
+export interface ArmPaymentSession {
+  sessionId: string;
+  clientSecret?: string;
+  publishableKey?: string;
+  redirectUrl?: string;
+}
+
+export interface ArmOrder {
+  id: string;
+  number: string;
+  date_created: string;
+  total: number;
+  currency: string;
+  status: { code: string; name: string; color: string };
+  track_number?: string | null;
+  track_url?: string | null;
+  items: {
+    id: string;
+    quantity: number;
+    unit_price: number;
+    total: number;
+    product: { name: string; sku: string };
+  }[];
+}
