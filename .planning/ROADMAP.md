@@ -52,10 +52,14 @@ Plans:
   3. Заказ создаётся в ARM и оплачивается в Stripe test mode
   4. Страница подтверждения показывает заказ
   5. Промокод применяется через ARM
-**Plans**: TBD
+**Decisions (discuss 2026-06-29)**: Stripe **embedded** (порт FBG-компонента под Next 14+MUI) ·
+доставка — потреблять `/shipping/rates` как есть · скоуп — **гость-чекаут** (auth → Phase 3,
+KDV/KVKK/mesafeli юр-UI → Phase 5).
+**Plans**: 2 (planned 2026-06-29)
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01: Checkout data-layer на ARM (cart/promo/shipping/order/payment/order-detail) — wave 1
+- [ ] 02-02: Checkout/basket/success UI + Stripe Embedded Checkout — wave 2 (depends 02-01)
 
 ### Phase 3: Авторизация и личный кабинет
 **Goal**: Покупатель регистрируется/логинится и управляет аккаунтом против ARM.
