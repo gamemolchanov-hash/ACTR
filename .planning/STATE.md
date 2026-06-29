@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: completed
 stopped_at: "Phase 2 спланирована (02-01 data-layer ARM, 02-02 UI+Stripe embedded). Следующий шаг — выполнение: начать с 02-01 (нужен `make up` demo + `npm run dev`). Запускать из /home/lexun/work/puz/ACTR."
-last_updated: "2026-06-29T20:33:02.836Z"
+last_updated: "2026-06-29T20:37:46.006Z"
 last_activity: 2026-06-29 -- Phase 02 execution started
 progress:
   total_phases: 7
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 02 — checkout
+**Current focus:** Phase 3 — Авторизация и личный кабинет (next)
 
 ## Current Position
 
-Phase: 02 (checkout) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-06-29 -- Phase 02 execution started
+Phase: 02 (checkout) — COMPLETE ✅ (verified 5/5; live Stripe payment pending demo-setup gate)
+Plan: 2 of 2 complete
+Status: complete — ready to plan Phase 3
+Last activity: 2026-06-29 -- Phase 02 verified complete (tsc clean, storefront key server-side, OMS/CDEK removed)
 
-Progress: [█░░░░░░░░░] 14%
+Progress: [███░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -63,7 +63,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ### Pending Todos
 
-None yet.
+- **[human-verify] Live Stripe payment E2E** — code path complete & verified; live test needs demo storefront `payment_config` (ui_mode=embedded) with Stripe test keys in Portal, then `make up` + `npm run dev`, pay with `4242 4242 4242 4242`, expect redirect to `/checkout/success?order=<uuid>`. Documented in 02-02 SUMMARY + VERIFICATION.md.
 
 ### Blockers/Concerns
 
@@ -79,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-29T20:32:58.369Z
-Stopped at: Phase 2 спланирована (02-01 data-layer ARM, 02-02 UI+Stripe embedded). Следующий шаг — выполнение: начать с 02-01 (нужен `make up` demo + `npm run dev`). Запускать из /home/lexun/work/puz/ACTR.
-Resume file: .planning/phases/02-checkout/02-01-PLAN.md
+Stopped at: Phase 2 ВЫПОЛНЕНА и верифицирована (5/5 критериев, tsc чисто). 02-01 (data-layer ARM) + 02-02 (UI+Stripe Embedded) закоммичены в main. Открыт 1 human-gate: live-оплата Stripe требует demo payment_config с тест-ключами в Portal. Следующий шаг — Phase 3 (auth/ЛК): /gsd-discuss-phase 3 → /gsd-plan-phase 3.
+Resume file: .planning/phases/02-checkout/VERIFICATION.md
