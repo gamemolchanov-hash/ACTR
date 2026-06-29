@@ -83,8 +83,16 @@ export interface PaginatedResponse<T> {
 // ---------- API Functions (with mock fallback for local dev) ----------
 
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
-import { armToProduct, armToCategory } from './arm-adapter';
-import type { ArmDistributorProduct, ArmCategory, ArmPaginated } from './arm-types';
+import { armToProduct, armToCategory, armToValidatedCart, armToPromoResult } from './arm-adapter';
+import type {
+  ArmDistributorProduct,
+  ArmCategory,
+  ArmPaginated,
+  ArmShippingRatesResponse,
+  ArmOrderCreateResponse,
+  ArmPaymentSession,
+  ArmOrder,
+} from './arm-types';
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
@@ -179,88 +187,16 @@ export async function submitReview(
   return data;
 }
 
-// ---------- Delivery ----------
-
-export interface DeliveryService {
-  id: string;
-  code: string;
-  name: string;
-}
-
-export async function fetchDeliveryServices(): Promise<{ data: DeliveryService[] }> {
-  const { data } = await api.get('/delivery-services');
-  return data;
-}
-
-export interface CdekCity {
-  code: number;
-  city: string;
-  region: string;
-}
-
-export async function searchCdekCities(city: string): Promise<{ data: CdekCity[] }> {
-  const { data } = await api.get('/cdek/cities', { params: { city } });
-  return data;
-}
-
-export interface CdekPoint {
-  code: string;
-  name: string;
-  type: 'PVZ' | 'POSTAMAT';
-  city_code: number;
-  city: string;
-  work_time: string;
-  location: {
-    address: string;
-    address_full: string;
-  };
-}
-
-export async function fetchCdekPoints(
-  cityCode: number,
-  type: 'PVZ' | 'POSTAMAT' | 'ALL',
-): Promise<{ data: CdekPoint[] }> {
-  const { data } = await api.get('/cdek/points', { params: { city_code: cityCode, type } });
-  return data;
-}
-
 // ---------- Checkout ----------
 
-export interface CreateOrderPayload {
-  customer: { name: string; phone: string; email?: string };
-  shipping: {
-    address?: string;
-    city?: string;
-    zip?: string;
-    country?: string;
-    region?: string;
-    district?: string;
-    street?: string;
-    building?: string;
-    block?: string;
-    apartment?: string;
-    delivery_service?: string;
-    delivery_type?: string;
-    delivery_cost?: number;
-    delivery_tariff_type?: string;
-    pickup_point_code?: string;
-  };
-  items: CartItem[];
-  comment?: string;
-  payment_method?: string;
-  promo_code?: string;
+/** Returns X-Currency header for ARM checkout endpoints. */
+function currencyHeader(): Record<string, string> {
+  return { 'X-Currency': process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD' };
 }
 
-export interface CreateOrderResponse {
-  data: {
-    id: string;
-    number: string;
-    subtotal?: number;
-    promo_discount?: number;
-    total: number;
-    paymentUrl?: string;
-    paymentFields?: Record<string, string>;
-  };
+/** Maps a CartItem to the ARM distributorProductId form. */
+function toArm(i: CartItem) {
+  return { distributorProductId: i.productId, quantity: i.quantity };
 }
 
 // ---------- Promo Codes ----------
@@ -275,43 +211,132 @@ export interface PromoValidationResult {
   description?: string | null;
 }
 
+/**
+ * Validate a promo code against a subtotal.
+ * ARM contract: POST /promo/validate { code, subtotal }
+ */
 export async function validatePromo(
   code: string,
-  items: CartItem[],
-  customerPhone?: string,
+  subtotal: number,
 ): Promise<{ data: PromoValidationResult }> {
-  const { data } = await api.post('/validate-promo', {
-    code,
-    items,
-    customer_phone: customerPhone,
-  });
-  return data;
+  const { data } = await api.post(
+    '/promo/validate',
+    { code, subtotal },
+    { headers: currencyHeader() },
+  );
+  return { data: armToPromoResult(data.data) };
 }
 
-export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderResponse> {
-  const { data } = await api.post('/orders', payload);
-  return data;
-}
-
+/**
+ * Validate cart items against ARM inventory.
+ * ARM contract: POST /cart/validate { items:[{distributorProductId,quantity}] }
+ * Returns adapted ValidatedCartItem[] (no BOGO auto_promo — ARM doesn't support it).
+ */
 export async function validateCart(items: CartItem[]): Promise<{
   data: {
     items: ValidatedCartItem[];
     subtotal: number;
     allValid: boolean;
-    // BOGO HOOK START
-    auto_promo?: {
-      valid: boolean;
-      discount_amount: number;
-      free_quantity: number;
-      eligible_quantity?: number;
-      code: string;
-      description: string | null;
-      promo_id: string;
-      discount_type: 'bogo';
-    } | null;
-    // BOGO HOOK END
   };
 }> {
-  const { data } = await api.post('/cart/validate', { items });
+  const { data } = await api.post(
+    '/cart/validate',
+    { items: items.map(toArm) },
+    { headers: currencyHeader() },
+  );
+  return { data: armToValidatedCart(data.data) };
+}
+
+// ---------- Shipping ----------
+
+export interface FetchShippingRatesParams {
+  country: string;
+  postalCode: string;
+  items: CartItem[];
+  currency?: string;
+}
+
+/**
+ * Fetch available shipping rates from ARM.
+ * ARM contract: GET /shipping/rates?country&postalCode&currency&items=JSON
+ */
+export async function fetchShippingRates(
+  params: FetchShippingRatesParams,
+): Promise<ArmShippingRatesResponse> {
+  const { data } = await api.get('/shipping/rates', {
+    params: {
+      country: params.country,
+      postalCode: params.postalCode,
+      currency: params.currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD',
+      items: JSON.stringify(params.items.map(toArm)),
+    },
+    headers: currencyHeader(),
+  });
+  return data.data ?? data;
+}
+
+// ---------- Orders ----------
+
+export interface CreateOrderPayload {
+  customer: { name: string; phone: string; email?: string };
+  shipping: {
+    address?: string;
+    street?: string;
+    building?: string;
+    block?: string;
+    apartment?: string;
+    city?: string;
+    zip?: string;
+    /** ISO-3166-1 alpha-2, e.g. "TR" */
+    country: string;
+    cost?: number;
+    method?: string;
+  };
+  items: CartItem[];
+  comment?: string;
+  /** Promo code to apply (camelCase per ARM OpenAPI). */
+  promoCode?: string;
+}
+
+/**
+ * Create a guest order via ARM.
+ * ARM contract: POST /orders CreateOrder → { data:{id,number,total,currency} }
+ * Items are mapped to {distributorProductId,quantity} internally.
+ */
+export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrderCreateResponse> {
+  const body = {
+    customer: payload.customer,
+    shipping: payload.shipping,
+    items: payload.items.map(toArm),
+    comment: payload.comment,
+    promoCode: payload.promoCode,
+  };
+  const { data } = await api.post('/orders', body, { headers: currencyHeader() });
   return data;
+}
+
+/**
+ * Create a Stripe payment session for an order.
+ * ARM contract: POST /payment/create-session {orderId,successUrl,cancelUrl}
+ */
+export async function createPaymentSession(
+  orderId: string,
+  successUrl: string,
+  cancelUrl: string,
+): Promise<{ data: ArmPaymentSession }> {
+  const { data } = await api.post('/payment/create-session', {
+    orderId,
+    successUrl,
+    cancelUrl,
+  });
+  return { data: data.data ?? data };
+}
+
+/**
+ * Fetch a guest order by UUID.
+ * ARM contract: GET /orders/{id}
+ */
+export async function fetchOrder(id: string): Promise<{ data: ArmOrder }> {
+  const { data } = await api.get(`/orders/${id}`);
+  return { data: data.data ?? data };
 }
