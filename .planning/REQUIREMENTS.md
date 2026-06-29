@@ -24,7 +24,7 @@
 - [x] **CART-02**: Корзина валидирует сток/цену против ARM (`/cart/validate`)
 - [x] **CART-03**: Расчёт доставки для TR (FedEx `/shipping/rates` или упрощённый/самовывоз)
 - [x] **CART-04**: Оформление заказа создаёт заказ в ARM (`POST /orders`)
-- [ ] **CART-05**: Оплата Stripe (test mode) + страница подтверждения заказа
+- [x] **CART-05**: Оплата Stripe (test mode) + страница подтверждения заказа
 - [x] **CART-06**: Применение промокода через ARM (`/promo/validate`)
 
 ### Auth & Account
@@ -91,7 +91,7 @@
 | CART-02 | Phase 2 | Complete |
 | CART-03 | Phase 2 | Complete |
 | CART-04 | Phase 2 | Complete |
-| CART-05 | Phase 2 | Pending |
+| CART-05 | Phase 2 | Complete |
 | CART-06 | Phase 2 | Complete |
 | AUTH-01 | Phase 3 | Pending |
 | AUTH-02 | Phase 3 | Pending |
