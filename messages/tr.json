@@ -1,0 +1,23 @@
+{
+  "nav.catalog": "Katalog",
+  "nav.new": "Yeni Gelenler",
+  "nav.studios": "Nail Stüdyoları İçin",
+  "nav.partners": "Ortaklar",
+  "nav.contacts": "İletişim",
+  "nav.menu": "Menü",
+  "common.search": "Ara",
+  "common.signIn": "Giriş Yap",
+  "common.signOut": "Çıkış Yap",
+  "common.account": "Hesap",
+  "common.cart": "Sepet",
+  "common.noResults": "Sonuç bulunamadı",
+  "common.allResults": "Tüm sonuçlar →",
+  "common.loading": "Yükleniyor…",
+  "common.cabinet": "Hesabım",
+  "cart.added": "Ürün sepete eklendi",
+  "cart.total": "Sepetteki toplam ürün: {count}",
+  "cart.continueShopping": "Alışverişe Devam",
+  "cart.checkout": "Siparişi Tamamla",
+  "lang.en": "EN",
+  "lang.tr": "TR"
+}

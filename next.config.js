@@ -1,4 +1,7 @@
 const { withSentryConfig } = require('@sentry/nextjs');
+const createNextIntlPlugin = require('next-intl/plugin');
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -151,7 +154,7 @@ const nextConfig = {
   // Картинки идут туда же (ARM `/images/:tenantId/*`). Прежний OMS-rewrite убран.
 };
 
-module.exports = withSentryConfig(nextConfig, {
+module.exports = withSentryConfig(withNextIntl(nextConfig), {
   // Suppress source map upload warnings when no auth token
   silent: true,
   // Don't widen the scope of tree-shaking done by bundlers

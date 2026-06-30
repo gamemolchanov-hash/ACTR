@@ -1,0 +1,23 @@
+{
+  "nav.catalog": "Catalog",
+  "nav.new": "New Arrivals",
+  "nav.studios": "For Nail Studios",
+  "nav.partners": "Partners",
+  "nav.contacts": "Contacts",
+  "nav.menu": "Menu",
+  "common.search": "Search",
+  "common.signIn": "Sign In",
+  "common.signOut": "Sign Out",
+  "common.account": "Account",
+  "common.cart": "Cart",
+  "common.noResults": "Nothing found",
+  "common.allResults": "All results →",
+  "common.loading": "Loading…",
+  "common.cabinet": "Account",
+  "cart.added": "Item added to cart",
+  "cart.total": "Total items in cart: {count}",
+  "cart.continueShopping": "Continue Shopping",
+  "cart.checkout": "Checkout",
+  "lang.en": "EN",
+  "lang.tr": "TR"
+}
