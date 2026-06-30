@@ -350,5 +350,8 @@
   "errors.backHome": "Ana Sayfaya Git",
   "errors.errorTitle": "Bir şeyler yanlış gitti",
   "errors.errorDesc": "Sayfa yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
-  "errors.retry": "Tekrar dene"
+  "errors.retry": "Tekrar dene",
+
+  "meta.siteDesc": "Profesyonel jel oje ve kaplama kataloğu. Nail uzmanları için sertifikalı ürünler.",
+  "meta.defaultTitle": "American Creator — profesyonel jel ojeler"
 }

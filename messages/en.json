@@ -350,5 +350,8 @@
   "errors.backHome": "Go to Home",
   "errors.errorTitle": "Something went wrong",
   "errors.errorDesc": "An error occurred while loading the page. Please try again.",
-  "errors.retry": "Try again"
+  "errors.retry": "Try again",
+
+  "meta.siteDesc": "Catalog of professional gel polishes and coatings. Certified products for nail professionals.",
+  "meta.defaultTitle": "American Creator — professional gel polishes"
 }

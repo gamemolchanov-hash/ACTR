@@ -4,6 +4,8 @@
  * Verifies the structured-data / metadata builders produce correct, crawler-
  * ready output (title, description, canonical, OG images, schema.org Product
  * with price + availability) and that JSON-LD embedding is XSS-safe.
+ *
+ * I18N-04: locale-aware OG locale, hreflang alternates, TRY currency (04-05).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
@@ -89,39 +91,74 @@ describe('productImageAbsoluteUrls', () => {
 
 describe('buildMetaDescription', () => {
   it('prefers the product description, stripping any HTML', () => {
-    const p: Product = { ...baseProduct, description: '<b>Стойкое</b> покрытие' };
-    expect(buildMetaDescription(p)).toBe('Стойкое покрытие');
+    const p: Product = { ...baseProduct, description: '<b>Durable</b> gel coating' };
+    expect(buildMetaDescription(p)).toBe('Durable gel coating');
   });
 
-  it('falls back to a generated sentence with name + price', () => {
+  it('falls back to a generated sentence with name + price (EN, no Cyrillic)', () => {
     const p: Product = { ...baseProduct, description: null };
-    const d = buildMetaDescription(p);
+    const d = buildMetaDescription(p); // default locale 'en'
     expect(d).toContain('BASE GEL 15 ML');
-    expect(d).toContain('₽'); // ru-RU price formatting (NBSP-grouped) is appended
     expect(d).toContain(SITE_NAME);
+    // Must not contain Russian ruble symbol or Cyrillic
+    expect(d).not.toContain('₽');
+  });
+
+  it('falls back to a generated sentence with TRY price for tr locale', () => {
+    const p: Product = { ...baseProduct, description: null };
+    const d = buildMetaDescription(p, 'tr');
+    expect(d).toContain('BASE GEL 15 ML');
+    // TRY currency should appear (₺ symbol) for tr-TR locale
+    expect(d).toMatch(/₺|TRY/);
+    expect(d).toContain(SITE_NAME);
+    expect(d).not.toContain('₽');
   });
 });
 
 describe('buildProductMetadata', () => {
-  it('produces title, description, canonical and OG/Twitter cards', () => {
-    const md = buildProductMetadata(baseProduct);
+  it('produces title, description, locale-aware canonical and OG/Twitter cards (EN)', () => {
+    const md = buildProductMetadata(baseProduct); // default locale 'en'
     expect(md.title).toBe('BASE GEL 15 ML');
     expect(typeof md.description).toBe('string');
-    expect((md.alternates as { canonical: string }).canonical).toBe(
-      `${SITE_URL}/catalog/base_gel/198`,
-    );
-    const og = md.openGraph as { url?: string; images?: { url: string }[]; siteName?: string };
-    expect(og.url).toBe(`${SITE_URL}/catalog/base_gel/198`);
+    // Canonical now includes locale prefix
+    const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
+    expect(alternates.canonical).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
+    // hreflang alternates (I18N-04)
+    expect(alternates.languages['en']).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
+    expect(alternates.languages['tr']).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
+    const og = md.openGraph as { url?: string; images?: { url: string }[]; siteName?: string; locale?: string };
+    expect(og.url).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
     expect(og.siteName).toBe(SITE_NAME);
     expect(og.images?.[0].url).toBe(`${SITE_URL}/product-images/a.png`);
+    // OG locale for EN (I18N-04)
+    expect(og.locale).toBe('en_US');
     const tw = md.twitter as { card?: string; images?: string[] };
     expect(tw.card).toBe('summary_large_image');
     expect(tw.images?.[0]).toBe(`${SITE_URL}/product-images/a.png`);
   });
+
+  it('uses tr_TR OG locale and /tr/ canonical for tr locale (I18N-04)', () => {
+    const md = buildProductMetadata(baseProduct, 'tr');
+    const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
+    expect(alternates.canonical).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
+    expect(alternates.languages['en']).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
+    expect(alternates.languages['tr']).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
+    const og = md.openGraph as { locale?: string };
+    expect(og.locale).toBe('tr_TR');
+  });
+
+  it('hreflang alternates exist for both en and tr in all locale calls', () => {
+    for (const locale of ['en', 'tr'] as const) {
+      const md = buildProductMetadata(baseProduct, locale);
+      const alternates = md.alternates as { languages: Record<string, string> };
+      expect(Object.keys(alternates.languages)).toContain('en');
+      expect(Object.keys(alternates.languages)).toContain('tr');
+    }
+  });
 });
 
 describe('buildProductJsonLd', () => {
-  it('emits a schema.org Product with price and InStock availability', () => {
+  it('emits a schema.org Product with price and InStock availability, priceCurrency TRY (I18N-04)', () => {
     const ld = buildProductJsonLd(baseProduct) as Record<string, any>;
     expect(ld['@type']).toBe('Product');
     expect(ld.name).toBe('BASE GEL 15 ML');
@@ -132,8 +169,9 @@ describe('buildProductJsonLd', () => {
     ]);
     expect(ld.category).toBe('Базовые покрытия');
     expect(ld.offers.price).toBe('1100');
-    expect(ld.offers.priceCurrency).toBe('RUB');
-    expect(ld.offers.url).toBe(`${SITE_URL}/catalog/base_gel/198`);
+    // Must be TRY, not RUB (I18N-01, I18N-04)
+    expect(ld.offers.priceCurrency).toBe('TRY');
+    expect(ld.offers.priceCurrency).not.toBe('RUB');
     expect(ld.offers.availability).toBe('https://schema.org/InStock');
   });
 

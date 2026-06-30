@@ -5,10 +5,13 @@
  * JSON-LD structured data. Kept separate from `server-api.ts` so they can be
  * unit-tested without mocking `fetch`, and reused by both `generateMetadata`
  * and the `sitemap.ts` route.
+ *
+ * I18N-04 (04-05): locale-aware metadata (OG locale, hreflang alternates, TRY).
  */
 
 import type { Metadata } from 'next';
 import type { Product } from './api';
+import { fmtMoney } from './money';
 
 export const SITE_NAME = 'American Creator';
 
@@ -42,24 +45,32 @@ export function truncate(input: string, max: number): string {
   return `${(lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice).trimEnd()}…`;
 }
 
-const formatRub = (price: number) => `${new Intl.NumberFormat('ru-RU').format(price)} ₽`;
+/** Map locale segment to BCP-47 for currency formatting. */
+const LOCALE_TO_BCP47: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+};
 
 /**
  * Meta / OG description for a product. Prefers the short `description`, falls
  * back to a generated sentence with name + price so every product page still
  * ships a non-empty, useful description.
+ *
+ * @param locale - 'en' (default) or 'tr' — controls price formatting locale.
  */
-export function buildMetaDescription(product: Product): string {
+export function buildMetaDescription(product: Product, locale: string = 'en'): string {
   const base = product.description ? stripHtml(product.description) : '';
   if (base) return truncate(base, 200);
-  const priceSuffix = product.price ? ` — ${formatRub(product.price)}` : '';
+  const bcp47 = LOCALE_TO_BCP47[locale] || 'en-US';
+  const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
+  const priceSuffix = product.price ? ` — ${fmtMoney(product.price, currency, bcp47)}` : '';
   return truncate(
-    `${product.name}${priceSuffix}. Купить в интернет-магазине ${SITE_NAME}: профессиональная продукция для nail-мастеров.`,
+    `${product.name}${priceSuffix}. Shop ${SITE_NAME}: professional products for nail professionals.`,
     200,
   );
 }
 
-/** Canonical storefront URL for a product (absolute). */
+/** Canonical storefront URL for a product (absolute, locale-less path). */
 export function productCanonicalUrl(product: Product): string {
   const categorySlug = product.category?.slug ?? 'all';
   const productSlug = product.slug ?? product.id;
@@ -74,10 +85,20 @@ export function productImageAbsoluteUrls(product: Product): string[] {
     .map((img) => absoluteUrl(`/product-images/${img.file_path}`));
 }
 
-/** Build Next.js `Metadata` (title/description/canonical/OG/Twitter) for a product. */
-export function buildProductMetadata(product: Product): Metadata {
-  const description = buildMetaDescription(product);
-  const url = productCanonicalUrl(product);
+/**
+ * Build Next.js `Metadata` (title/description/canonical/OG/Twitter) for a product.
+ *
+ * I18N-04: canonical includes locale prefix; alternates.languages provides hreflang
+ * en and tr; openGraph.locale is locale-aware (en_US / tr_TR).
+ *
+ * @param locale - 'en' (default) or 'tr'
+ */
+export function buildProductMetadata(product: Product, locale: string = 'en'): Metadata {
+  const description = buildMetaDescription(product, locale);
+  const categorySlug = product.category?.slug ?? 'all';
+  const productSlug = product.slug ?? product.id;
+  const productPath = `/catalog/${categorySlug}/${productSlug}`;
+  const url = absoluteUrl(`/${locale}${productPath}`);
   const images = productImageAbsoluteUrls(product);
   const ogTitle = `${product.name} — ${SITE_NAME}`;
 
@@ -85,14 +106,21 @@ export function buildProductMetadata(product: Product): Metadata {
     // The layout title template appends " — American Creator".
     title: product.name,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      languages: {
+        en: absoluteUrl(`/en${productPath}`),
+        tr: absoluteUrl(`/tr${productPath}`),
+      },
+    },
     openGraph: {
       type: 'website',
       title: ogTitle,
       description,
       url,
       siteName: SITE_NAME,
-      locale: 'ru_RU',
+      // I18N-04: OG locale derived from active locale (not hardcoded ru_RU)
+      locale: locale === 'tr' ? 'tr_TR' : 'en_US',
       images: images.length ? images.map((u) => ({ url: u })) : undefined,
     },
     twitter: {
@@ -120,6 +148,8 @@ export interface ReviewAggregate {
  * added so search engines can render star snippets (FBG-69). A zero-count
  * aggregate is intentionally omitted — Google flags `aggregateRating` with no
  * reviews as invalid structured data.
+ *
+ * I18N-04: priceCurrency uses NEXT_PUBLIC_STOREFRONT_CURRENCY (TRY) not RUB.
  */
 export function buildProductJsonLd(
   product: Product,
@@ -139,7 +169,8 @@ export function buildProductJsonLd(
     offers: {
       '@type': 'Offer',
       url,
-      priceCurrency: 'RUB',
+      // I18N-04: TRY not RUB; sourced from env (T-04-11: hardcoded constant, not user input)
+      priceCurrency: process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY',
       price: String(product.price),
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
