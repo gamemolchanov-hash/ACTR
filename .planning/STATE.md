@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: "готово к Phase 5 (Комплаенс-UI: KDV, KVKK/«mesafeli satış», юр-страницы)"
-stopped_at: Phase 5 context gathered (Комплаенс-UI)
-last_updated: "2026-06-30T13:29:48.509Z"
+stopped_at: "Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev)."
+last_updated: "2026-06-30T14:36:13.254Z"
 last_activity: 2026-06-30 -- Phase 04 COMPLETE (verifier passed, code-review gate done)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 11
+  total_plans: 14
   completed_plans: 11
   percent: 57
 ---
@@ -119,6 +119,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T13:29:48.504Z
-Stopped at: Phase 5 context gathered (Комплаенс-UI)
-Resume file: .planning/phases/05-ui/05-CONTEXT.md
+Last session: 2026-06-30T14:36:13.250Z
+Stopped at: Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev).
+Resume file: .planning/phases/05-ui/05-01-PLAN.md
