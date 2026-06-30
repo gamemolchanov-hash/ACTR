@@ -7,6 +7,9 @@
  * submit a new one. Submitted reviews are moderated server-side (status:draft)
  * and only appear here once approved. Review text is rendered as a plain React
  * text node (auto-escaped) — never via dangerouslySetInnerHTML.
+ *
+ * WR-02: Dates use Intl.DateTimeFormat(locale) — no ru-RU hardcode.
+ *        Review count uses ICU plural t('product.reviewCount',{count}).
  */
 
 import { useState } from 'react';
@@ -23,6 +26,7 @@ import {
   Typography,
 } from '@mui/material';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import { useTranslations, useLocale } from 'next-intl';
 import { fetchProductReviews, submitReview } from '@/lib/api';
 import { getToken } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
@@ -32,19 +36,24 @@ interface Props {
   productId: string;
 }
 
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
-
-function extractError(err: unknown): string {
+function extractError(err: unknown): string | null {
   const e = err as { response?: { data?: { error?: string; message?: string } } };
-  return (
-    e?.response?.data?.error ||
-    e?.response?.data?.message ||
-    'Не удалось отправить отзыв. Попробуйте позже.'
-  );
+  return e?.response?.data?.error || e?.response?.data?.message || null;
 }
 
 export function ProductReviews({ productId }: Props) {
+  const t = useTranslations('product');
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
+  // Locale-aware date formatter (WR-02)
+  const fmtDate = (d: string) =>
+    new Intl.DateTimeFormat(bcp47, {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date(d));
+
   const { customer } = useAuth();
   const qc = useQueryClient();
 
@@ -77,7 +86,7 @@ export function ProductReviews({ productId }: Props) {
     },
     onError: (err) => {
       setThanks(null);
-      setError(extractError(err));
+      setError(extractError(err) || t('sendError'));
     },
   });
 
@@ -97,13 +106,13 @@ export function ProductReviews({ productId }: Props) {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-        <Typography variant="h3">Отзывы</Typography>
+        <Typography variant="h3">{t('reviews')}</Typography>
         {total > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Rating value={average} precision={0.1} readOnly size="small" />
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {average.toFixed(1)} · {total}{' '}
-              {total % 10 === 1 && total % 100 !== 11 ? 'отзыв' : 'отзывов'}
+              {/* WR-02: ICU plural — no Russian one/few/many pluralization */}
+              {average.toFixed(1)} · {t('reviewCount', { count: total })}
             </Typography>
           </Box>
         )}
@@ -125,19 +134,19 @@ export function ProductReviews({ productId }: Props) {
                   </Alert>
                 )}
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  Ваша оценка
+                  {t('yourRating')}
                 </Typography>
                 <Rating
                   value={rating}
                   onChange={(_, v) => setRating(v)}
                   sx={{ mb: 2 }}
-                  aria-label="Оценка"
+                  aria-label={t('ratingAriaLabel')}
                 />
                 <TextField
                   fullWidth
                   multiline
                   minRows={3}
-                  placeholder="Поделитесь впечатлениями о товаре…"
+                  placeholder={t('sharePlaceholder')}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   inputProps={{ maxLength: 2000 }}
@@ -148,16 +157,16 @@ export function ProductReviews({ productId }: Props) {
                   disabled={submitMut.isPending || !rating}
                   onClick={() => submitMut.mutate()}
                 >
-                  {submitMut.isPending ? 'Отправка…' : 'Оставить отзыв'}
+                  {submitMut.isPending ? t('submitting') : t('submitReview')}
                 </Button>
               </>
             )}
           </Box>
         ) : (
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Чтобы оставить отзыв,{' '}
+            {t('loginPromptText')}{' '}
             <Box component="a" href="/login" sx={{ color: palette.primary, fontWeight: 600 }}>
-              войдите в аккаунт
+              {t('loginLink')}
             </Box>
             .
           </Typography>
@@ -173,7 +182,7 @@ export function ProductReviews({ productId }: Props) {
         </Box>
       ) : reviews.length === 0 ? (
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Пока нет отзывов. Будьте первым!
+          {t('noReviews')}
         </Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -183,12 +192,12 @@ export function ProductReviews({ productId }: Props) {
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.5 }}
               >
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {r.author || 'Покупатель'}
+                  {r.author || t('customer')}
                 </Typography>
                 {r.verified_purchase && (
                   <Chip
                     icon={<VerifiedIcon sx={{ fontSize: 16 }} />}
-                    label="Покупка подтверждена"
+                    label={t('verifiedPurchase')}
                     size="small"
                     color="success"
                     variant="outlined"
