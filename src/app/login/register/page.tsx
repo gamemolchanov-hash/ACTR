@@ -38,18 +38,18 @@ const inputSx = {
 
 const MIN_SUBMIT_MS = 3000;
 
+// Turkey (TR market): +90 country code, 10-digit subscriber number (5XX XXX XX XX).
+// Accepts input with the +90 country code or a leading 0 trunk prefix and normalizes both.
 function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  const d = digits.startsWith('7')
-    ? digits.slice(1)
-    : digits.startsWith('8')
-      ? digits.slice(1)
-      : digits;
-  let result = '+7';
+  let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('90')) digits = digits.slice(2);
+  else if (digits.startsWith('0')) digits = digits.slice(1);
+  const d = digits.slice(0, 10);
+  let result = '+90';
   if (d.length > 0) result += ` (${d.slice(0, 3)}`;
   if (d.length >= 3) result += `) ${d.slice(3, 6)}`;
-  if (d.length >= 6) result += `-${d.slice(6, 8)}`;
-  if (d.length >= 8) result += `-${d.slice(8, 10)}`;
+  if (d.length >= 6) result += ` ${d.slice(6, 8)}`;
+  if (d.length >= 8) result += ` ${d.slice(8, 10)}`;
   return result;
 }
 
@@ -274,7 +274,7 @@ export default function RegisterPage() {
               <InputBase
                 value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="+7 (___) ___-__-__"
+                placeholder="+90 (5__) ___ __ __"
                 sx={inputSx}
               />
             </FieldBlock>
