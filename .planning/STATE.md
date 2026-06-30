@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: "Phase 3 спланирована — 3 плана (03-01 фундамент сессии · 03-02 ЛК orders/addresses · 03-03 settings+GDPR+checkout-linking), покрытие AUTH-01..07 полное. plan-checker НЕ запускался. Завтра: (опц.) plan-checker → /gsd-execute-phase 3 (нужен `make up` :4000 + `npm run dev`)."
-last_updated: "2026-06-30T05:42:51.021Z"
-last_activity: 2026-06-30 -- Phase 03 execution started
+stopped_at: "Phase 3 ВЫПОЛНЕНА (3/3 плана), plan-checker ✅, build/tsc ✅, code-review ✅ (CR-01/WR-03/WR-06 пофикшены), verifier: human_needed — 4/4 must-haves статически ✅, осталось 5 браузерных UAT-проверок (см. 03-UAT.md). Нужен demo-BFF :4000 + npm run dev."
+last_updated: "2026-06-30T07:11:35.000Z"
+last_activity: 2026-06-30 -- Phase 03 executed + verified (human_needed, 5 UAT pending)
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 6
   completed_plans: 6
-  percent: 43
+  percent: 38
 ---
 
 # Project State
@@ -25,21 +25,22 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 03 (account) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-06-30 -- Phase 03 execution started
+Phase: 03 (account) — EXECUTED, awaiting human UAT
+Plan: 3 of 3 complete
+Status: verifier human_needed — 4/4 must-haves статически ✅, 5 браузерных UAT-проверок осталось (03-UAT.md)
+Last activity: 2026-06-30 -- Phase 03 executed + verified (human_needed)
 
-Progress: [███░░░░░░░] 29%
+Progress: [████░░░░░░] 38%
 
-### ▶ Как продолжить завтра (resume)
+### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
-2. `/gsd-progress` — увидеть статус, ИЛИ сразу:
-3. **Опц.** прогнать гейт качества планов: `/gsd-plan-phase 3` (предложит «Add/View/Replan» — планы уже есть; можно сразу к execute) — или пропустить.
-4. **Выполнить фазу:** `/gsd-execute-phase 3` — wave 1: 03-01 (фундамент сессии), затем wave 2: 03-02 + 03-03 (могут параллельно — не пересекаются по файлам, оба depends 03-01).
-   - Нужен живой demo-BFF: `make up` (autoCRM :4000) + `npm run dev` (ACTR). AUTH-07 без setup-гейта (в отличие от Stripe в Phase 2).
-5. Контекст/контракт — всё в `.planning/phases/03-account/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION + 3 PLAN). Эталон реализации — FBG (`~/work/puz/FBG`).
+2. Поднять окружение: demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
+3. **Прогнать UAT:** `/gsd-verify-work 3` — 5 браузерных проверок из `.planning/phases/03-account/03-UAT.md`:
+   register(terms→arm_token) · login · reset-password shim · GDPR export · GDPR delete.
+4. Когда все 5 PASS — `/gsd-progress` повторно прогонит verifier → status `passed` → Phase 3 Complete → Phase 4 (i18n).
+5. Артефакты фазы: `.planning/phases/03-account/` (VERIFICATION/REVIEW/UAT + 3 SUMMARY). Эталон — FBG (`~/work/puz/FBG`).
+6. Отложено (см. Pending Todos): code-review WR-01/02/05 (i18n → Phase 4), WR-04 (auth edge), 3 pre-existing server-api теста.
 
 ## Performance Metrics
 
