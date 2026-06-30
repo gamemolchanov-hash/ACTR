@@ -397,5 +397,7 @@
   "legal.kullanim_kosullari.s1Title": "Acceptance of Terms",
   "legal.kullanim_kosullari.s1Body": "[Placeholder]",
   "legal.kullanim_kosullari.s2Title": "Use of Service",
-  "legal.kullanim_kosullari.s2Body": "[Placeholder]"
+  "legal.kullanim_kosullari.s2Body": "[Placeholder]",
+  "price.kdvDahil": "KDV Dahil",
+  "price.kdvLine": "KDV (%20):"
 }

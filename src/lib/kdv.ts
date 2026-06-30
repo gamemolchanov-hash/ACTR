@@ -7,6 +7,5 @@
  * @returns      KDV portion rounded to nearest integer (whole TRY, kuruş-free)
  */
 export function kdvFromBrutto(gross: number, rate = 0.20): number {
-  // TODO: implement
-  return 0;
+  return Math.round(gross - gross / (1 + rate));
 }

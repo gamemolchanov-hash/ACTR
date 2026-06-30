@@ -397,5 +397,7 @@
   "legal.kullanim_kosullari.s1Title": "Koşulların Kabulü",
   "legal.kullanim_kosullari.s1Body": "[Placeholder]",
   "legal.kullanim_kosullari.s2Title": "Hizmetin Kullanımı",
-  "legal.kullanim_kosullari.s2Body": "[Placeholder]"
+  "legal.kullanim_kosullari.s2Body": "[Placeholder]",
+  "price.kdvDahil": "KDV Dahil",
+  "price.kdvLine": "KDV (%20):"
 }
