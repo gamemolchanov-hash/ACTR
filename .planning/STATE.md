@@ -37,8 +37,8 @@ Progress: [███████░░░] 71% (5/7 фаз)
 1. `cd /home/lexun/work/puz/ACTR`
 2. **Окружение для live:** demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
    Dev-сервер сейчас запущен (bg `bj466qf09`). ⚠️ ACTR ходит **на :3003**, НЕ :3000 (там Metabase).
-3. **Активная задача:** дебаг сломанной корзины (`product_not_found` / итог $0.00) — см. Pending Todos
-   «[CART-BUG]». Затем — Phase 6 (`/gsd-plan-phase 6`).
+3. **Корзина ПОЧИНЕНА** (commit `39eeb5c`, currency USD→TRY). Остаток: каталог всё ещё ₽ (см. Pending
+   Todos), плюс рекоменд. `/gsd-secure-phase 5`. След. крупный шаг — Phase 6 (`/gsd-plan-phase 6`).
 4. **⚠️ Phase 5 не прошёл `/gsd-secure-phase 5`** (security_enforcement=true, SECURITY.md нет) — фаза
    закрыта по явному решению пользователя; security-ревью consent-gate (T-05-08/09) рекомендуется до go-live.
 5. Артефакты Phase 5: `.planning/phases/05-ui/` (3 PLAN/SUMMARY + 05-UAT.md 4/4 PASS + фикс i18n `edf28ec`).
@@ -86,8 +86,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ### Pending Todos
 
-- **[CART-BUG — 🔴 ACTIVE, surfaced in Phase-5 UAT 2026-06-30] Корзина не резолвит товар** — добавляешь товар (AFTER SHAVE) → `/tr/basket` показывает строку `product_not_found`, кол-во 0, цена «—», Subtotal/Total **$0.00**, хотя бейдж корзины = 1. Реальный заказ до Stripe не довести (пустая/невалидная корзина). Похоже на баг резолва товара cart↔BFF или несовпадение данных demo-тенанта. **Это блокирует полный E2E-чекаут (но НЕ Phase-5 UI — consent gate/KDV/legal проверены отдельно).** Начать дебаг: `CartProvider`/`basket/page.tsx` + как cart хранит id и как basket их перезапрашивает у BFF.
-- **[i18n — Phase-4 хвост, подтверждено в Phase-5 UAT] Валюта ₽/$ вместо ₺ (TRY)** — карточки/деталь товара рендерят рубль («₽24,84»), чекаут (Subtotal/KDV/Total) — доллар («$0.00»). Для TR-рынка должно быть ₺/TRY. Совпадает с WR-01/WR-02 ниже (USD/RUB fallback).
+- **[CART-BUG — ✅ RESOLVED 2026-06-30, commit `39eeb5c`] Корзина не резолвила товар** — `/tr/basket` показывал `product_not_found` / $0.00. **Root cause (найден через live UAT):** API-слой слал `X-Currency: USD` (дефолт `currencyHeader()` при пустом `NEXT_PUBLIC_STOREFRONT_CURRENCY`), а это TR/TRY-витрина → BFF `cart/validate` отдаёт `valid:false` для TRY-товаров в USD. WR-05/I18N-04 починили display-слой (money.ts/seo.ts → TRY), но пропустили API-слой. Исправлены 4 USD-дефолта → TRY (api.ts ×2, basket, checkout). Проверено live: корзина AFTER SHAVE TRY 24.84×2=49.68, чекаут TRY, KDV(%20) TRY 8.00 (в TOTAL не добавляется).
+- **[i18n/currency — 🟡 ЧАСТИЧНО, остаток] Каталог рендерит ₽ (RUB) вместо ₺ (TRY)** — `$` в чекауте/корзине исправлен (см. CART-BUG ✅), но карточки/деталь каталога всё ещё показывают рубль («₽24,84»). Похоже `ProductCard`/каталог передаёт в `fmtMoney` валюту из данных товара (RUB) или иной дефолт. Также fixed-страницы показывают ISO-код «TRY» вместо символа «₺» (Intl в не-tr локали) — косметика. Проверить откуда каталог берёт currency для fmtMoney.
+- **[cart — 🟢 minor] HMR/persist-гонка чистит корзину** — при hot-reload (или ремоунте `CartProvider`) `skipPersist`-логика может перезаписать localStorage пустым `[]` (наблюдалось при правках файлов в dev). Скорее dev-артефакт, но стоит проверить порядок hydrate-vs-persist эффектов (`CartProvider.tsx:40-60`) на устойчивость.
 - **[i18n — Phase-4 хвост, подтверждено в Phase-5 UAT] Страницы корзины и чекаута не локализованы** — на `/tr` тело basket («BASKET», «Place Order», «PRODUCT», «PRICE / PC») и checkout («CHECKOUT», «Email», «YOUR ORDER», «Subtotal», «Shipping», «TOTAL», «Continue», «Proceed to Payment») — по-английски. Хедер/футер (вкл. новую legal-колонку) и метки consent — турецкие. Пробел покрытия i18n на basket/checkout, НЕ регрессия Phase 5.
 - **[обсервация — Phase-5 UAT] Доставка: тарифы недоступны** — DELIVERY-шаг показывает «Shipping rates temporarily unavailable… you can still place your order» (BFF не вернул тарифы в этом окружении; graceful degradation работает). Проверить интеграцию shipping-rates в demo-BFF.
 - **[⚠ security — Phase 5] `/gsd-secure-phase 5` НЕ запускался** — `security_enforcement=true`, но `05-SECURITY.md` нет. Phase 5 закрыта по явному решению пользователя. Consent-gate имеет threat-модель (T-05-08 keyboard-bypass, T-05-09 reverse-tabnabbing — по SUMMARY смягчены). Прогнать `/gsd-secure-phase 5` до go-live для верификации митигаций.
