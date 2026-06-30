@@ -31,7 +31,8 @@ vi.mock('@/i18n/navigation', () => ({
   usePathname: vi.fn(() => '/'),
 }));
 
-import { LEGAL_SLUGS, generateStaticParams } from './[slug]/page';
+import { LEGAL_SLUGS } from './legal-config';
+import { generateStaticParams } from './[slug]/page';
 import enMessages from '../../../../messages/en.json';
 import trMessages from '../../../../messages/tr.json';
 

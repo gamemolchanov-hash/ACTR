@@ -1,29 +1,10 @@
-'use client';
-
 import { notFound } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-import { useTranslations } from 'next-intl';
-
-export const LEGAL_SLUGS = [
-  'kvkk',
-  'mesafeli-satis',
-  'iade',
-  'gizlilik',
-  'kullanim-kosullari',
-] as const;
-
-type LegalSlug = (typeof LEGAL_SLUGS)[number];
-
-/** Number of s1..sN sections for each slug */
-const SECTION_COUNT: Record<LegalSlug, number> = {
-  'kvkk': 4,
-  'mesafeli-satis': 3,
-  'iade': 3,
-  'gizlilik': 2,
-  'kullanim-kosullari': 2,
-};
+import { getTranslations } from 'next-intl/server';
+import { LEGAL_SLUGS, SECTION_COUNT } from '../legal-config';
+import type { LegalSlug } from '../legal-config';
 
 export function generateStaticParams() {
   return LEGAL_SLUGS.map((slug) => ({ slug }));
@@ -33,7 +14,7 @@ interface Props {
   params: { slug: string; locale: string };
 }
 
-export default function LegalPage({ params }: Props) {
+export default async function LegalPage({ params }: Props) {
   if (!LEGAL_SLUGS.includes(params.slug as LegalSlug)) {
     notFound();
   }
@@ -41,7 +22,7 @@ export default function LegalPage({ params }: Props) {
   const slug = params.slug as LegalSlug;
   const nsKey = slug.replace(/-/g, '_');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const t = useTranslations(`legal.${nsKey}` as any);
+  const t = await getTranslations(`legal.${nsKey}` as any);
 
   const sectionCount = SECTION_COUNT[slug];
   const sections = Array.from({ length: sectionCount }, (_, i) => i + 1);
