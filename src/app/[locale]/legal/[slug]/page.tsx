@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import { Link } from '@/i18n/navigation';
-import { palette } from '@/lib/theme';
+import { palette } from '@/lib/palette';
 import { getTranslations } from 'next-intl/server';
 import { LEGAL_SLUGS, SECTION_COUNT } from '../legal-config';
 import type { LegalSlug } from '../legal-config';

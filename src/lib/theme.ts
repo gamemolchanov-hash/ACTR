@@ -1,18 +1,9 @@
 'use client';
 
 import { createTheme } from '@mui/material/styles';
-
-// American Creator brand colors from Figma
-const palette = {
-  primary: '#334a9f',
-  primaryLight: '#d6dbec',
-  bgLight: '#f6f9ff',
-  white: '#ffffff',
-  footerDark: '#212125',
-  footerText: '#f6f9ff',
-  footerSecondary: '#adb7d9',
-  cartBadge: '#ff002d',
-};
+// palette lives in a non-'use client' module so server components can import it
+// too; re-exported below to keep existing `@/lib/theme` importers working.
+import { palette } from './palette';
 
 const theme = createTheme({
   palette: {
