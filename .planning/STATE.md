@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered (i18n EN/TR)
-last_updated: "2026-06-30T11:25:47.631Z"
+last_updated: "2026-06-30T11:43:56.763Z"
 last_activity: 2026-06-30 -- 04-01 complete (next-intl scaffold, [locale] routing, shell i18n, fmtMoney)
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 43
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 ## Current Position
 
 Phase: 04 (i18n-en-tr) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-06-30 -- 04-01 complete (next-intl scaffold, [locale] routing, shell i18n, fmtMoney)
 
@@ -69,6 +69,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P02 | 4min | 3 tasks | 4 files |
 | Phase 03-account P03 | 4min | 3 tasks | 6 files |
 | Phase 04-i18n-en-tr P02 | 25min | 3 tasks | 14 files |
+| Phase 04 P03 | 8min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 - Foundation: переключаем копию AC-фронта на ARM API (не форк FBG); отдельный standalone-репо ~/work/puz/ACTR; рынок TR/TRY/EN+TR; деплой отложен.
 - 04-01: CJS require('next-intl/plugin') работает без конвертации в .mjs (Open Q3 закрыт); reset-password нуждается в собственном minimal layout вне [locale]; TR каталог сделан вручную (Tolgee MCP не доступен в агенте — синк в 04-05); fmtMoney locale-aware с TRY по умолчанию (WR-01/WR-05 закрыты в Header).
+- [Phase ?]: 04-03: auth.*/account.* namespaces appended to shared messages/*.json (201 keys total, EN/TR parity); order history dates via Intl.DateTimeFormat(bcp47), fmtMoney gains bcp47 3rd arg; order-status name localization deferred to BFF/Phase 7; TR authored inline (Tolgee sync deferred to 04-05)
 
 ### Pending Todos
 
@@ -101,6 +103,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T11:25:47.628Z
+Last session: 2026-06-30T11:43:50.398Z
 Stopped at: Phase 4 context gathered (i18n EN/TR)
 Resume file: .planning/phases/04-i18n-en-tr/04-CONTEXT.md
