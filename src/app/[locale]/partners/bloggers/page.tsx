@@ -5,6 +5,7 @@ import { Box, Typography, InputBase, Button, Snackbar, Alert } from '@mui/materi
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 const inputSx = {
   border: `0.5px solid ${palette.primary}`,
@@ -19,6 +20,9 @@ const inputSx = {
 };
 
 export default function BloggersPage() {
+  const t = useTranslations('partners');
+  const tb = useTranslations('partners.bloggers');
+
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -60,13 +64,13 @@ export default function BloggersPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
           {' / '}
           <Link href="/partners" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Партнерам
+            {t('breadcrumbLabel')}
           </Link>
-          {' / Блогерам'}
+          {tb('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -77,7 +81,7 @@ export default function BloggersPage() {
             fontWeight: 450,
           }}
         >
-          АНКЕТА ДЛЯ БЛОГЕРОВ
+          {tb('pageTitle')}
         </Typography>
       </Box>
 
@@ -86,7 +90,7 @@ export default function BloggersPage() {
         <Box
           component="img"
           src="/images/partners/ankety_bloggers.png"
-          alt="Блогерам"
+          alt={tb('heroAlt')}
           sx={{
             width: '100%',
             height: { xs: 200, md: 360 },
@@ -117,11 +121,11 @@ export default function BloggersPage() {
             mb: { xs: 3, md: 4 },
           }}
         >
-          Ответим Вам в течении нескольких рабочих дней
+          {t('responseTime')}
         </Typography>
 
         {/* Name */}
-        <Field label="Имя" required>
+        <Field label={tb('fieldName')} required>
           <InputBase sx={inputSx} value={form.name} onChange={set('name')} />
         </Field>
 
@@ -131,22 +135,22 @@ export default function BloggersPage() {
         </Field>
 
         {/* Phone */}
-        <Field label="Номер телефона" required>
+        <Field label={tb('fieldPhone')} required>
           <InputBase sx={inputSx} value={form.phone} onChange={set('phone')} type="tel" />
         </Field>
 
         {/* Social links */}
-        <Field label="Ссылки на соц. сети" required>
+        <Field label={tb('fieldSocials')} required>
           <InputBase sx={inputSx} value={form.socials} onChange={set('socials')} />
         </Field>
 
         {/* Cooperation type */}
-        <Field label="Какой вид сотрудничества рассматриваете" required>
+        <Field label={tb('fieldCoopType')} required>
           <InputBase sx={inputSx} value={form.cooperationType} onChange={set('cooperationType')} />
         </Field>
 
         {/* Comment */}
-        <Field label="Дополнительные комментарии">
+        <Field label={t('fieldComment')}>
           <InputBase
             multiline
             rows={4}
@@ -157,7 +161,7 @@ export default function BloggersPage() {
         </Field>
 
         <Typography sx={{ fontSize: 13, color: palette.primaryLight, mt: 1, mb: 3 }}>
-          * обязательные поля
+          {t('requiredFields')}
         </Typography>
 
         <Button
@@ -185,7 +189,7 @@ export default function BloggersPage() {
             '&:hover': { bgcolor: '#2a3d85' },
           }}
         >
-          {sending ? 'Отправка...' : 'Отправить'}
+          {sending ? t('sending') : t('submit')}
         </Button>
       </Box>
 
@@ -195,9 +199,7 @@ export default function BloggersPage() {
         onClose={() => setSnack({ ...snack, open: false })}
       >
         <Alert severity={snack.ok ? 'success' : 'error'} variant="filled">
-          {snack.ok
-            ? 'Заявка отправлена! Мы свяжемся с вами.'
-            : 'Ошибка отправки. Попробуйте позже.'}
+          {snack.ok ? t('successMsg') : t('errorMsg')}
         </Alert>
       </Snackbar>
     </Box>

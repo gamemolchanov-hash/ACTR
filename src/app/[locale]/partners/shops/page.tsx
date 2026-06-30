@@ -5,6 +5,7 @@ import { Box, Typography, InputBase, Button, Snackbar, Alert } from '@mui/materi
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 const inputSx = {
   border: `0.5px solid ${palette.primary}`,
@@ -19,6 +20,9 @@ const inputSx = {
 };
 
 export default function ShopsPage() {
+  const t = useTranslations('partners');
+  const ts = useTranslations('partners.shops');
+
   const [form, setForm] = useState({
     email: '',
     phone: '',
@@ -78,13 +82,13 @@ export default function ShopsPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
           {' / '}
           <Link href="/partners" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Партнерам
+            {t('breadcrumbLabel')}
           </Link>
-          {' / Магазинам'}
+          {ts('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -95,7 +99,7 @@ export default function ShopsPage() {
             fontWeight: 450,
           }}
         >
-          АНКЕТА ДЛЯ МАГАЗИНОВ
+          {ts('pageTitle')}
         </Typography>
       </Box>
 
@@ -104,7 +108,7 @@ export default function ShopsPage() {
         <Box
           component="img"
           src="/images/partners/ankety_magazinam.png"
-          alt="Магазинам"
+          alt={ts('heroAlt')}
           sx={{
             width: '100%',
             height: { xs: 200, md: 360 },
@@ -135,7 +139,7 @@ export default function ShopsPage() {
             mb: { xs: 3, md: 4 },
           }}
         >
-          Ответим Вам в течении нескольких рабочих дней
+          {t('responseTime')}
         </Typography>
 
         {/* Email */}
@@ -144,42 +148,42 @@ export default function ShopsPage() {
         </Field>
 
         {/* Phone */}
-        <Field label="Номер телефона" required>
+        <Field label={ts('fieldPhone')} required>
           <InputBase sx={inputSx} value={form.phone} onChange={set('phone')} type="tel" />
         </Field>
 
         {/* City */}
-        <Field label="Город основного магазина" required>
+        <Field label={ts('fieldCity')} required>
           <InputBase sx={inputSx} value={form.city} onChange={set('city')} />
         </Field>
 
         {/* Other cities */}
-        <Field label="Города, где ещё открыты магазины">
+        <Field label={ts('fieldCities')}>
           <InputBase sx={inputSx} value={form.cities} onChange={set('cities')} />
         </Field>
 
         {/* Brands */}
-        <Field label="Какие бренды Вы представляете на сегодняшний день?" required>
+        <Field label={ts('fieldBrands')} required>
           <InputBase sx={inputSx} value={form.brands} onChange={set('brands')} />
         </Field>
 
         {/* Store type */}
-        <Field label="Тип расположения магазинов" required>
+        <Field label={ts('fieldStoreType')} required>
           <InputBase
             sx={inputSx}
             value={form.storeType}
             onChange={set('storeType')}
-            placeholder="напр.: Торговый Центр, отдельностоящий"
+            placeholder={ts('storeTypePlaceholder')}
           />
         </Field>
 
         {/* Links */}
-        <Field label="Ссылки на сайт или соц. сети магазина(ов)" required>
+        <Field label={ts('fieldLinks')} required>
           <InputBase sx={inputSx} value={form.links} onChange={set('links')} />
         </Field>
 
         {/* Comment */}
-        <Field label="Дополнительные комментарии">
+        <Field label={t('fieldComment')}>
           <InputBase
             multiline
             rows={4}
@@ -190,7 +194,7 @@ export default function ShopsPage() {
         </Field>
 
         <Typography sx={{ fontSize: 13, color: palette.primaryLight, mt: 1, mb: 3 }}>
-          * обязательные поля
+          {t('requiredFields')}
         </Typography>
 
         <Button
@@ -219,7 +223,7 @@ export default function ShopsPage() {
             '&:hover': { bgcolor: '#2a3d85' },
           }}
         >
-          {sending ? 'Отправка...' : 'Отправить'}
+          {sending ? t('sending') : t('submit')}
         </Button>
       </Box>
 
@@ -229,9 +233,7 @@ export default function ShopsPage() {
         onClose={() => setSnack({ ...snack, open: false })}
       >
         <Alert severity={snack.ok ? 'success' : 'error'} variant="filled">
-          {snack.ok
-            ? 'Заявка отправлена! Мы свяжемся с вами.'
-            : 'Ошибка отправки. Попробуйте позже.'}
+          {snack.ok ? t('successMsg') : t('errorMsg')}
         </Alert>
       </Snackbar>
     </Box>

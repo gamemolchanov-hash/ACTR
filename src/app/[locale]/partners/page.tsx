@@ -3,36 +3,39 @@
 import { Box, Typography, Button } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-
-const PARTNER_TYPES = [
-  {
-    title: 'Магазины',
-    description: 'Станьте официальным дистрибьютором American Creator в вашем городе',
-    href: '/partners/shops',
-    image: '/images/partners/magazinam.jpeg',
-  },
-  {
-    title: 'Блогеры',
-    description: 'Сотрудничество с блогерами и лидерами мнений beauty-индустрии',
-    href: '/partners/bloggers',
-    image: '/images/partners/bloggers.png',
-  },
-  {
-    title: 'Школы',
-    description: 'Партнёрская программа для nail-школ и образовательных центров',
-    href: '/partners/schools',
-    image: '/images/partners/schools.png',
-  },
-];
-
-const QUICK_LINKS = [
-  { label: 'Магазинам', href: '/partners/shops' },
-  { label: 'Школам', href: '/partners/schools' },
-  { label: 'Блогерам', href: '/partners/bloggers' },
-  { label: 'Nail студиям', href: '/studios' },
-];
+import { useTranslations } from 'next-intl';
 
 export default function PartnersPage() {
+  const t = useTranslations('partners');
+
+  const PARTNER_TYPES = [
+    {
+      title: t('shops.cardTitle'),
+      description: t('shops.cardDesc'),
+      href: '/partners/shops',
+      image: '/images/partners/magazinam.jpeg',
+    },
+    {
+      title: t('bloggers.cardTitle'),
+      description: t('bloggers.cardDesc'),
+      href: '/partners/bloggers',
+      image: '/images/partners/bloggers.png',
+    },
+    {
+      title: t('schools.cardTitle'),
+      description: t('schools.cardDesc'),
+      href: '/partners/schools',
+      image: '/images/partners/schools.png',
+    },
+  ];
+
+  const QUICK_LINKS = [
+    { label: t('quickShops'), href: '/partners/shops' },
+    { label: t('quickSchools'), href: '/partners/schools' },
+    { label: t('quickBloggers'), href: '/partners/bloggers' },
+    { label: t('quickStudios'), href: '/studios' },
+  ];
+
   return (
     <Box sx={{ overflow: 'hidden' }}>
       {/* ── Breadcrumb + Title ── */}
@@ -46,9 +49,9 @@ export default function PartnersPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
-          {' / Партнерам'}
+          {t('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -59,7 +62,7 @@ export default function PartnersPage() {
             fontWeight: 450,
           }}
         >
-          КАК СТАТЬ ПАРТНЕРОМ
+          {t('title')}
         </Typography>
       </Box>
 
@@ -74,8 +77,7 @@ export default function PartnersPage() {
             maxWidth: 700,
           }}
         >
-          Для того чтобы стать нашим партнёром — заполните анкету в зависимости от вида партнерства.
-          В течении нескольких дней мы с вами свяжемся для обсуждения дальнейшего сотрудничества.
+          {t('intro')}
         </Typography>
       </Box>
 
@@ -166,7 +168,7 @@ export default function PartnersPage() {
                 '&:hover': { bgcolor: '#2a3d85' },
               }}
             >
-              Узнать подробнее
+              {t('learnMore')}
             </Button>
           </Box>
         ))}
