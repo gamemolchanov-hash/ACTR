@@ -30,7 +30,7 @@ const inputSx = {
 };
 
 export default function SettingsPage() {
-  const { customer, isLogged, loading: authLoading, refresh } = useAuth();
+  const { customer, loading: authLoading, refreshProfile, signOut } = useAuth();
   const router = useRouter();
 
   const [name, setName] = useState('');
@@ -54,8 +54,8 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !isLogged) router.replace('/login');
-  }, [authLoading, isLogged, router]);
+    if (!authLoading && !customer) router.replace('/login');
+  }, [authLoading, customer, router]);
 
   useEffect(() => {
     if (customer) {
@@ -71,7 +71,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await updateProfile({ name: name.trim(), phone });
-      await refresh();
+      await refreshProfile();
       setSnack({ open: true, message: 'Данные сохранены', severity: 'success' });
     } catch (err: any) {
       setSnack({
@@ -99,17 +99,24 @@ export default function SettingsPage() {
     }
     setChangingPw(true);
     try {
-      await changePassword({ currentPassword: currentPassword || undefined, newPassword });
+      await changePassword({ currentPassword, newPassword });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setSnack({ open: true, message: 'Пароль изменён', severity: 'success' });
+      // FBG-22 / T-03-10: BFF invalidates pre-change tokens (tokens_valid_after) —
+      // sign out and require re-login with the fresh token.
+      setSnack({ open: true, message: 'Пароль изменён. Войдите заново.', severity: 'success' });
+      setTimeout(() => {
+        signOut();
+        router.push('/login');
+      }, 2000);
     } catch (err: any) {
-      setSnack({
-        open: true,
-        message: err?.response?.data?.message || 'Ошибка смены пароля',
-        severity: 'error',
-      });
+      const code = err?.response?.data?.code;
+      const msg =
+        code === 'wrong_password'
+          ? 'Неверный текущий пароль'
+          : err?.response?.data?.message || 'Ошибка смены пароля';
+      setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setChangingPw(false);
     }
