@@ -21,6 +21,7 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { SelectChangeEvent } from '@mui/material';
@@ -205,6 +206,10 @@ export default function CheckoutPage() {
   // informational only — KDV portion of the KDV-inclusive subtotal (D-01/D-02)
   const kdvAmount = kdvFromBrutto(subtotal);
 
+  // Compliance consent (D-04/COMP-02) — kept at top level so state survives step navigation
+  const [agreedKvkk, setAgreedKvkk] = useState(false);
+  const [agreedMesafeli, setAgreedMesafeli] = useState(false);
+
   // Payment session (Stripe Embedded)
   const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
 
@@ -348,6 +353,11 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (submitting) return;
+    // Consent gate (D-04/COMP-02, Pitfall 3 — gate the handler, not only the button)
+    if (!agreedKvkk || !agreedMesafeli) {
+      setError(t('checkout.consent.required'));
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -824,6 +834,46 @@ export default function CheckoutPage() {
             </RadioGroup>
           )}
 
+          {/* Compliance consent checkboxes (D-04/D-05/COMP-02) */}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={agreedKvkk}
+                onChange={(e) => setAgreedKvkk(e.target.checked)}
+                sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
+              />
+            }
+            label={
+              <Typography sx={{ ...info, color: c.main, lineHeight: '1.5' }}>
+                {t('checkout.consent.kvkkPrefix')}{' '}
+                <Link href="/legal/kvkk" target="_blank" rel="noopener noreferrer" style={{ color: c.main }}>
+                  {t('checkout.consent.kvkkLink')}
+                </Link>{' '}
+                {t('checkout.consent.kvkkSuffix')}
+              </Typography>
+            }
+            sx={{ alignItems: 'flex-start', mb: 1 }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={agreedMesafeli}
+                onChange={(e) => setAgreedMesafeli(e.target.checked)}
+                sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
+              />
+            }
+            label={
+              <Typography sx={{ ...info, color: c.main, lineHeight: '1.5' }}>
+                {t('checkout.consent.mesafeliPrefix')}{' '}
+                <Link href="/legal/mesafeli-satis" target="_blank" rel="noopener noreferrer" style={{ color: c.main }}>
+                  {t('checkout.consent.mesafeliLink')}
+                </Link>{' '}
+                {t('checkout.consent.mesafeliSuffix')}
+              </Typography>
+            }
+            sx={{ alignItems: 'flex-start', mb: 2 }}
+          />
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
@@ -833,7 +883,7 @@ export default function CheckoutPage() {
           <Button
             variant="contained"
             fullWidth
-            disabled={submitting}
+            disabled={submitting || !agreedKvkk || !agreedMesafeli}
             onClick={handleSubmit}
             sx={btnSx}
           >
