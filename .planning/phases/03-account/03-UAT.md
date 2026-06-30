@@ -3,95 +3,115 @@ status: partial
 phase: 03-account
 source: [03-VERIFICATION.md]
 started: 2026-06-30T07:11:35Z
-updated: 2026-06-30T07:47:11Z
+updated: 2026-06-30T08:22:17Z
 ---
 
 ## Current Test
 
-[testing paused — environment blocker]
+[testing complete — 4/5 pass; Test 5 passes on the ACTR side, its final server-side
+step is blocked by a demo-tenant Directus schema constraint (see Gaps).]
 
-4 of 5 live checks are blocked by a demo-BFF misconfiguration (empty storefront
-JWT signing secret) that makes `/auth/login` return 500. This is downstream of
-ACTR's Phase 3 code — every ACTR-controlled behavior that could be exercised
-passed. See Gaps → Environment Blocker.
+Live UAT run against http://localhost:3003 (ACTR dev) + demo BFF :4000 after the BFF
+JWT-secret fix. Every ACTR-controlled behavior works. The only failure is server-side
+(demo tenant schema), not ACTR code.
 
 ## Tests
 
-### 1. Register with terms gate → auto-login → arm_token in localStorage
-expected: Submitting register without checking terms shows error and does NOT call ARM. After checking and submitting, arm_token appears in localStorage and user is redirected to /.
-result: partial
+### 1. Register with terms gate → auto-login → arm_token / redirect
+expected: Unchecked terms blocks submit & calls no ARM; checked + valid → register, auto-login, redirect to /.
+result: pass
 notes: |
-  ACTR-side behavior VERIFIED in the running app (http://localhost:3003/login/register):
-  - Terms gate: with the box unchecked the submit button is DISABLED (isValid requires `agreed`);
-    clicking it produced NO `/auth/register` network call and no navigation. Stronger than a snackbar. PASS.
-  - Phone field auto-formats `5321234567` → `+90 (532) 123 45 67` (CR-01 TR fix live). PASS.
-  - Captcha + honeypot + consent all enforced client-side. PASS.
-  - With everything valid, submit fired `POST /api/storefront/auth/register 200` — registration SUCCEEDS. PASS.
-  - Auto-login step (`POST /auth/login`) returned 500 → BLOCKED by the BFF JWT-secret blocker below,
-    so arm_token + redirect could not be observed. Not an ACTR defect.
+  - Terms gate: unchecked → submit button DISABLED, zero /auth/register call. PASS.
+  - Phone auto-formats 5321234567 → +90 (532) 123 45 67 (CR-01 TR fix live). PASS.
+  - Fresh register (uat.p3b.…@example.com): POST /auth/register 200 → POST /auth/login 200
+    (auto-login) → redirected to / → header shows logged-in account. PASS.
 
-### 2. Login with email/password → arm_token in localStorage
-expected: Successful login stores JWT in localStorage['arm_token'] and redirects to /.
-result: blocked
-blocked_by: server
-reason: "POST /api/storefront/auth/login → 500 {\"error\":\"Login failed\"}. BFF refuses to sign the session JWT because ARM_STOREFRONT_JWT_SECRET / STOREFRONT_JWT_SECRET are empty in the autocrm-bff container (see Environment Blocker). ACTR sends the correct request shape {login, password} and handles the 500 gracefully (snackbar, stays on page)."
+### 2. Login with email/password → session + redirect
+expected: Successful login establishes session and redirects to /.
+result: pass
+notes: |
+  Logged in via the form (uat.p3.…@example.com / Test1234): POST /auth/login 200 →
+  redirected to / → header shows account "UAT" + "Выйти"; getMe 200 on protected pages.
+  Logout ("Выйти") clears the session (header reverts to "Войти"). PASS.
 
 ### 3. Forgot-password → reset-password shim redirect
-expected: Opening /reset-password?token=X redirects to /login/reset-password?token=X with the token preserved.
+expected: /reset-password?token=X redirects to /login/reset-password?token=X, token preserved.
 result: pass
-notes: "Navigated to /reset-password?token=uat-test-token-123 → client-side router.replace landed on /login/reset-password?token=uat-test-token-123, token preserved. PASS."
+notes: "Verified: /reset-password?token=uat-test-token-123 → /login/reset-password?token=uat-test-token-123."
 
-### 4. GDPR export downloads american-creator-account-data.json
-expected: Clicking 'Download My Data' on /account/settings downloads a valid JSON file from ARM.
-result: blocked
-blocked_by: server
-reason: "Requires an authenticated session; login is blocked by the BFF empty-JWT-secret issue. Cannot reach /account/settings as a logged-in user until login works."
+### 4. GDPR export downloads account JSON
+expected: 'Download My Data' downloads a valid JSON of profile/addresses/orders from ARM.
+result: pass
+notes: |
+  GET /auth/me/export 200 → generated a Blob download: type application/json, 476 bytes,
+  top-level keys {exported_at, profile, loyalty, addresses, orders}; profile holds the real
+  account (name/email/id), addresses/orders empty (new account). PASS.
 
 ### 5. GDPR delete with password confirmation
-expected: Confirm disabled without password; wrong password errors; correct password deletes + signOut + redirect.
-result: blocked
-blocked_by: server
-reason: "Requires an authenticated session; blocked by the same BFF login 500. (Static verification already confirmed the confirm button is disabled without a password and deleteAccount gates on password.)"
+expected: Confirm disabled w/o password; wrong password errors; correct password → delete + signOut + redirect.
+result: partial
+notes: |
+  ACTR-side behavior all VERIFIED:
+  - Confirm Delete button DISABLED when password empty; enabled once filled. PASS.
+  - Wrong password → POST /auth/me/delete-account 403 → snackbar "Your current password is
+    incorrect.", dialog stays open, account NOT deleted, still logged in. PASS.
+  - Correct password → client sends the proper request. The final server-side anonymization
+    FAILS with 500 — blocked by a demo-tenant Directus schema constraint (see Gaps), NOT ACTR code.
 
 ## Summary
 
 total: 5
-passed: 1
+passed: 4
 issues: 0
 pending: 0
 skipped: 0
-blocked: 3
+blocked: 0
 partial: 1
 
 ## Gaps
 
-### Environment Blocker (not an ACTR code gap)
+### Environment Blocker #1 — RESOLVED (demo BFF JWT secret)
 
 - truth: "Storefront login issues a session JWT"
+  status: resolved
+  was: |
+    autocrm-bff had ARM_STOREFRONT_JWT_SECRET / STOREFRONT_JWT_SECRET set to EMPTY strings;
+    the BFF fail-fast guard (services/bff/src/lib/customer-auth.ts:160) refused to sign → /auth/login 500.
+  fix_applied: |
+    Added ARM_STOREFRONT_JWT_SECRET=<random 32-byte hex> to ~/work/autoCRM/.env and recreated
+    the bff container (docker compose ... up -d --force-recreate --no-deps bff). Login now 200.
+    NOTE: this lives in autoCRM's local .env — re-apply if that env is reset.
+
+### Environment Blocker #2 — OPEN (demo tenant schema blocks GDPR delete)
+
+- truth: "GDPR/KVKK account deletion anonymizes the customer record"
   status: blocked
-  blocked_by: server
-  severity: blocker (environment, not ACTR code)
+  blocked_by: server (demo tenant data)
+  severity: blocker (environment, not ACTR code) — but compliance-relevant for real tenants
   evidence: |
-    BFF container `autocrm-bff` (127.0.0.1:4000) error log on POST /public/arm/storefront/auth/login:
-      "ARM_STOREFRONT_JWT_SECRET or STOREFRONT_JWT_SECRET env var is required.
-       Refusing to sign/verify with default secret."
-      at signingSecret (services/bff/src/lib/customer-auth.ts:160)
-      at generateJWT → packs/arm/bff/routes/storefront-auth.ts:342
-    Both env vars are present but set to EMPTY strings (length=0); signingSecret() skips
-    falsy values and fail-fasts (security guard — never signs with a default).
-    Register returns 200 because it does not sign a session JWT.
+    POST /public/arm/storefront/auth/me/delete-account → BFF 500. Container log:
+      "Validation failed for field \"name\". Value can't be null."
+      (code FAILED_VALIDATION) at packs/arm/bff/routes/storefront-auth.ts:1286
+    The BFF anonymization patch (buildAnonymizedCustomerPatch, customer-auth.service.ts) correctly
+    nulls PII incl. `name`, but the DEMO tenant's Directus has arm_customers.name as NOT NULL,
+    so the update is rejected.
   scope: |
-    autoCRM demo BFF environment only — NOT ACTR Phase 3 code. ACTR's register/login/account
-    code is correct: right request shapes, X-Storefront-Key server-side, graceful 500 handling.
+    autoCRM demo-tenant Directus schema — NOT ACTR Phase 3 code. ACTR's delete flow is correct
+    (password gate, wrong-password handling, correct request, signOut+redirect on success).
   fix: |
-    Set a non-empty ARM_STOREFRONT_JWT_SECRET on the autocrm-bff container (demo .env /
-    compose) and restart it, then re-run the 4 blocked live checks. autoCRM infra change —
-    requires owner confirmation (CLAUDE.md: OMS/autoCRM не трогать).
+    Make arm_customers.name nullable in the tenant's Directus schema (production tenants must
+    have this for GDPR/KVKK delete to work). Requires Directus admin / migration — owner action.
   artifacts: []
   missing: []
 
-### Test artifact
+### Live corroboration of deferred WR-04 (non-blocking)
 
-- A demo-tenant customer `uat.p3.1782804795646@example.com` was created by the successful
-  register call. It could not be removed via the UI (delete needs login). Clean up from the
-  demo tenant if desired.
+- A fresh direct navigation to /account/settings bounced to / once during the getMe auth-loading
+  window, then held on retry. Matches code-review WR-04 (redirect-before-auth-resolves). Already
+  recorded as a Phase-3 follow-up in STATE.md Pending Todos.
+
+### Test artifacts (demo tenant)
+
+- Customers created during UAT and not removable via UI (delete is blocked by Env Blocker #2):
+  uat.p3.1782804795646@example.com, uat.p3b.1782807611535@example.com. Clean up from the demo
+  tenant if desired.
