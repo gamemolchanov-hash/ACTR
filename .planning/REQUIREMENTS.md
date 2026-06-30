@@ -42,7 +42,7 @@
 - [x] **I18N-01**: Локали EN + TR, хардкод-русского текста нет
 - [x] **I18N-02**: Переключатель языка с сохранением выбора
 - [x] **I18N-03**: Контент товара локализован через ARM `?lang=<bcp47>`
-- [ ] **I18N-04**: SEO/OG/sitemap на EN и TR
+- [x] **I18N-04**: SEO/OG/sitemap на EN и TR
 
 ### Compliance
 
@@ -103,7 +103,7 @@
 | I18N-01 | Phase 4 | Complete |
 | I18N-02 | Phase 4 | Complete |
 | I18N-03 | Phase 4 | Complete |
-| I18N-04 | Phase 4 | Pending |
+| I18N-04 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Pending |
 | COMP-02 | Phase 5 | Pending |
 | CLEAN-01 | Phase 6 | Pending |

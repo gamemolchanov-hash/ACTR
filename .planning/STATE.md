@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Phase 4 context gathered (i18n EN/TR)
-last_updated: "2026-06-30T12:16:45.301Z"
-last_activity: 2026-06-30 -- 04-01 complete (next-intl scaffold, [locale] routing, shell i18n, fmtMoney)
+last_updated: "2026-06-30T12:32:10.732Z"
+last_activity: 2026-06-30 -- 04-05 complete (SEO/seo.ts locale-aware/hreflang, sitemap per-locale, I18N-01 grep-gate CLEAR)
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 43
+  completed_plans: 11
+  percent: 57
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 04 (i18n-en-tr) — EXECUTING
-Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-06-30 -- 04-01 complete (next-intl scaffold, [locale] routing, shell i18n, fmtMoney)
+Phase: 04 (i18n-en-tr) — COMPLETE
+Plan: 5 of 5 (ALL DONE)
+Status: Phase complete — ready for /gsd-verify-work
+Last activity: 2026-06-30 -- 04-05 complete (SEO/seo.ts locale-aware/hreflang, sitemap per-locale, I18N-01 grep-gate CLEAR)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ### ▶ Как продолжить (resume)
 
@@ -71,6 +71,7 @@ Progress: [█████░░░░░] 50%
 | Phase 04-i18n-en-tr P02 | 25min | 3 tasks | 14 files |
 | Phase 04 P03 | 8min | 3 tasks | 11 files |
 | Phase 04-i18n-en-tr P04 | 9min | 3 tasks | 13 files |
+| Phase 04-i18n-en-tr P05 | 655 | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - Foundation: переключаем копию AC-фронта на ARM API (не форк FBG); отдельный standalone-репо ~/work/puz/ACTR; рынок TR/TRY/EN+TR; деплой отложен.
 - 04-01: CJS require('next-intl/plugin') работает без конвертации в .mjs (Open Q3 закрыт); reset-password нуждается в собственном minimal layout вне [locale]; TR каталог сделан вручную (Tolgee MCP не доступен в агенте — синк в 04-05); fmtMoney locale-aware с TRY по умолчанию (WR-01/WR-05 закрыты в Header).
 - [Phase ?]: 04-03: auth.*/account.* namespaces appended to shared messages/*.json (201 keys total, EN/TR parity); order history dates via Intl.DateTimeFormat(bcp47), fmtMoney gains bcp47 3rd arg; order-status name localization deferred to BFF/Phase 7; TR authored inline (Tolgee sync deferred to 04-05)
+- 04-05: I18N-04 closed — hreflang alternates.languages (en/tr) in layout + product generateMetadata; OG locale locale-aware (tr_TR/en_US); sitemap per-locale with alternates.languages on every entry
+- 04-05: I18N-01 grep-gate PASSED — 0 non-comment Cyrillic in src/**/*.{ts,tsx}; seo.ts was last hold-out (formatRub/ru_RU/RUB/₽ removed)
+- 04-05: I18N-03 server-side complete — fetchProductServer(idOrSlug, locale?) threads ?lang=<bcp47> to BFF for server-rendered SEO metadata
+- 04-05: Tolgee project 34 push deferred (MCP unavailable in agent); static JSON committed as source (336 keys/lang); messages:pull via node REST documented in scripts/messages-pull.mjs
 
 ### Pending Todos
 
@@ -104,6 +109,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T12:16:45.297Z
-Stopped at: Phase 4 context gathered (i18n EN/TR)
-Resume file: .planning/phases/04-i18n-en-tr/04-CONTEXT.md
+Last session: 2026-06-30T12:32:10.728Z
+Stopped at: Phase 4 complete (all 5 plans done); next: /gsd-verify-work phase 4
+Resume file: .planning/phases/04-i18n-en-tr/04-05-SUMMARY.md
