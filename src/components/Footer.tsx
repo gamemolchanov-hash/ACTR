@@ -1,23 +1,9 @@
 'use client';
 
 import { Box, Typography, Link as MuiLink } from '@mui/material';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
-
-const NAV_COL1 = [
-  { label: 'Каталог', href: '/catalog' },
-  { label: 'Новинки', href: '/catalog?sort=-date_created' },
-  { label: 'Nail-Студиям', href: '/studios' },
-  { label: 'Партнерам', href: '/partners' },
-];
-
-const NAV_COL2 = [
-  { label: 'Контакты', href: '/contacts' },
-  { label: 'Доставка и оплата', href: '/delivery' },
-  { label: 'FAQ', href: '/faq' },
-];
-
-const ALL_NAV = [...NAV_COL1, ...NAV_COL2];
 
 const SOCIALS = [
   { icon: '/icons/soc-telegram.png', href: 'https://t.me/americancreator_ru', label: 'Telegram' },
@@ -73,6 +59,23 @@ function SocialIcons() {
 }
 
 export function Footer() {
+  const t = useTranslations();
+
+  const NAV_COL1 = [
+    { label: t('nav.catalog'), href: '/catalog' },
+    { label: t('nav.new'), href: '/catalog?sort=-date_created' },
+    { label: t('nav.studios'), href: '/studios' },
+    { label: t('nav.partners'), href: '/partners' },
+  ];
+
+  const NAV_COL2 = [
+    { label: t('nav.contacts'), href: '/contacts' },
+    { label: 'Delivery & Payment', href: '/delivery' },
+    { label: 'FAQ', href: '/faq' },
+  ];
+
+  const ALL_NAV = [...NAV_COL1, ...NAV_COL2];
+
   return (
     <Box
       component="footer"
@@ -139,7 +142,7 @@ export function Footer() {
               +7 995 757-84-67
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-              по будням с 9:00 до 18:00
+              {t('common.workingHours')}
             </Typography>
           </Box>
 
@@ -180,7 +183,7 @@ export function Footer() {
               +7 995 757-84-67
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-              по будням с 9:00 до 18:00
+              {t('common.workingHours')}
             </Typography>
           </Box>
         </Box>

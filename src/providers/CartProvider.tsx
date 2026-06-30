@@ -11,7 +11,8 @@ import {
 } from 'react';
 import { Dialog, DialogContent, Typography, Box, Button, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import type { CartItem } from '@/lib/api';
 import { palette } from '@/lib/theme';
 
@@ -33,6 +34,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [modalOpen, setModalOpen] = useState(false);
   const skipPersist = useRef(true);
   const router = useRouter();
+  const t = useTranslations();
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -125,11 +127,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             variant="h2"
             sx={{ fontWeight: 450, textTransform: 'uppercase', color: palette.primary, mb: 1.5 }}
           >
-            Товар добавлен в корзину
+            {t('cart.added')}
           </Typography>
 
           <Typography sx={{ fontSize: 18, color: palette.primary, mb: 4 }}>
-            Всего товаров в корзине: {totalQuantity}
+            {t('cart.total', { count: totalQuantity })}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -150,7 +152,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 '&:hover': { bgcolor: palette.primaryLight, borderColor: palette.primary },
               }}
             >
-              Продолжить покупки
+              {t('cart.continueShopping')}
             </Button>
 
             <Button
@@ -172,7 +174,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 '&:hover': { bgcolor: '#2a3d85' },
               }}
             >
-              Оформить заказ
+              {t('cart.checkout')}
             </Button>
           </Box>
         </DialogContent>

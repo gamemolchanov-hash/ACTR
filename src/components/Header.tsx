@@ -20,21 +20,15 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { palette } from '@/lib/theme';
 import { fetchProducts, type Product } from '@/lib/api';
 import { imgThumb } from '@/lib/image-url';
-
-const NAV_ITEMS = [
-  { label: 'Каталог', href: '/catalog' },
-  { label: 'Новинки', href: '/catalog?sort=-date_created' },
-  { label: 'Nail-Студиям', href: '/studios' },
-  { label: 'Партнерам', href: '/partners' },
-  { label: 'Контакты', href: '/contacts' },
-];
+import { fmtMoney } from '@/lib/money';
 
 function productHref(p: Product) {
   return `/catalog/${p.category?.slug ?? 'all'}/${p.slug ?? p.id}`;
@@ -44,6 +38,8 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
+  const t = useTranslations();
   const { totalQuantity } = useCart();
   const { customer, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,6 +50,17 @@ export function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // BCP-47 locale for number formatting
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
+  const NAV_ITEMS = [
+    { label: t('nav.catalog'), href: '/catalog' },
+    { label: t('nav.new'), href: '/catalog?sort=-date_created' },
+    { label: t('nav.studios'), href: '/studios' },
+    { label: t('nav.partners'), href: '/partners' },
+    { label: t('nav.contacts'), href: '/contacts' },
+  ];
 
   const handleSearch = () => {
     setShowSuggestions(false);
@@ -95,6 +102,12 @@ export function Header() {
     [],
   );
 
+  // Language switcher: switch locale and set NEXT_LOCALE cookie
+  const switchLocale = (next: string) => {
+    document.cookie = `NEXT_LOCALE=${next};path=/;max-age=${365 * 24 * 3600};SameSite=Lax`;
+    router.replace(pathname, { locale: next });
+  };
+
   return (
     <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white' }}>
       {/* ===== DESKTOP (sm+): single row ===== */}
@@ -135,7 +148,7 @@ export function Header() {
               color: palette.primary,
             }}
           >
-            По будням с 9:00 до 18:00
+            {t('common.workingHours')}
           </Typography>
         </Box>
 
@@ -153,7 +166,7 @@ export function Header() {
               }}
             >
               <InputBase
-                placeholder="Поиск"
+                placeholder={t('common.search')}
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -171,7 +184,7 @@ export function Header() {
               />
               <img
                 src="/icons/search.svg"
-                alt="Поиск"
+                alt={t('common.search')}
                 onClick={handleSearch}
                 style={{ width: 26, height: 26, cursor: 'pointer' }}
               />
@@ -197,7 +210,7 @@ export function Header() {
                 ) : suggestions.length === 0 ? (
                   <Box sx={{ px: 2, py: 1.5 }}>
                     <Typography sx={{ fontSize: 14, color: palette.primaryLight }}>
-                      Ничего не найдено
+                      {t('common.noResults')}
                     </Typography>
                   </Box>
                 ) : (
@@ -259,7 +272,7 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 13, color: palette.primaryLight }}>
-                              {p.price.toLocaleString('ru-RU')} ₽
+                              {fmtMoney(p.price, 'TRY', bcp47)}
                             </Typography>
                           </Box>
                         </Box>
@@ -287,7 +300,7 @@ export function Header() {
                           textAlign: 'center',
                         }}
                       >
-                        Все результаты →
+                        {t('common.allResults')}
                       </Typography>
                     </Box>
                   </>
@@ -296,6 +309,32 @@ export function Header() {
             )}
           </Box>
         </ClickAwayListener>
+
+        {/* Language switcher */}
+        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+          {(['en', 'tr'] as const).map((lng) => (
+            <Box
+              key={lng}
+              component="button"
+              onClick={() => switchLocale(lng)}
+              sx={{
+                px: 1,
+                py: 0.5,
+                border: `1px solid ${locale === lng ? palette.primary : palette.bgLight}`,
+                borderRadius: '4px',
+                bgcolor: locale === lng ? palette.primary : 'transparent',
+                color: locale === lng ? 'white' : palette.primary,
+                cursor: 'pointer',
+                fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                fontSize: 12,
+                fontWeight: 500,
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              {t(`lang.${lng}`)}
+            </Box>
+          ))}
+        </Box>
 
         {!!customer ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -310,7 +349,7 @@ export function Header() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {customer?.name?.split(' ')[0] || 'Кабинет'}
+              {customer?.name?.split(' ')[0] || t('common.cabinet')}
             </MuiLink>
             <MuiLink
               component="button"
@@ -326,12 +365,12 @@ export function Header() {
                 p: 0,
               }}
             >
-              Выйти
+              {t('common.signOut')}
             </MuiLink>
           </Box>
         ) : (
           <Link href="/login" style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/icons/login.svg" alt="Войти" style={{ width: 86, height: 33 }} />
+            <img src="/icons/login.svg" alt={t('common.signIn')} style={{ width: 86, height: 33 }} />
           </Link>
         )}
         <Link href="/basket">
@@ -350,13 +389,13 @@ export function Header() {
               },
             }}
           >
-            <img src="/icons/cart.svg" alt="Корзина" style={{ width: 38, height: 35 }} />
+            <img src="/icons/cart.svg" alt={t('common.cart')} style={{ width: 38, height: 35 }} />
           </Badge>
         </Link>
       </Box>
 
       {/* ===== MOBILE (xs only): two rows ===== */}
-      {/* Mobile: single row — logo + Войти + cart + burger */}
+      {/* Mobile: single row — logo + sign in + cart + burger */}
       <Box
         sx={{
           display: { xs: 'flex', sm: 'none' },
@@ -383,7 +422,7 @@ export function Header() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {customer?.name?.split(' ')[0] || 'Кабинет'}
+              {customer?.name?.split(' ')[0] || t('common.cabinet')}
             </MuiLink>
             <MuiLink
               component="button"
@@ -400,7 +439,7 @@ export function Header() {
                 p: 0,
               }}
             >
-              Выйти
+              {t('common.signOut')}
             </MuiLink>
           </Box>
         ) : (
@@ -416,7 +455,7 @@ export function Header() {
               flexShrink: 0,
             }}
           >
-            Войти
+            {t('common.signIn')}
           </MuiLink>
         )}
         <Link href="/basket" style={{ flexShrink: 0, display: 'flex' }}>
@@ -435,7 +474,7 @@ export function Header() {
               },
             }}
           >
-            <img src="/icons/cart.svg" alt="Корзина" style={{ width: 28, height: 26 }} />
+            <img src="/icons/cart.svg" alt={t('common.cart')} style={{ width: 28, height: 26 }} />
           </Badge>
         </Link>
         <IconButton onClick={() => setMenuOpen(true)} sx={{ p: 0.5, flexShrink: 0 }}>
@@ -460,7 +499,7 @@ export function Header() {
               }}
             >
               <InputBase
-                placeholder="Поиск"
+                placeholder={t('common.search')}
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -477,7 +516,7 @@ export function Header() {
               />
               <img
                 src="/icons/search.svg"
-                alt="Поиск"
+                alt={t('common.search')}
                 onClick={handleSearch}
                 style={{ width: 20, height: 20, cursor: 'pointer' }}
               />
@@ -503,7 +542,7 @@ export function Header() {
                 ) : suggestions.length === 0 ? (
                   <Box sx={{ px: 2, py: 1.5 }}>
                     <Typography sx={{ fontSize: 13, color: palette.primaryLight }}>
-                      Ничего не найдено
+                      {t('common.noResults')}
                     </Typography>
                   </Box>
                 ) : (
@@ -564,7 +603,7 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 12, color: palette.primaryLight }}>
-                              {p.price.toLocaleString('ru-RU')} ₽
+                              {fmtMoney(p.price, 'TRY', bcp47)}
                             </Typography>
                           </Box>
                         </Box>
@@ -592,7 +631,7 @@ export function Header() {
                           textAlign: 'center',
                         }}
                       >
-                        Все результаты →
+                        {t('common.allResults')}
                       </Typography>
                     </Box>
                   </>
@@ -668,12 +707,42 @@ export function Header() {
               textTransform: 'uppercase',
             }}
           >
-            Меню
+            {t('nav.menu')}
           </Typography>
           <IconButton onClick={() => setMenuOpen(false)}>
             <CloseIcon sx={{ color: palette.primary }} />
           </IconButton>
         </Box>
+
+        {/* Mobile language switcher */}
+        <Box sx={{ display: 'flex', gap: 1, px: 2, pb: 1 }}>
+          {(['en', 'tr'] as const).map((lng) => (
+            <Box
+              key={lng}
+              component="button"
+              onClick={() => {
+                setMenuOpen(false);
+                switchLocale(lng);
+              }}
+              sx={{
+                px: 1.5,
+                py: 0.5,
+                border: `1px solid ${locale === lng ? palette.primary : palette.bgLight}`,
+                borderRadius: '4px',
+                bgcolor: locale === lng ? palette.primary : 'transparent',
+                color: locale === lng ? 'white' : palette.primary,
+                cursor: 'pointer',
+                fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                fontSize: 13,
+                fontWeight: 500,
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              {t(`lang.${lng}`)}
+            </Box>
+          ))}
+        </Box>
+
         <List>
           {NAV_ITEMS.map((item) => {
             const isActive =
@@ -710,10 +779,10 @@ export function Header() {
         <List>
           {(!!customer
             ? [
-                { label: 'Личный кабинет', href: '/account' },
-                { label: 'Мои заказы', href: '/account/orders' },
+                { label: t('common.account'), href: '/account' },
+                { label: 'Orders', href: '/account/orders' },
               ]
-            : [{ label: 'Войти', href: '/login' }]
+            : [{ label: t('common.signIn'), href: '/login' }]
           ).map((item) => (
             <ListItemButton
               key={item.href}
@@ -745,7 +814,7 @@ export function Header() {
               }}
             >
               <ListItemText
-                primary="Выйти"
+                primary={t('common.signOut')}
                 primaryTypographyProps={{
                   sx: {
                     fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',

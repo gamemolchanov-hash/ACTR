@@ -33,8 +33,11 @@ describe('fmtMoney()', () => {
   it('falls back to TRY (not USD) when no currency arg and env not set (WR-05)', () => {
     // NEXT_PUBLIC_STOREFRONT_CURRENCY is not set (cleared in beforeEach)
     const result = fmtMoney(1000);
-    expect(result).toContain('₺');
+    // Must NOT be USD — it should be TRY (shows as 'TRY' in en-US locale, '₺' in tr-TR)
     expect(result).not.toContain('$');
+    expect(result).not.toContain('USD');
+    // In en-US locale with TRY currency, Intl shows 'TRY' as the symbol
+    expect(result).toMatch(/TRY|₺/);
   });
 
   it('uses NEXT_PUBLIC_STOREFRONT_CURRENCY env when set', () => {
@@ -44,10 +47,11 @@ describe('fmtMoney()', () => {
   });
 
   it('does not throw on unknown currency code — returns number + code fallback', () => {
-    expect(() => fmtMoney(100, 'XXX', 'en-US')).not.toThrow();
-    const result = fmtMoney(100, 'XXX', 'en-US');
+    // 'ABCD' is 4 chars — not a valid ISO 4217 code, will throw inside try and fall back
+    expect(() => fmtMoney(100, 'ABCD', 'en-US')).not.toThrow();
+    const result = fmtMoney(100, 'ABCD', 'en-US');
     expect(result).toContain('100');
-    expect(result).toContain('XXX');
+    expect(result).toContain('ABCD');
   });
 
   it('uses en-US formatting when no locale arg', () => {
