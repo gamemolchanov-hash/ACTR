@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
   Button,
   Chip,
   CircularProgress,
+  IconButton,
   Table,
   TableBody,
   TableCell,
@@ -21,27 +22,26 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { getMyOrders, type OrderSummary } from '@/lib/auth';
+import { getMyOrders, type CustomerOrder } from '@/lib/auth';
+import { fmtMoney } from '@/lib/money';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
-const CDEK_TRACK_URL = 'https://www.cdek.ru/ru/tracking?order_id=';
-
 export default function OrdersPage() {
-  const { isLogged, loading: authLoading } = useAuth();
+  const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    if (!authLoading && !isLogged) router.replace('/login');
-  }, [authLoading, isLogged, router]);
+    if (!authLoading && !customer) router.replace('/login');
+  }, [authLoading, customer, router]);
 
   useEffect(() => {
-    if (!isLogged) return;
+    if (!customer) return;
     setLoading(true);
     getMyOrders(page, 10)
       .then((res) => {
@@ -50,7 +50,7 @@ export default function OrdersPage() {
       })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, [isLogged, page]);
+  }, [customer, page]);
 
   if (authLoading) return null;
 
@@ -148,7 +148,7 @@ export default function OrdersPage() {
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Доставка
+                      Трек
                     </TableCell>
                     <TableCell
                       align="right"
@@ -163,10 +163,6 @@ export default function OrdersPage() {
                     const st = order.status;
                     const statusLabel = st?.name || '—';
                     const statusColor = st?.color || '#999';
-                    const ds = order.delivery_service;
-                    const isCdek =
-                      ds?.name?.toLowerCase().includes('сдэк') ||
-                      ds?.name?.toLowerCase().includes('cdek');
 
                     return (
                       <TableRow
@@ -186,7 +182,7 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {new Date(order.date_created).toLocaleDateString('ru-RU')}
+                          {new Date(order.date_created).toLocaleDateString('en-GB')}
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -214,41 +210,21 @@ export default function OrdersPage() {
                             .join(', ')}
                           {(order.items?.length ?? 0) > 2 && ` (+${order.items!.length - 2})`}
                         </TableCell>
-                        <TableCell
-                          sx={{ fontFamily: fontBody, fontSize: 13, whiteSpace: 'nowrap' }}
-                        >
-                          {ds ? (
-                            <Box>
-                              <Typography sx={{ fontSize: 13, color: palette.primary }}>
-                                {ds.name}
-                              </Typography>
-                              {order.track_number && (
-                                <Tooltip title="Отследить посылку">
-                                  <Box
-                                    component={isCdek ? 'a' : 'span'}
-                                    onClick={(e: MouseEvent) => e.stopPropagation()}
-                                    {...(isCdek
-                                      ? {
-                                          href: `${CDEK_TRACK_URL}${order.track_number}`,
-                                          target: '_blank',
-                                          rel: 'noopener',
-                                        }
-                                      : {})}
-                                    sx={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 0.5,
-                                      fontSize: 12,
-                                      color: isCdek ? '#2196F3' : palette.primaryLight,
-                                      textDecoration: isCdek ? 'underline' : 'none',
-                                    }}
-                                  >
-                                    <LocalShipping sx={{ fontSize: 14 }} />
-                                    {order.track_number}
-                                  </Box>
-                                </Tooltip>
-                              )}
-                            </Box>
+                        <TableCell sx={{ fontFamily: fontBody, fontSize: 13 }}>
+                          {order.track_url ? (
+                            <Tooltip title="Track shipment">
+                              <IconButton
+                                component="a"
+                                href={order.track_url}
+                                target="_blank"
+                                rel="noopener"
+                                onClick={(e) => e.stopPropagation()}
+                                size="small"
+                                sx={{ color: palette.primary }}
+                              >
+                                <LocalShipping fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           ) : (
                             <Typography sx={{ fontSize: 13, color: palette.primaryLight }}>
                               —
@@ -264,7 +240,7 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {order.total?.toLocaleString('ru-RU')} ₽
+                          {fmtMoney(Number(order.total), order.currency)}
                         </TableCell>
                       </TableRow>
                     );
