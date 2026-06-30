@@ -46,7 +46,7 @@
 
 ### Compliance
 
-- [ ] **COMP-01**: Цены отображаются с KDV (НДС 20%)
+- [x] **COMP-01**: Цены отображаются с KDV (НДС 20%)
 - [x] **COMP-02**: Согласия KVKK + «mesafeli satış»/право возврата + юр-страницы-заглушки
 
 ### Cleanup & Brand
@@ -104,7 +104,7 @@
 | I18N-02 | Phase 4 | Complete |
 | I18N-03 | Phase 4 | Complete |
 | I18N-04 | Phase 4 | Complete |
-| COMP-01 | Phase 5 | Pending |
+| COMP-01 | Phase 5 | Complete |
 | COMP-02 | Phase 5 | Complete |
 | CLEAN-01 | Phase 6 | Pending |
 | CLEAN-02 | Phase 6 | Pending |

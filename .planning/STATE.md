@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: "Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev)."
-last_updated: "2026-06-30T15:45:04.101Z"
+last_updated: "2026-06-30T15:54:44.269Z"
 last_activity: 2026-06-30 -- Phase 05 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 57
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 ## Current Position
 
 Phase: 05 (ui) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-30 -- Phase 05 execution started
 
@@ -119,6 +119,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T15:45:04.096Z
+Last session: 2026-06-30T15:54:44.265Z
 Stopped at: Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev).
 Resume file: .planning/phases/05-ui/05-01-PLAN.md
