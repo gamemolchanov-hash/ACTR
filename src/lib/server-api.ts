@@ -13,6 +13,10 @@
  *                                                       NEVER emits noindex
  * Collapsing both into `null` would noindex live products during a BFF blip and
  * silently truncate the sitemap, which is the opposite of the SEO goal.
+ *
+ * I18N-03 (04-05): fetchProductServer accepts locale → threads ?lang=<bcp47> to
+ * the BFF so server-rendered SEO metadata (generateMetadata, JSON-LD) reflects
+ * the active locale. The BFF requires full BCP-47 (e.g. tr-TR not tr).
  */
 
 import type { Product, Category } from './api';
@@ -32,6 +36,12 @@ const STOREFRONT_BASE = `${BFF_INTERNAL_URL}/public/arm/storefront`;
 // every 5 min so metadata/sitemap stay fresh without hammering the BFF.
 const REVALIDATE_SECONDS = 300;
 
+/** BCP-47 mapping for ARM ?lang= (BFF requires full form, e.g. tr-TR not tr). */
+const LOCALE_TO_BCP47: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+};
+
 /** Thrown when the BFF is unreachable or returns a non-404 error (transient). */
 export class BffUnavailableError extends Error {
   constructor(
@@ -46,12 +56,17 @@ export class BffUnavailableError extends Error {
 
 /**
  * GET a storefront BFF endpoint.
+ * @param path - BFF path (e.g. `/products/slug-123`)
+ * @param lang - Optional BCP-47 code (e.g. `tr-TR`); appended as `?lang=` when provided.
  * @returns parsed body on 2xx, `null` on a genuine 404.
  * @throws {BffUnavailableError} on network failure or any other non-2xx status.
  */
-async function bffGet<T>(path: string): Promise<T | null> {
+async function bffGet<T>(path: string, lang?: string): Promise<T | null> {
   let res: Response;
   try {
+    const fullUrl = new URL(`${STOREFRONT_BASE}${path}`);
+    if (lang) fullUrl.searchParams.set('lang', lang);
+
     // `next.revalidate` is added to fetch options by the Next runtime; typed via
     // an intersection so plain `tsc` (no Next augmentation) still compiles.
     const init: RequestInit & { next?: { revalidate?: number } } = {
@@ -61,7 +76,7 @@ async function bffGet<T>(path: string): Promise<T | null> {
       },
       next: { revalidate: REVALIDATE_SECONDS },
     };
-    res = await fetch(`${STOREFRONT_BASE}${path}`, init);
+    res = await fetch(fullUrl.toString(), init);
   } catch (err) {
     throw new BffUnavailableError(0, `Storefront BFF request failed: ${path}`, { cause: err });
   }
@@ -75,12 +90,25 @@ async function bffGet<T>(path: string): Promise<T | null> {
 
 /**
  * Single product by slug or UUID (mirrors the client `fetchProduct`).
+ *
+ * I18N-03: when `locale` is provided, threads `?lang=<bcp47>` to the BFF so
+ * server-rendered SEO metadata reflects the active locale. Product name/description
+ * are returned in the requested language if translations exist in the tenant;
+ * otherwise the default-language content is returned (graceful fallback).
+ *
+ * @param idOrSlug - product slug or UUID
+ * @param locale   - 'en' | 'tr' (optional; omit for locale-agnostic fetch)
  * @returns the product, or `null` when the BFF reports a genuine 404.
  * @throws {BffUnavailableError} on a transient BFF failure.
  */
-export async function fetchProductServer(idOrSlug: string): Promise<Product | null> {
+export async function fetchProductServer(
+  idOrSlug: string,
+  locale?: string,
+): Promise<Product | null> {
+  const lang = locale ? (LOCALE_TO_BCP47[locale] || 'en-US') : undefined;
   const res = await bffGet<{ data: ArmDistributorProduct }>(
     `/products/${encodeURIComponent(idOrSlug)}`,
+    lang,
   );
   return res?.data ? armToProduct(res.data) : null;
 }
@@ -95,7 +123,7 @@ export async function fetchProductServer(idOrSlug: string): Promise<Product | nu
 export async function fetchProductReviewAggregateServer(
   productId: string,
 ): Promise<ReviewAggregate | null> {
-  // ARM не имеет storefront-отзывов — агрегат всегда отсутствует (зачистка вызова — Phase 6).
+  // ARM has no storefront reviews — aggregate is always absent (cleanup in Phase 6).
   void productId;
   return null;
 }

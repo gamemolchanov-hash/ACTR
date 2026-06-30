@@ -5,6 +5,9 @@
  * review: a real product → full SEO metadata; a genuine 404 → notFound();
  * a transient BFF failure → propagated (5xx), NEVER a noindex on a live page.
  * ProductDetail / next-navigation / the BFF fetcher are mocked.
+ *
+ * I18N-04 (04-05): asserts hreflang alternates.languages (en/tr) and OG locale.
+ * I18N-03 (04-05): asserts fetchProductServer is called with locale param.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Product } from '@/lib/api';
@@ -50,18 +53,42 @@ describe('product page generateMetadata', () => {
     vi.clearAllMocks();
   });
 
-  it('builds title, canonical and OG image from the fetched product', async () => {
+  it('builds title, canonical and OG image from the fetched product (EN)', async () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
 
     const md = await generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } });
 
-    expect(fetchProductServer).toHaveBeenCalledWith('198');
+    // I18N-03: fetchProductServer called with locale param
+    expect(fetchProductServer).toHaveBeenCalledWith('198', 'en');
     expect(md.title).toBe('BASE GEL 15 ML');
-    expect((md.alternates as { canonical: string }).canonical).toBe(
-      `${SITE_URL}/catalog/base_gel/198`,
-    );
-    const og = md.openGraph as { images?: { url: string }[] };
+    // Canonical now includes locale prefix (I18N-04)
+    const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
+    expect(alternates.canonical).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
+    const og = md.openGraph as { images?: { url: string }[]; locale?: string };
     expect(og.images?.[0].url).toBe(`${SITE_URL}/product-images/a.png`);
+    // OG locale for EN (I18N-04)
+    expect(og.locale).toBe('en_US');
+  });
+
+  it('emits hreflang alternates.languages with en and tr (I18N-04)', async () => {
+    (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
+
+    const md = await generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } });
+    const alternates = md.alternates as { languages: Record<string, string> };
+    expect(alternates.languages['en']).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
+    expect(alternates.languages['tr']).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
+  });
+
+  it('uses tr_TR OG locale and /tr/ canonical for tr locale (I18N-04)', async () => {
+    (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
+
+    const md = await generateMetadata({ params: { locale: 'tr', slug: 'base_gel', productSlug: '198' } });
+    // I18N-03: fetchProductServer called with tr locale
+    expect(fetchProductServer).toHaveBeenCalledWith('198', 'tr');
+    const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
+    expect(alternates.canonical).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
+    const og = md.openGraph as { locale?: string };
+    expect(og.locale).toBe('tr_TR');
   });
 
   it('calls notFound() on a genuine 404 (no soft-404 / no noindex)', async () => {

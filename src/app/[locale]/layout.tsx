@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { setRequestLocale } from 'next-intl/server';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -18,30 +18,48 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export const metadata: Metadata = {
-  // Absolute base for canonical / OG / Twitter URLs.
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: `${SITE_NAME} — professional gel polishes`,
-    template: `%s — ${SITE_NAME}`,
-  },
-  description:
-    'Catalog of professional gel polishes and coatings. Certified products for nail professionals.',
-  icons: {
-    icon: '/favicon.ico',
-  },
-  openGraph: {
-    type: 'website',
-    siteName: SITE_NAME,
-    locale: 'en_US',
-    title: `${SITE_NAME} — professional gel polishes`,
-    description:
-      'Catalog of professional gel polishes and coatings. Certified products for nail professionals.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-  },
-};
+/**
+ * Locale-aware root metadata (I18N-04).
+ * Title/description come from `meta.*` translation keys so they are EN/TR.
+ * alternates.languages provides hreflang for both locales.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta' });
+  const ogLocale = locale === 'tr' ? 'tr_TR' : 'en_US';
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: t('defaultTitle'),
+      template: `%s — ${SITE_NAME}`,
+    },
+    description: t('siteDesc'),
+    icons: {
+      icon: '/favicon.ico',
+    },
+    alternates: {
+      languages: {
+        en: `${SITE_URL}/en`,
+        tr: `${SITE_URL}/tr`,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: SITE_NAME,
+      locale: ogLocale,
+      title: t('defaultTitle'),
+      description: t('siteDesc'),
+    },
+    twitter: {
+      card: 'summary_large_image',
+    },
+  };
+}
 
 export default async function LocaleLayout({
   children,

@@ -18,11 +18,16 @@ interface ProductPageProps {
 // soft-404). A transient BFF failure makes fetchProductServer throw, which
 // surfaces as a 5xx — we must NEVER emit `noindex` on a live product, since
 // Google treats noindex as "drop" while it retries 5xx.
+//
+// I18N-04 (04-05): locale threaded to fetchProductServer (?lang for BFF) and
+// buildProductMetadata (hreflang alternates, OG locale, locale-aware canonical).
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   setRequestLocale(params.locale);
-  const product = await fetchProductServer(params.productSlug);
+  // I18N-03: pass locale so BFF returns localized product name/description (?lang=<bcp47>)
+  const product = await fetchProductServer(params.productSlug, params.locale);
   if (!product) notFound();
-  return buildProductMetadata(product);
+  // I18N-04: pass locale for hreflang alternates + OG locale
+  return buildProductMetadata(product, params.locale);
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -30,7 +35,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Same lookup as generateMetadata — Next dedupes identical fetches per request.
   // Used only to embed Product JSON-LD in the initial HTML; the visible product
   // is still rendered client-side by <ProductDetail> via React Query.
-  const product = await fetchProductServer(params.productSlug);
+  // I18N-03: pass locale so JSON-LD contains localized product content
+  const product = await fetchProductServer(params.productSlug, params.locale);
   if (!product) notFound();
 
   // Aggregate rating for the JSON-LD `aggregateRating` (star snippets, FBG-69).
