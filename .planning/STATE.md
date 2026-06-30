@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: context exhaustion at 75% (2026-06-30)
-last_updated: "2026-06-30T15:56:43.892Z"
-last_activity: 2026-06-30 -- Phase 05 execution started
+stopped_at: Phase 5 complete (UAT 4/4 PASS); next debug CART-BUG then Phase 6
+last_updated: "2026-06-30T18:11:43.749Z"
+last_activity: 2026-06-30
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 14
-  completed_plans: 13
-  percent: 57
+  completed_plans: 14
+  percent: 71
 ---
 
 # Project State
@@ -21,44 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 05 — ui
+**Current focus:** Phase 6 — чистка OMS-специфики + бренд TR
 
 ## Current Position
 
-Phase: 05 (ui) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-06-30 -- Phase 05 execution started
+Phase: 6 (Phase 5 Комплаенс-UI — ✅ COMPLETE, UAT 4/4 PASS 2026-06-30)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-30
 
-Progress: [██████░░░░] 57%
-
-### ▶ Как продолжить (resume)
-
-1. `cd /home/lexun/work/puz/ACTR`
-2. **След. фаза:** `/gsd-plan-phase 5` (Комплаенс-UI — KDV/НДС в ценах, чекбоксы KVKK/«mesafeli satış» в чекауте, юр-страницы-заглушки).
-3. Окружение для live: demo-BFF `make up` (:4000) + `npm run dev` (:3003).
-4. Артефакты Phase 4: `.planning/phases/04-i18n-en-tr/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION/REVIEW/VERIFICATION + 5 PLAN/SUMMARY).
-5. ⚠️ Code-review Phase 4 follow-ups (см. Pending Todos) + до go-live: `arm_customers.name` nullable.
+Progress: [███████░░░] 71% (5/7 фаз)
 
 ### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
-2. **Поднять окружение (нужно для 04):** demo-BFF `make up` (autoCRM :4000) + `npm run dev`
-   (ACTR :3003) + Tolgee project 34 на loco.devloc.su доступен (MCP `mcp__tolgee__*`).
-
-3. **Выполнить фазу:** `/gsd-execute-phase 4` — волны строго последовательны (общий
-   `messages/*.json` + `[locale]/layout.tsx` пересекаются): 04-01 каркас → 04-02 каталог/?lang →
-   04-03 auth/account → 04-04 статика → 04-05 SEO/Tolgee-finalize. 04-01 — самый тяжёлый
-   (next-intl scaffold + миграция ~28 роутов под `[locale]`).
-
-4. Артефакты Phase 4: `.planning/phases/04-i18n-en-tr/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION + 5 PLAN).
-5. ⚠️ До go-live в реальном TR-тенанте: `arm_customers.name` nullable (GDPR/KVKK-удаление) — Pending Todos.
+2. **Окружение для live:** demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
+   Dev-сервер сейчас запущен (bg `bj466qf09`). ⚠️ ACTR ходит **на :3003**, НЕ :3000 (там Metabase).
+3. **Активная задача:** дебаг сломанной корзины (`product_not_found` / итог $0.00) — см. Pending Todos
+   «[CART-BUG]». Затем — Phase 6 (`/gsd-plan-phase 6`).
+4. **⚠️ Phase 5 не прошёл `/gsd-secure-phase 5`** (security_enforcement=true, SECURITY.md нет) — фаза
+   закрыта по явному решению пользователя; security-ревью consent-gate (T-05-08/09) рекомендуется до go-live.
+5. Артефакты Phase 5: `.planning/phases/05-ui/` (3 PLAN/SUMMARY + 05-UAT.md 4/4 PASS + фикс i18n `edf28ec`).
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 3
 - Average duration: —
 - Total execution time: —
 
@@ -66,7 +55,7 @@ Progress: [██████░░░░] 57%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 05 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -97,6 +86,11 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ### Pending Todos
 
+- **[CART-BUG — 🔴 ACTIVE, surfaced in Phase-5 UAT 2026-06-30] Корзина не резолвит товар** — добавляешь товар (AFTER SHAVE) → `/tr/basket` показывает строку `product_not_found`, кол-во 0, цена «—», Subtotal/Total **$0.00**, хотя бейдж корзины = 1. Реальный заказ до Stripe не довести (пустая/невалидная корзина). Похоже на баг резолва товара cart↔BFF или несовпадение данных demo-тенанта. **Это блокирует полный E2E-чекаут (но НЕ Phase-5 UI — consent gate/KDV/legal проверены отдельно).** Начать дебаг: `CartProvider`/`basket/page.tsx` + как cart хранит id и как basket их перезапрашивает у BFF.
+- **[i18n — Phase-4 хвост, подтверждено в Phase-5 UAT] Валюта ₽/$ вместо ₺ (TRY)** — карточки/деталь товара рендерят рубль («₽24,84»), чекаут (Subtotal/KDV/Total) — доллар («$0.00»). Для TR-рынка должно быть ₺/TRY. Совпадает с WR-01/WR-02 ниже (USD/RUB fallback).
+- **[i18n — Phase-4 хвост, подтверждено в Phase-5 UAT] Страницы корзины и чекаута не локализованы** — на `/tr` тело basket («BASKET», «Place Order», «PRODUCT», «PRICE / PC») и checkout («CHECKOUT», «Email», «YOUR ORDER», «Subtotal», «Shipping», «TOTAL», «Continue», «Proceed to Payment») — по-английски. Хедер/футер (вкл. новую legal-колонку) и метки consent — турецкие. Пробел покрытия i18n на basket/checkout, НЕ регрессия Phase 5.
+- **[обсервация — Phase-5 UAT] Доставка: тарифы недоступны** — DELIVERY-шаг показывает «Shipping rates temporarily unavailable… you can still place your order» (BFF не вернул тарифы в этом окружении; graceful degradation работает). Проверить интеграцию shipping-rates в demo-BFF.
+- **[⚠ security — Phase 5] `/gsd-secure-phase 5` НЕ запускался** — `security_enforcement=true`, но `05-SECURITY.md` нет. Phase 5 закрыта по явному решению пользователя. Consent-gate имеет threat-модель (T-05-08 keyboard-bypass, T-05-09 reverse-tabnabbing — по SUMMARY смягчены). Прогнать `/gsd-secure-phase 5` до go-live для верификации митигаций.
 - **[human-verify] Live Stripe payment E2E** — code path complete & verified; live test needs demo storefront `payment_config` (ui_mode=embedded) with Stripe test keys in Portal, then `make up` + `npm run dev`, pay with `4242 4242 4242 4242`, expect redirect to `/checkout/success?order=<uuid>`. Documented in 02-02 SUMMARY + VERIFICATION.md.
 - **[Phase 4 i18n] Code-review WR-01/WR-02/WR-05** — systemic RU→TR localization leftovers from 03-REVIEW.md: `Header.tsx` search suggestions use `₽`+`ru-RU`; `ProductReviews.tsx` uses `ru-RU` dates + Russian-only pluralization; currency fallback is `USD` everywhere except order-detail (`TRY`). Defer to Phase 4 (i18n) — standardize to TRY + EN/TR. (CR-01 phone +7 / WR-06 / WR-03 track_url already fixed in Phase 3.)
 - **[Phase 3 follow-up] Code-review WR-04** — transient 5xx/network during initial `getMe()`: token preserved (FBG-50) but `customer` stays null → account pages redirect to `/login` with no retry. **Corroborated live in UAT** (fresh nav to /account/settings bounced to / once during the auth-loading window, then held on retry). Consider a retry/error/loading-guard instead of bounce. See 03-REVIEW.md / 03-UAT.md.
@@ -106,7 +100,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - **[Phase 4 code-review follow-ups] (04-REVIEW.md) — fixed CR-01/WR-03/WR-04; remaining open** (run `/gsd-code-review 4 --fix` to apply): **CR-02** `productCanonicalUrl` emits locale-less path → JSON-LD url points at a redirect (add locale param); **WR-01** `server-api.ts:165` `totalPages ?? page` caps catalog/sitemap at page 1 (100 products) — real, fix the default; **WR-02** `buildProductJsonLd` no locale (EN price on TR); **WR-05** reset-password shim interpolates raw `NEXT_LOCALE` cookie into redirect URL (whitelist en/tr); **WR-06** TR users landing directly on `/tr/` never get the cookie → next root visit → `/en/`; **WR-07** `messages-pull.mjs` exits 0 on partial pull; **IN-01..04** stale OMS comment, missing `x-default` hreflang, GeoLocaleInit cookie lacks `Secure`, middleware matcher `reset-password` unanchored. Mostly pre-go-live SEO + edge-cases; core i18n verified working.
 - **[Phase 4 follow-up] Tolgee project-34 sync** — local `messages/{en,tr}.json` (336 keys, real Turkish) ship as catalogs; the Tolgee PUSH to project 34 (loco.devloc.su, SRV199) was not run (MCP unreachable from executor subagents). `scripts/messages-pull.mjs` + `npm run messages:pull` ready; set `TOLGEE_API_KEY` and push/pull to make Tolgee the live source of truth (D-04/05).
 
-- **[Phase 5 GAP-CLOSURE — next window] Legal pages 500 + Tolgee sync (do together)** — (1) BUG: `/[locale]/legal/*` 500s — `getTranslations` throws on MISSING keys `legal.<slug>.navLabel` (iade/gizlilik/kullanim_kosullari) + `common.workingHours`, absent from `messages/{en,tr}.json` (05-01 added an incomplete set; build doesn't fail on missing-message — surfaces only at runtime). See 05-UAT.md Gaps. (2) Fix THE RIGHT WAY via Tolgee now that MCP is wired (`~/.claude.json` → https://loco.devloc.su/mcp/developer, active after Claude Code restart): push ALL local keys (Phase 4+5, ~390/lang) to **project 34**, add the missing navLabel + common.workingHours keys there (EN+TR), `npm run messages:pull` back into JSON → Tolgee becomes the real source of truth (closes D-04/05 deferred). Then re-verify `/{en,tr}/legal/*` = 200 + finish UAT tests 1/2/4 (consent gate, links, KDV) → verifier → Phase 5 complete. Entry point: `/gsd-verify-work 5` (picks up Gaps → gap-closure plan). Fresh dev server already running on :3003 (bg b2584mk65).
+- **[Phase 5 GAP-CLOSURE — ✅ RESOLVED 2026-06-30, commit `edf28ec`]** — the legal-pages 500 was NOT "missing keys" (that diagnosis was wrong). Real cause: messages are FLAT dotted keys, which next-intl rejects (`INVALID_KEY`) — site-wide i18n break (every page rendered key strings; server-rendered legal pages 500'd). PLUS a 2nd bug: legal page (server component) imported `palette` from `theme.ts` (`'use client'`) → RSC manifest 500. Fixed by (1) `unflatten()` in `src/i18n/request.ts`, (2) `palette` extracted to `src/lib/palette.ts`. All 10 legal routes now 200 + real localized content; UAT 4/4 PASS. Tolgee push (D-04/05) still deferred — see todo above.
 
 ### Blockers/Concerns
 
@@ -121,6 +115,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T15:56:43.886Z
-Stopped at: context exhaustion at 75% (2026-06-30)
-Resume file: .planning/phases/05-ui/05-01-PLAN.md
+Last session: 2026-06-30T18:00:00Z
+Stopped at: Phase 5 (Комплаенс-UI) COMPLETE — UAT 4/4 PASS, i18n+palette fix edf28ec. Next: debug CART-BUG, then plan Phase 6.
+Resume file: None
