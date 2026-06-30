@@ -51,10 +51,13 @@ OMS-специфики и бренд-свопы TR (Phase 6), реальные T
   code-review Phase 3 — см. Folded findings.)
 
 ### Контент товара через ARM `?lang`
-- **D-08:** Прокси (`src/app/api/storefront/[...path]/route.ts`) прокидывает **`?lang=en|tr`**
-  (короткие коды) в ARM storefront-эндпоинты. Если у товара нет перевода в ARM — показывается
-  **контент на языке по умолчанию** (никогда не пусто). Полные BCP47 (en-US/tr-TR) — только если
-  research покажет, что ARM их различает (см. Deferred). (I18N-03)
+- **D-08 (УТОЧНЕНО research'ем):** Прокси (`src/app/api/storefront/[...path]/route.ts`) прокидывает
+  **полные BCP-47 коды**: UI `en` → `?lang=en-US`, `tr` → `?lang=tr-TR`. ⚠️ BFF принимает только
+  формат `/^[a-z]{2}-[A-Z]{2}$/` (`storefront-api.ts:389`) — короткие `en`/`tr` **молча
+  игнорируются**, поэтому исходное «короткие коды» отменено. `?lang=` поддерживается **только на
+  product-detail** (`/products/:idOrSlug`), НЕ на списке `/products`. Если у товара нет перевода в
+  ARM — показывается **контент на языке по умолчанию** (никогда не пусто). (I18N-03)
+  - TR-тенант должен хранить `arm_product_translations.locale = tr-TR` (open question — см. RESEARCH).
 
 ### Folded findings (из code-review Phase 3 — чистятся здесь)
 - **WR-01:** `Header.tsx` — `₽` + `ru-RU` в подсказках поиска → локализованный формат + валюта **TRY**.
