@@ -43,6 +43,13 @@ vi.mock('@/providers/CartProvider', () => ({
   useCart: () => ({ addItem: vi.fn() }),
 }));
 
+// ProductDetail embeds ProductReviews, which calls useAuth(); in the real app
+// AuthProvider wraps the tree (src/app/layout.tsx). Mock it here so the component
+// tree renders without a provider, matching the other provider mocks above.
+vi.mock('@/lib/auth-context', () => ({
+  useAuth: () => ({ customer: null }),
+}));
+
 vi.mock('@/lib/useRecentlyViewed', () => ({
   useRecentlyViewed: () => ({ items: [], addViewed: vi.fn() }),
 }));
