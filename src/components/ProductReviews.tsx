@@ -47,12 +47,16 @@ export function ProductReviews({ productId }: Props) {
   const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
 
   // Locale-aware date formatter (WR-02)
-  const fmtDate = (d: string) =>
-    new Intl.DateTimeFormat(bcp47, {
+  const fmtDate = (d: string | null | undefined) => {
+    if (!d) return '';
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat(bcp47, {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
-    }).format(new Date(d));
+    }).format(date);
+  };
 
   const { customer } = useAuth();
   const qc = useQueryClient();
@@ -91,8 +95,8 @@ export function ProductReviews({ productId }: Props) {
   });
 
   const reviews = data?.data || [];
-  const average = data?.meta.average || 0;
-  const total = data?.meta.total || 0;
+  const average = data?.meta?.average || 0;
+  const total = data?.meta?.total || 0;
 
   return (
     <Box

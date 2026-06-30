@@ -17,9 +17,12 @@ export const SITE_NAME = 'American Creator';
 
 /**
  * Public site origin used for canonical / OG / sitemap absolute URLs.
- * Overridable per-environment; defaults to the production domain.
+ * Set NEXT_PUBLIC_SITE_URL per-environment (the TR prod domain at go-live).
+ * Falls back to a neutral localhost origin — NEVER the RU domain
+ * (american-creator.ru), which would mis-attribute every canonical/OG/sitemap
+ * URL for this standalone TR storefront (CR-01).
  */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://american-creator.ru').replace(
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3003').replace(
   /\/+$/,
   '',
 );
