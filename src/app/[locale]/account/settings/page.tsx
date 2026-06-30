@@ -21,6 +21,7 @@ import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { updateProfile, changePassword, exportAccount, deleteAccount } from '@/lib/auth';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -34,6 +35,9 @@ const inputSx = {
 };
 
 export default function SettingsPage() {
+  const t = useTranslations('account');
+  const tCommon = useTranslations('common');
+
   const { customer, loading: authLoading, refreshProfile, signOut } = useAuth();
   const router = useRouter();
 
@@ -82,11 +86,11 @@ export default function SettingsPage() {
     try {
       await updateProfile({ name: name.trim(), phone });
       await refreshProfile();
-      setSnack({ open: true, message: 'Данные сохранены', severity: 'success' });
+      setSnack({ open: true, message: t('profileSaved'), severity: 'success' });
     } catch (err: any) {
       setSnack({
         open: true,
-        message: err?.response?.data?.message || 'Ошибка сохранения',
+        message: err?.response?.data?.message || t('profileSaveError'),
         severity: 'error',
       });
     } finally {
@@ -98,13 +102,13 @@ export default function SettingsPage() {
     if (newPassword.length < 6) {
       setSnack({
         open: true,
-        message: 'Пароль должен быть не менее 6 символов',
+        message: t('passwordTooShort'),
         severity: 'error',
       });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setSnack({ open: true, message: 'Пароли не совпадают', severity: 'error' });
+      setSnack({ open: true, message: t('passwordMismatch'), severity: 'error' });
       return;
     }
     setChangingPw(true);
@@ -115,7 +119,7 @@ export default function SettingsPage() {
       setConfirmPassword('');
       // FBG-22 / T-03-10: BFF invalidates pre-change tokens (tokens_valid_after) —
       // sign out and require re-login with the fresh token.
-      setSnack({ open: true, message: 'Пароль изменён. Войдите заново.', severity: 'success' });
+      setSnack({ open: true, message: t('passwordChanged'), severity: 'success' });
       setTimeout(() => {
         signOut();
         router.push('/login');
@@ -124,8 +128,8 @@ export default function SettingsPage() {
       const code = err?.response?.data?.code;
       const msg =
         code === 'wrong_password'
-          ? 'Неверный текущий пароль'
-          : err?.response?.data?.message || 'Ошибка смены пароля';
+          ? t('wrongPassword')
+          : err?.response?.data?.message || t('passwordChangeError');
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setChangingPw(false);
@@ -178,13 +182,13 @@ export default function SettingsPage() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/account" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Личный кабинет
+            {t('breadcrumb')}
           </Link>
-          {' / Настройки'}
+          {` / ${t('settingsBreadcrumb')}`}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -199,7 +203,7 @@ export default function SettingsPage() {
             variant="h1"
             sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
           >
-            НАСТРОЙКИ
+            {t('settingsTitle')}
           </Typography>
         </Box>
       </Box>
@@ -225,12 +229,12 @@ export default function SettingsPage() {
               textTransform: 'uppercase',
             }}
           >
-            Личные данные
+            {t('profileSection')}
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
-              label="ФИО"
+              label={t('nameLabel')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               fullWidth
@@ -242,10 +246,10 @@ export default function SettingsPage() {
               disabled
               fullWidth
               sx={inputSx}
-              helperText="Email нельзя изменить"
+              helperText={t('emailCannotChange')}
             />
             <TextField
-              label="Телефон"
+              label={t('phoneLabel')}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               fullWidth
@@ -268,7 +272,7 @@ export default function SettingsPage() {
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >
-            {saving ? 'Сохранение...' : 'Сохранить'}
+            {saving ? t('saving') : t('save')}
           </Button>
         </Box>
 
@@ -292,18 +296,18 @@ export default function SettingsPage() {
               textTransform: 'uppercase',
             }}
           >
-            Смена пароля
+            {t('passwordSection')}
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
-              label="Текущий пароль"
+              label={t('currentPassword')}
               type={showPassword ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               fullWidth
               sx={inputSx}
-              helperText="Оставьте пустым, если у вас ещё нет пароля"
+              helperText={t('currentPasswordHint')}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -319,16 +323,16 @@ export default function SettingsPage() {
               }}
             />
             <TextField
-              label="Новый пароль"
+              label={t('newPasswordLabel')}
               type={showPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               fullWidth
               sx={inputSx}
-              helperText="Минимум 6 символов"
+              helperText={t('newPasswordHint')}
             />
             <TextField
-              label="Подтверждение пароля"
+              label={t('confirmPasswordLabel')}
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -352,7 +356,7 @@ export default function SettingsPage() {
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >
-            {changingPw ? 'Сохранение...' : 'Изменить пароль'}
+            {changingPw ? t('changingPassword') : t('changePasswordBtn')}
           </Button>
         </Box>
         {/* GDPR Danger Zone (AUTH-07 / D-09) */}
@@ -385,7 +389,7 @@ export default function SettingsPage() {
             Manage your personal data. These actions are irreversible.
           </Typography>
 
-          {/* Export — GDPR Art.20 */}
+          {/* Export -- GDPR Art.20 */}
           <Box sx={{ mb: 2 }}>
             <Typography sx={{ fontFamily: fontMain, fontWeight: 500, fontSize: 15, color: palette.primary, mb: 0.5 }}>
               Download My Data

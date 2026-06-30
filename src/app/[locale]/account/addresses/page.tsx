@@ -33,6 +33,7 @@ import {
   deleteMyAddress,
   type CustomerAddress,
 } from '@/lib/auth';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -53,6 +54,9 @@ const emptyForm = {
 type AddressForm = typeof emptyForm;
 
 export default function AddressesPage() {
+  const t = useTranslations('account');
+  const tCommon = useTranslations('common');
+
   const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -156,13 +160,13 @@ export default function AddressesPage() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/account" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Личный кабинет
+            {t('breadcrumb')}
           </Link>
-          {' / Адреса доставки'}
+          {` / ${t('addresses')}`}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 3 }}>
@@ -178,7 +182,7 @@ export default function AddressesPage() {
               variant="h1"
               sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
             >
-              АДРЕСА ДОСТАВКИ
+              {t('addressesTitle')}
             </Typography>
           </Box>
           <Button
@@ -195,7 +199,7 @@ export default function AddressesPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            Добавить
+            {t('addAddress')}
           </Button>
         </Box>
       </Box>
