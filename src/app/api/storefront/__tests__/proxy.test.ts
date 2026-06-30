@@ -1,0 +1,112 @@
+/**
+ * ARM storefront proxy — ?lang BCP-47 injection contract (D-08 / I18N-03).
+ *
+ * Guards: lang=<bcp47> is injected ONLY on product-detail
+ * (path.length===2 && path[0]==='products'), NOT on the products list or any
+ * other endpoint. Short locale codes (en/tr) never reach BFF — only full BCP-47
+ * (en-US/tr-TR). Existing ?lang param is never overwritten.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
+
+// Stub global fetch BEFORE importing the route so the module picks it up.
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — dynamic route directory with bracket name; valid FS path
+import { GET } from '../[...path]/route';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify({ data: [] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+});
+
+/**
+ * Build a NextRequest for the /api/storefront/* route.
+ * @param pathStr  path fragment after /api/storefront/ (e.g. 'products/some-slug')
+ * @param locale   optional NEXT_LOCALE cookie value
+ * @param query    optional raw query string (without leading '?')
+ */
+function makeReq(pathStr: string, locale?: string, query?: string): NextRequest {
+  const qs = query ? `?${query}` : '';
+  const url = `http://localhost:3000/api/storefront/${pathStr}${qs}`;
+  const headers: Record<string, string> = {};
+  if (locale) headers['Cookie'] = `NEXT_LOCALE=${locale}`;
+  return new NextRequest(url, { headers });
+}
+
+function makeCtx(pathParts: string[]) {
+  return { params: { path: pathParts } };
+}
+
+describe('ARM storefront proxy — ?lang injection (D-08, I18N-03)', () => {
+  it('injects lang=tr-TR on product detail when locale=tr', async () => {
+    const req = makeReq('products/some-slug', 'tr');
+    await GET(req, makeCtx(['products', 'some-slug']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).toContain('lang=tr-TR');
+  });
+
+  it('injects lang=en-US on product detail when locale=en', async () => {
+    const req = makeReq('products/some-slug', 'en');
+    await GET(req, makeCtx(['products', 'some-slug']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).toContain('lang=en-US');
+  });
+
+  it('defaults to lang=en-US on product detail when no NEXT_LOCALE cookie', async () => {
+    const req = makeReq('products/some-slug');
+    await GET(req, makeCtx(['products', 'some-slug']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).toContain('lang=en-US');
+  });
+
+  it('does NOT inject lang on /products list (path.length===1)', async () => {
+    const req = makeReq('products', 'tr');
+    await GET(req, makeCtx(['products']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).not.toMatch(/[?&]lang=/);
+  });
+
+  it('does NOT inject lang on non-products endpoints (e.g. /categories)', async () => {
+    const req = makeReq('categories', 'tr');
+    await GET(req, makeCtx(['categories']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).not.toMatch(/[?&]lang=/);
+  });
+
+  it('does NOT inject lang on /config endpoint', async () => {
+    const req = makeReq('config', 'tr');
+    await GET(req, makeCtx(['config']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).not.toMatch(/[?&]lang=/);
+  });
+
+  it('does NOT overwrite an existing ?lang on product detail', async () => {
+    const req = makeReq('products/some-slug', 'tr', 'lang=xx-YY');
+    await GET(req, makeCtx(['products', 'some-slug']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    // Original lang is preserved
+    expect(calledUrl).toContain('lang=xx-YY');
+    // tr-TR is NOT injected on top
+    expect(calledUrl).not.toContain('lang=tr-TR');
+  });
+
+  it('only sends full BCP-47 codes — never short codes like "en" or "tr"', async () => {
+    const req = makeReq('products/slug-1', 'tr');
+    await GET(req, makeCtx(['products', 'slug-1']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    // Must not contain plain short codes as the lang value
+    expect(calledUrl).not.toMatch(/[?&]lang=en(?:[^-]|$)/);
+    expect(calledUrl).not.toMatch(/[?&]lang=tr(?:[^-]|$)/);
+    // Must contain the full BCP-47 code
+    expect(calledUrl).toContain('lang=tr-TR');
+  });
+});

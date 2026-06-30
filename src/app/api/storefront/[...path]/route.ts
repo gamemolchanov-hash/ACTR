@@ -19,8 +19,31 @@ const ARM_BASE = `${BFF}/public/arm/storefront`;
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
 
+/**
+ * Maps storefront locale cookie values to BCP-47 codes accepted by the BFF.
+ * BFF validates via /^[a-z]{2}-[A-Z]{2}$/ — short codes (en/tr) are silently
+ * ignored. Only full BCP-47 codes produce translated product content (D-08).
+ */
+const LOCALE_TO_BCP47: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+};
+
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
-  const target = `${ARM_BASE}/${path.map(encodeURIComponent).join('/')}${req.nextUrl.search}`;
+  // Inject ?lang=<bcp47> ONLY on product-detail (path.length===2 && path[0]==='products').
+  // The products list (/products) and all other endpoints must not receive ?lang.
+  // Never overwrite an existing ?lang param (passthrough from client or test tooling).
+  // Security: value comes from a fixed LOCALE_TO_BCP47 map, not from user input (T-04-05).
+  const locale = req.cookies.get('NEXT_LOCALE')?.value || 'en';
+  const bcp47 = LOCALE_TO_BCP47[locale] || 'en-US';
+  const isProductDetail = path.length === 2 && path[0] === 'products';
+
+  const url = new URL(req.url);
+  if (isProductDetail && !url.searchParams.has('lang')) {
+    url.searchParams.set('lang', bcp47);
+  }
+
+  const target = `${ARM_BASE}/${path.map(encodeURIComponent).join('/')}${url.search}`;
 
   const headers: Record<string, string> = { 'X-Tenant-ID': TENANT_ID };
   if (STOREFRONT_KEY) headers['X-Storefront-Key'] = STOREFRONT_KEY;
