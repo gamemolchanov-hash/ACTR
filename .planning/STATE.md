@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase_complete
-stopped_at: "Phase 3 ЗАВЕРШЕНА и принята. UAT 4/5 live PASS (register+terms+auto-login, login, reset-shim, GDPR export); Test 5 GDPR-delete — ACTR-сторона PASS, финальная анонимизация падает на demo-tenant schema (arm_customers.name NOT NULL), это не код ACTR. Следующее: Phase 4 (i18n EN/TR)."
-last_updated: "2026-06-30T08:22:17.000Z"
-last_activity: 2026-06-30 -- Phase 03 COMPLETE (UAT 4/5 pass, accepted)
+status: готово к Phase 4 (i18n EN/TR)
+stopped_at: Phase 4 context gathered (i18n EN/TR)
+last_updated: "2026-06-30T09:27:09.485Z"
+last_activity: 2026-06-30 -- Phase 03 COMPLETE
 progress:
   total_phases: 7
   completed_phases: 3
@@ -93,6 +93,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T05:42:51.018Z
-Stopped at: Phase 3 спланирована — 3 плана (03-01 фундамент сессии · 03-02 ЛК orders/addresses · 03-03 settings+GDPR+checkout-linking), покрытие AUTH-01..07 полное. plan-checker НЕ запускался. Завтра: (опц.) plan-checker → /gsd-execute-phase 3 (нужен `make up` :4000 + `npm run dev`).
-Resume file: .planning/phases/03-account/03-01-PLAN.md
+Last session: 2026-06-30T09:27:09.476Z
+Stopped at: Phase 4 context gathered (i18n EN/TR)
+Resume file: .planning/phases/04-i18n-en-tr/04-CONTEXT.md
