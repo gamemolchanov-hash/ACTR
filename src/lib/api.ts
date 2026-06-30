@@ -191,7 +191,7 @@ export async function submitReview(
 // ---------- Checkout ----------
 
 /** Returns X-Currency header for ARM checkout endpoints. */
-function currencyHeader(): Record<string, string> {
+export function currencyHeader(): Record<string, string> {
   // TR market default — must match the display layer (money.ts/seo.ts use TRY).
   // USD here makes cart/validate return product_not_found for TRY-priced products.
   return { 'X-Currency': process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY' };

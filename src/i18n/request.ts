@@ -13,7 +13,7 @@ type NestedMessages = { [key: string]: string | NestedMessages };
  * un-flatten at load time. All catalog values are leaf strings and the key set
  * has no prefix collisions, so this is lossless.
  */
-function unflatten(flat: Record<string, string>): NestedMessages {
+export function unflatten(flat: Record<string, string>): NestedMessages {
   const out: NestedMessages = {};
   for (const [flatKey, value] of Object.entries(flat)) {
     const parts = flatKey.split('.');
