@@ -6,8 +6,9 @@
  * ARM BFF generates reset-link emails as:
  *   ${ARM_STOREFRONT_URL}/reset-password?token=<token>
  *
- * ACTR's actual reset page lives at /login/reset-password, not /reset-password.
- * This shim transparently redirects, preserving the token query param.
+ * ACTR's actual reset page lives at /[locale]/login/reset-password.
+ * This shim stays OUTSIDE [locale] so ARM email links remain valid.
+ * It reads the NEXT_LOCALE cookie to build the correct locale path.
  */
 
 import { Suspense, useEffect } from 'react';
@@ -19,7 +20,14 @@ function ResetPasswordRedirectInner() {
 
   useEffect(() => {
     const token = params.get('token');
-    router.replace(`/login/reset-password${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+    // Read NEXT_LOCALE cookie; default to 'en'
+    const localeCookie = document.cookie
+      .split(';')
+      .find((c) => c.trim().startsWith('NEXT_LOCALE='));
+    const locale = localeCookie ? localeCookie.split('=')[1].trim() : 'en';
+    router.replace(
+      `/${locale}/login/reset-password${token ? `?token=${encodeURIComponent(token)}` : ''}`,
+    );
   }, [router, params]);
 
   return null; // renders nothing — immediate redirect

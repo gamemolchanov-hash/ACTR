@@ -16,8 +16,12 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   }),
 }));
+vi.mock('next-intl/server', () => ({
+  setRequestLocale: vi.fn(),
+  getTranslations: vi.fn(() => Promise.resolve((key: string) => key)),
+}));
 
-import { generateMetadata } from './catalog/[slug]/[productSlug]/page';
+import { generateMetadata } from './[locale]/catalog/[slug]/[productSlug]/page';
 import { fetchProductServer } from '@/lib/server-api';
 import { notFound } from 'next/navigation';
 import { SITE_URL } from '@/lib/seo';
@@ -49,7 +53,7 @@ describe('product page generateMetadata', () => {
   it('builds title, canonical and OG image from the fetched product', async () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
 
-    const md = await generateMetadata({ params: { slug: 'base_gel', productSlug: '198' } });
+    const md = await generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } });
 
     expect(fetchProductServer).toHaveBeenCalledWith('198');
     expect(md.title).toBe('BASE GEL 15 ML');
@@ -64,7 +68,7 @@ describe('product page generateMetadata', () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     await expect(
-      generateMetadata({ params: { slug: 'x', productSlug: 'missing' } }),
+      generateMetadata({ params: { locale: 'en', slug: 'x', productSlug: 'missing' } }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalledTimes(1);
   });
@@ -73,7 +77,7 @@ describe('product page generateMetadata', () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('BFF 503'));
 
     await expect(
-      generateMetadata({ params: { slug: 'base_gel', productSlug: '198' } }),
+      generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } }),
     ).rejects.toThrow('BFF 503');
     // Crucially, a transient failure must NOT be turned into a 404/noindex.
     expect(notFound).not.toHaveBeenCalled();
