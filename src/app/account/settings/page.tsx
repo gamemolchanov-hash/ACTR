@@ -10,13 +10,17 @@ import {
   Alert,
   IconButton,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { ArrowBack, Visibility, VisibilityOff } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { updateProfile, changePassword } from '@/lib/auth';
+import { updateProfile, changePassword, exportAccount, deleteAccount } from '@/lib/auth';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -42,6 +46,12 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
+
+  // GDPR Danger Zone state
+  const [exporting, setExporting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const [snack, setSnack] = useState<{
     open: boolean;
@@ -119,6 +129,43 @@ export default function SettingsPage() {
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setChangingPw(false);
+    }
+  };
+
+  // GDPR Art.20 — export account data as JSON blob (AUTH-07 / D-09 / T-03-13)
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const data = await exportAccount();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'american-creator-account-data.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setSnack({ open: true, message: 'Export failed. Try again.', severity: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // GDPR Art.17 — delete account with password re-auth (AUTH-07 / D-09 / T-03-12)
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount({ password: deletePassword });
+      setDeleteDialogOpen(false);
+      signOut();
+      router.push('/');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Could not delete account. Check your password.';
+      setSnack({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -308,7 +355,130 @@ export default function SettingsPage() {
             {changingPw ? 'Сохранение...' : 'Изменить пароль'}
           </Button>
         </Box>
+        {/* GDPR Danger Zone (AUTH-07 / D-09) */}
+        <Box
+          sx={{
+            bgcolor: palette.bgLight,
+            borderRadius: '20px',
+            p: { xs: 3, md: 4 },
+            mt: 3,
+            maxWidth: 600,
+            border: '1px solid',
+            borderColor: 'error.light',
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: fontMain,
+              fontSize: 20,
+              fontWeight: 500,
+              color: 'error.main',
+              mb: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Data & Privacy
+          </Typography>
+          <Typography
+            sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 3 }}
+          >
+            Manage your personal data. These actions are irreversible.
+          </Typography>
+
+          {/* Export — GDPR Art.20 */}
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={{ fontFamily: fontMain, fontWeight: 500, fontSize: 15, color: palette.primary, mb: 0.5 }}>
+              Download My Data
+            </Typography>
+            <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 1.5 }}>
+              Get a copy of your profile, addresses, and order history as a JSON file.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleExport}
+              disabled={exporting}
+              sx={{
+                borderRadius: '10px',
+                fontFamily: fontMain,
+                fontSize: 14,
+                textTransform: 'none',
+                px: 3,
+              }}
+            >
+              {exporting ? 'Preparing...' : 'Download My Data'}
+            </Button>
+          </Box>
+
+          <Box sx={{ borderTop: '1px solid', borderColor: 'error.light', pt: 2 }}>
+            <Typography sx={{ fontFamily: fontMain, fontWeight: 500, fontSize: 15, color: 'error.main', mb: 0.5 }}>
+              Delete Account
+            </Typography>
+            <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 1.5 }}>
+              Permanently anonymise your account and remove saved addresses. This cannot be undone.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => { setDeleteDialogOpen(true); setDeletePassword(''); }}
+              sx={{
+                borderRadius: '10px',
+                fontFamily: fontMain,
+                fontSize: 14,
+                textTransform: 'none',
+                px: 3,
+              }}
+            >
+              Delete Account
+            </Button>
+          </Box>
+        </Box>
       </Box>
+
+      {/* Delete Account confirmation dialog (T-03-12: password re-auth required) */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => { if (!deleting) setDeleteDialogOpen(false); }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontFamily: fontMain, color: 'error.main' }}>
+          Delete Account
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primary, mb: 2 }}>
+            This will permanently anonymise your account and delete all saved addresses.
+            Enter your password to confirm.
+          </Typography>
+          <TextField
+            label="Current password"
+            type="password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            fullWidth
+            autoComplete="current-password"
+            sx={inputSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleting}
+            sx={{ fontFamily: fontMain, textTransform: 'none', color: palette.primaryLight }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteAccount}
+            disabled={!deletePassword || deleting}
+            sx={{ fontFamily: fontMain, textTransform: 'none', borderRadius: '8px' }}
+          >
+            {deleting ? 'Deleting...' : 'Confirm Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snack.open}
