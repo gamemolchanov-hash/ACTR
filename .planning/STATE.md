@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 4 context gathered (i18n EN/TR)
-last_updated: "2026-06-30T12:32:10.732Z"
-last_activity: 2026-06-30 -- 04-05 complete (SEO/seo.ts locale-aware/hreflang, sitemap per-locale, I18N-01 grep-gate CLEAR)
+status: phase_complete
+stopped_at: "Phase 4 (i18n EN/TR) ЗАВЕРШЕНА — verifier PASSED 4/4, build/tsc green, 0 RU-хардкода, EN+TR (Turkish реальный). Code-review: CR-01/WR-03/WR-04 пофикшены; остальные находки в Pending Todos. Следующее: Phase 5 (Комплаенс-UI — KDV/KVKK/mesafeli)."
+last_updated: "2026-06-30T13:00:00.000Z"
+last_activity: 2026-06-30 -- Phase 04 COMPLETE (verifier passed, code-review gate done)
 progress:
   total_phases: 7
   completed_phases: 4
@@ -21,16 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 04 — i18n-en-tr
+**Current focus:** Phase 5 — Комплаенс-UI (следующая)
 
 ## Current Position
 
-Phase: 04 (i18n-en-tr) — COMPLETE
-Plan: 5 of 5 (ALL DONE)
-Status: Phase complete — ready for /gsd-verify-work
-Last activity: 2026-06-30 -- 04-05 complete (SEO/seo.ts locale-aware/hreflang, sitemap per-locale, I18N-01 grep-gate CLEAR)
+Phase: 04 (i18n-en-tr) — ✅ COMPLETE (verifier PASSED 4/4, 2026-06-30)
+Plan: 5 of 5 done · build/tsc green · 0 RU-хардкода · EN+TR (TR реальный)
+Status: готово к Phase 5 (Комплаенс-UI: KDV, KVKK/«mesafeli satış», юр-страницы)
+Last activity: 2026-06-30 -- Phase 04 COMPLETE (verifier passed, code-review gate done)
 
-Progress: [██████████] 100%
+Progress: [██████░░░░] 57%
+
+### ▶ Как продолжить (resume)
+
+1. `cd /home/lexun/work/puz/ACTR`
+2. **След. фаза:** `/gsd-plan-phase 5` (Комплаенс-UI — KDV/НДС в ценах, чекбоксы KVKK/«mesafeli satış» в чекауте, юр-страницы-заглушки).
+3. Окружение для live: demo-BFF `make up` (:4000) + `npm run dev` (:3003).
+4. Артефакты Phase 4: `.planning/phases/04-i18n-en-tr/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION/REVIEW/VERIFICATION + 5 PLAN/SUMMARY).
+5. ⚠️ Code-review Phase 4 follow-ups (см. Pending Todos) + до go-live: `arm_customers.name` nullable.
 
 ### ▶ Как продолжить (resume)
 
@@ -95,6 +103,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - **[backlog/test] Pre-existing `server-api.test.ts` failures (3)** — `armToProduct` reads `p.name` of undefined; failing since before Phase 3 (commit a2ba277), Phase 1/2 catalog mock-vs-adapter mismatch. NOT a Phase 3 regression. Fix fixtures or add adapter null-guard in a catalog follow-up.
 - **[⚠ provisioning/compliance — pre-go-live] Demo/real tenant: `arm_customers.name` must be nullable** — GDPR/KVKK account-deletion anonymization nulls `name`; in the demo tenant Directus has `name` NOT NULL, so `POST /auth/me/delete-account` 500s ("Validation failed for field name. Value can't be null", storefront-auth.ts:1286). ACTR/BFF code is correct; the tenant schema must allow it. Make `arm_customers.name` nullable in any TR tenant before go-live, else KVKK-delete breaks. Surfaced in Phase 3 UAT. (Requires Directus admin/migration — autoCRM infra.)
 - **[demo-env, fixed — re-apply if reset] BFF storefront JWT secret** — `autocrm-bff` had `ARM_STOREFRONT_JWT_SECRET`/`STOREFRONT_JWT_SECRET` empty → storefront login 500. Fixed by adding `ARM_STOREFRONT_JWT_SECRET=<hex32>` to `~/work/autoCRM/.env` + `docker compose ... up -d --force-recreate --no-deps bff`. Re-apply if that local env is reset.
+- **[Phase 4 code-review follow-ups] (04-REVIEW.md) — fixed CR-01/WR-03/WR-04; remaining open** (run `/gsd-code-review 4 --fix` to apply): **CR-02** `productCanonicalUrl` emits locale-less path → JSON-LD url points at a redirect (add locale param); **WR-01** `server-api.ts:165` `totalPages ?? page` caps catalog/sitemap at page 1 (100 products) — real, fix the default; **WR-02** `buildProductJsonLd` no locale (EN price on TR); **WR-05** reset-password shim interpolates raw `NEXT_LOCALE` cookie into redirect URL (whitelist en/tr); **WR-06** TR users landing directly on `/tr/` never get the cookie → next root visit → `/en/`; **WR-07** `messages-pull.mjs` exits 0 on partial pull; **IN-01..04** stale OMS comment, missing `x-default` hreflang, GeoLocaleInit cookie lacks `Secure`, middleware matcher `reset-password` unanchored. Mostly pre-go-live SEO + edge-cases; core i18n verified working.
+- **[Phase 4 follow-up] Tolgee project-34 sync** — local `messages/{en,tr}.json` (336 keys, real Turkish) ship as catalogs; the Tolgee PUSH to project 34 (loco.devloc.su, SRV199) was not run (MCP unreachable from executor subagents). `scripts/messages-pull.mjs` + `npm run messages:pull` ready; set `TOLGEE_API_KEY` and push/pull to make Tolgee the live source of truth (D-04/05).
 
 ### Blockers/Concerns
 
