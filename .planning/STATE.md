@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: готово к Phase 4 (i18n EN/TR)
-stopped_at: Phase 4 context gathered (i18n EN/TR)
-last_updated: "2026-06-30T09:27:09.485Z"
-last_activity: 2026-06-30 -- Phase 03 COMPLETE
+status: planned
+stopped_at: "Phase 4 СПЛАНИРОВАНА — 5 планов (04-01..05, 5 последовательных волн), plan-checker пройден (1 блокер пофикшен: RESEARCH Open Questions RESOLVED + VALIDATION sign-off; 2 ворнинга приняты). Готово к /gsd-execute-phase 4. ⚠️ нужно: demo-BFF :4000 + Tolgee project 34 доступен + npm run dev."
+last_updated: "2026-06-30T10:30:00.000Z"
+last_activity: 2026-06-30 -- Phase 04 planned (5 plans, checker passed)
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 6
+  total_plans: 11
   completed_plans: 6
   percent: 43
 ---
@@ -25,20 +25,24 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 03 (account) — ✅ COMPLETE (принята 2026-06-30)
-Plan: 3 of 3 complete · UAT 4/5 live PASS (5-й — demo-tenant blocker, не ACTR)
-Status: готово к Phase 4 (i18n EN/TR)
-Last activity: 2026-06-30 -- Phase 03 COMPLETE
+Phase: 04 (i18n EN/TR) — PLANNED (5 планов, plan-checker пройден), готово к выполнению
+Plan: 0 of 5 executed
+Status: ready for `/gsd-execute-phase 4` — 5 последовательных волн (1→2→3→4→5)
+Last activity: 2026-06-30 -- Phase 04 planned (5 plans, checker passed)
 
 Progress: [████░░░░░░] 43%
 
 ### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
-2. **Запланировать след. фазу:** `/gsd-plan-phase 4` (i18n EN/TR — вынос строк, переключатель, локализация контента, SEO). Учесть отложенные i18n-находки code-review (WR-01/02/05).
-3. Для live-проверок нужно окружение: demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
-4. Артефакты Phase 3: `.planning/phases/03-account/` (VERIFICATION passed / REVIEW / UAT + 3 SUMMARY). Эталон — FBG (`~/work/puz/FBG`).
-5. ⚠️ До go-live в реальном TR-тенанте: сделать `arm_customers.name` nullable (иначе GDPR/KVKK-удаление падает) — см. Pending Todos.
+2. **Поднять окружение (нужно для 04):** demo-BFF `make up` (autoCRM :4000) + `npm run dev`
+   (ACTR :3003) + Tolgee project 34 на loco.devloc.su доступен (MCP `mcp__tolgee__*`).
+3. **Выполнить фазу:** `/gsd-execute-phase 4` — волны строго последовательны (общий
+   `messages/*.json` + `[locale]/layout.tsx` пересекаются): 04-01 каркас → 04-02 каталог/?lang →
+   04-03 auth/account → 04-04 статика → 04-05 SEO/Tolgee-finalize. 04-01 — самый тяжёлый
+   (next-intl scaffold + миграция ~28 роутов под `[locale]`).
+4. Артефакты Phase 4: `.planning/phases/04-i18n-en-tr/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION + 5 PLAN).
+5. ⚠️ До go-live в реальном TR-тенанте: `arm_customers.name` nullable (GDPR/KVKK-удаление) — Pending Todos.
 
 ## Performance Metrics
 
