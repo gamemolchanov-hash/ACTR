@@ -164,3 +164,7 @@ None beyond plan's threat model. T-04-11 (JSON-LD priceCurrency) mitigated: valu
 - messages/en.json — 336 keys, meta.siteDesc + meta.defaultTitle present
 - messages/tr.json — 336 keys, parity with en.json confirmed
 - Commits 62137bb, c750733, 34249fd — verified in git log
+
+## Self-Check: PASSED
+
+All files exist, all 4 commits verified in git log (62137bb, c750733, 34249fd, 76d969c), all 31 tests pass, grep-gate 0 Cyrillic confirmed.
