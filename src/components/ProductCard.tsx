@@ -4,10 +4,12 @@ import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import type { Product } from '@/lib/api';
 import { imgCard } from '@/lib/image-url';
+import { fmtMoney } from '@/lib/money';
 // BOGO HOOK START
 import { PromoBadge } from '@/features/promo-bogo';
 // BOGO HOOK END
@@ -18,11 +20,13 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
   const [quantity, setQuantity] = useState(1);
   const available = product.bp_available ?? 0;
   const primaryImage = product.images?.sort((a, b) => a.sort - b.sort)[0] ?? null;
-
-  const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 
   return (
     <Card
@@ -43,7 +47,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         href={`/catalog/${product.category?.slug ?? 'all'}/${product.slug ?? product.id}`}
         style={{ textDecoration: 'none', color: 'inherit' }}
       >
-        {/* "Хит продаж" chip — top left, above image */}
+        {/* Best seller chip — top left, above image */}
         {available > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 2, pt: 1.5 }}>
             <Box
@@ -67,7 +71,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                   lineHeight: 1,
                 }}
               >
-                Хит продаж
+                {t('catalog.bestSeller')}
               </Typography>
             </Box>
           </Box>
@@ -127,7 +131,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
       </Link>
 
       <Box sx={{ px: 2, pb: 2 }}>
-        {/* Price */}
+        {/* Price — locale-aware (WR-01/WR-05) */}
         <Typography
           sx={{
             fontSize: 16,
@@ -137,10 +141,10 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             textAlign: 'center',
           }}
         >
-          {formatPrice(product.price)}
+          {fmtMoney(product.price, 'TRY', bcp47)}
         </Typography>
 
-        {/* Actions: quantity + "В корзину" */}
+        {/* Actions: quantity + "Add to cart" */}
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 'auto' }}>
           {/* Quantity selector */}
           <Box
@@ -182,7 +186,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             </IconButton>
           </Box>
 
-          {/* "В корзину" */}
+          {/* Add to cart */}
           <Box
             component="button"
             onClick={() => onAddToCart?.(product.id, quantity)}
@@ -206,7 +210,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             }}
             disabled={available <= 0}
           >
-            В корзину
+            {t('catalog.addToCart')}
           </Box>
         </Box>
       </Box>

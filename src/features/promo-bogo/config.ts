@@ -31,7 +31,7 @@ export const CTA_HREF = '/catalog/color_gel';
 export const BADGE_LABEL = '1+1';
 
 export const PROMO_BANNER_ALT =
-  '1+1: второй в подарок — на Color gels и Disguise collection, до 31 мая';
+  '1+1: second item as a gift — on Color Gels and Disguise Collection, until May 31';
 
 export function isPromoActiveNow(now: Date = new Date()): boolean {
   const from = new Date(PROMO_FROM_ISO);

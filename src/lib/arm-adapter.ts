@@ -51,7 +51,7 @@ export function armToProduct(dp: ArmDistributorProduct): Product {
     category: p.category ?? dp.category ?? null,
     images: adaptImages(p.images),
     date_created: p.date_created ?? '',
-    active_promo: null, // OMS BOGO у ARM нет
+    active_promo: null, // OMS BOGO promos are not supported in ARM
   };
 }
 

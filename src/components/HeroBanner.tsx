@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 
 interface HeroSlide {
@@ -23,24 +24,25 @@ interface HeroSlide {
   };
 }
 
-const HERO_SLIDES: HeroSlide[] = Array.from({ length: 5 }, (_, i) => ({
-  id: `slide-${i + 1}`,
-  desktopImage: '/hero/hero-desktop.png',
-  mobileImage: '/hero/hero-mobile.png',
-  title: 'AMERICAN CREATOR',
-  subtitle: 'Имеем сертификаты и декларации соответствия всех ведущих мировых стран',
-  ctaText: 'Смотреть каталог',
-  ctaHref: '/catalog',
-  card: {
-    title: 'FRAMEWORK GEL & ACRYLATE GEL',
-    description:
-      'Твердые гели для наращивания, моделирования, укрепления и ремонта ногтевой пластины.',
-    ctaText: 'Купить сейчас',
-    ctaHref: '/catalog',
-  },
-}));
-
 export function HeroBanner() {
+  const t = useTranslations();
+
+  const HERO_SLIDES: HeroSlide[] = Array.from({ length: 5 }, (_, i) => ({
+    id: `slide-${i + 1}`,
+    desktopImage: '/hero/hero-desktop.png',
+    mobileImage: '/hero/hero-mobile.png',
+    title: 'AMERICAN CREATOR',
+    subtitle: t('hero.subtitle'),
+    ctaText: t('hero.cta'),
+    ctaHref: '/catalog',
+    card: {
+      title: 'FRAMEWORK GEL & ACRYLATE GEL',
+      description: t('hero.cardDescription'),
+      ctaText: t('hero.cardCta'),
+      ctaHref: '/catalog',
+    },
+  }));
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true }),
   ]);

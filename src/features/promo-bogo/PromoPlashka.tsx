@@ -1,17 +1,21 @@
 'use client';
 
 import { Box, Typography } from '@mui/material';
+import { useTranslations, useLocale } from 'next-intl';
+import { fmtMoney } from '@/lib/money';
 import type { AutoPromoData } from './useAutoPromo';
-
-const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
 
 /**
  * Basket plashka shown when an auto-applied BOGO promo is active.
  * Replaces the "enter promo code" input.
  */
 export function PromoPlashka({ data }: { data: AutoPromoData }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
   const gifts = data.free_quantity || 0;
-  const giftWord = pluralize(gifts, ['товар', 'товара', 'товаров']);
+  const formattedAmount = fmtMoney(data.discount_amount, 'TRY', bcp47);
 
   return (
     <Box
@@ -51,8 +55,8 @@ export function PromoPlashka({ data }: { data: AutoPromoData }) {
           }}
         >
           {gifts > 0
-            ? `Подарок: ${gifts} ${giftWord} (−${fmt(data.discount_amount)})`
-            : 'Добавьте ещё один товар акции — он будет в подарок'}
+            ? t('promo.gift', { count: gifts, amount: formattedAmount })
+            : t('promo.giftAdd')}
         </Typography>
       </Box>
       {data.description && (
@@ -70,13 +74,4 @@ export function PromoPlashka({ data }: { data: AutoPromoData }) {
       )}
     </Box>
   );
-}
-
-function pluralize(n: number, forms: [string, string, string]): string {
-  const abs = Math.abs(n) % 100;
-  const lastDigit = abs % 10;
-  if (abs > 10 && abs < 20) return forms[2];
-  if (lastDigit > 1 && lastDigit < 5) return forms[1];
-  if (lastDigit === 1) return forms[0];
-  return forms[2];
 }

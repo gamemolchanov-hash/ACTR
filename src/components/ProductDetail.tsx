@@ -6,7 +6,6 @@ import {
   Box,
   Typography,
   Breadcrumbs,
-  Chip,
   Divider,
   Paper,
   IconButton,
@@ -19,7 +18,8 @@ import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProduct } from '@/lib/api';
 import type { Product } from '@/lib/api';
@@ -27,6 +27,7 @@ import { palette } from '@/lib/theme';
 import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { ProductReviews } from './ProductReviews';
+import { fmtMoney } from '@/lib/money';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -34,16 +35,16 @@ import { imgDetail, imgThumb, imgCard } from '@/lib/image-url';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 
-const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
-
 interface ProductDetailProps {
   productId: string;
 }
 
 function RecentlyViewedCard({
   item,
+  bcp47,
 }: {
   item: import('@/lib/useRecentlyViewed').RecentlyViewedProduct;
+  bcp47: string;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [imgFade, setImgFade] = useState(true);
@@ -100,7 +101,7 @@ function RecentlyViewedCard({
                 }}
               />
             ) : (
-              <Typography sx={{ color: palette.primaryLight, fontSize: 12 }}>Нет фото</Typography>
+              <Typography sx={{ color: palette.primaryLight, fontSize: 12 }}>—</Typography>
             )}
             {imgs.length > 1 && (
               <>
@@ -163,7 +164,7 @@ function RecentlyViewedCard({
           >
             {item.name}
           </Typography>
-          {/* Price */}
+          {/* Price — locale-aware */}
           <Typography
             sx={{
               fontSize: 14,
@@ -174,7 +175,7 @@ function RecentlyViewedCard({
               pt: 0.5,
             }}
           >
-            {formatPrice(item.price)}
+            {fmtMoney(item.price, 'TRY', bcp47)}
           </Typography>
         </Box>
       </Link>
@@ -183,6 +184,10 @@ function RecentlyViewedCard({
 }
 
 export function ProductDetail({ productId }: ProductDetailProps) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
   const { addItem } = useCart();
   const { items: recentlyViewed, addViewed } = useRecentlyViewed(productId);
   const recentScrollRef = useRef<HTMLDivElement>(null);
@@ -218,24 +223,27 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   const characteristics = useMemo(() => {
     if (!product) return [];
     const chars: { label: string; value: string }[] = [];
-    if (product.sku) chars.push({ label: 'Артикул', value: product.sku });
+    if (product.sku) chars.push({ label: t('product.sku'), value: product.sku });
     if (product.weight != null && product.weight > 0) {
       const grams = product.weight * 1000;
-      chars.push({ label: 'Вес', value: grams >= 1 ? `${Math.round(grams)} г` : `${grams} г` });
+      chars.push({
+        label: t('product.weight'),
+        value: grams >= 1 ? `${Math.round(grams)} ${t('product.weightUnit')}` : `${grams} ${t('product.weightUnit')}`,
+      });
     }
     if (product.volume != null && product.volume > 0) {
       const ml = product.volume * 1e6;
-      chars.push({ label: 'Объём', value: `${Math.round(ml)} мл` });
+      chars.push({ label: t('product.volume'), value: `${Math.round(ml)} ${t('product.volumeUnit')}` });
     }
     if (product.length && product.width && product.height) {
       chars.push({
-        label: 'Размеры (Д x Ш x В)',
-        value: `${product.length} x ${product.width} x ${product.height} мм`,
+        label: t('product.dimensions'),
+        value: `${product.length} x ${product.width} x ${product.height} ${t('product.dimensionUnit')}`,
       });
     }
-    if (product.category) chars.push({ label: 'Категория', value: product.category.name });
+    if (product.category) chars.push({ label: t('product.category'), value: product.category.name });
     return chars;
-  }, [product]);
+  }, [product, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddToCart = useCallback(() => {
     if (product) addItem(product.id, quantity);
@@ -255,10 +263,10 @@ export function ProductDetail({ productId }: ProductDetailProps) {
     return (
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 6, textAlign: 'center' }}>
         <Typography variant="h2" sx={{ mb: 2 }}>
-          Товар не найден
+          {t('product.notFound')}
         </Typography>
         <Link href="/catalog" style={{ color: palette.primary, fontSize: 18 }}>
-          Вернуться в каталог
+          {t('product.backToCatalog')}
         </Link>
       </Box>
     );
@@ -458,9 +466,9 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                     }}
                     onTouchStart={(e) => {
                       if (lbZoom <= 1 || e.touches.length !== 1) return;
-                      const t = e.touches[0];
-                      const startX = t.clientX - lbPan.x;
-                      const startY = t.clientY - lbPan.y;
+                      const t2 = e.touches[0];
+                      const startX = t2.clientX - lbPan.x;
+                      const startY = t2.clientY - lbPan.y;
                       const onMove = (ev: TouchEvent) => {
                         ev.preventDefault();
                         const tt = ev.touches[0];
@@ -577,9 +585,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                   <Typography
                     sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: fontMain }}
                   >
-                    {lbZoom > 1
-                      ? `${Math.round(lbZoom * 100)}%`
-                      : 'скролл или двойной клик для зума'}
+                    {lbZoom > 1 ? `${Math.round(lbZoom * 100)}%` : t('product.zoomHint')}
                   </Typography>
                 </Box>
               </Box>
@@ -603,7 +609,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 fontSize: 13,
               }}
             >
-              Главная
+              {t('common.home')}
             </Link>
             <Link
               href="/catalog"
@@ -614,7 +620,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 fontSize: 13,
               }}
             >
-              Каталог
+              {t('nav.catalog')}
             </Link>
             {product.category && (
               <Link
@@ -657,7 +663,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  В наличии
+                  {t('product.inStock')}
                 </Typography>
               </Box>
             </Box>
@@ -696,7 +702,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           {characteristics.length > 0 && (
             <>
               <Typography variant="h2" sx={{ mt: product.description ? 0 : '44px', mb: '22px' }}>
-                Характеристики
+                {t('product.characteristics')}
               </Typography>
 
               <Box sx={{ mb: '86px' }}>
@@ -724,11 +730,11 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             </>
           )}
 
-          {/* Price */}
+          {/* Price — locale-aware (WR-01/WR-05) */}
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 3 }}>
-            <Typography variant="h1">{formatPrice(product.price)}</Typography>
+            <Typography variant="h1">{fmtMoney(product.price, 'TRY', bcp47)}</Typography>
             <Typography variant="body1" sx={{ lineHeight: '20px' }}>
-              / за шт.
+              {t('product.perUnit')}
             </Typography>
           </Box>
 
@@ -793,13 +799,13 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 '&:hover': { bgcolor: '#2a3d85' },
               }}
             >
-              Добавить в корзину
+              {t('product.addToCart')}
             </Button>
           </Box>
         </Grid>
       </Grid>
 
-      {/* ── Info Panels (3 cards: Описание 3 + Применение 3 + Нанесение 6) ── */}
+      {/* ── Info Panels (Description + Usage + Application) ── */}
       {(product.detail_text || product.usage_text || product.application_text) && (
         <Grid container spacing={2} sx={{ mt: 4 }}>
           {product.detail_text && (
@@ -814,7 +820,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 }}
               >
                 <Typography variant="h3" sx={{ mb: 2 }}>
-                  Описание
+                  {t('product.description')}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -836,7 +842,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 }}
               >
                 <Typography variant="h3" sx={{ mb: 2 }}>
-                  Применение
+                  {t('product.usage')}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -858,7 +864,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 }}
               >
                 <Typography variant="h3" sx={{ mb: 2 }}>
-                  Нанесение
+                  {t('product.application')}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -889,7 +895,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           <Box
             sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}
           >
-            <Typography variant="h3">Ранее вы смотрели</Typography>
+            <Typography variant="h3">{t('product.recentlyViewed')}</Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <IconButton
                 onClick={() => {
@@ -960,7 +966,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             }}
           >
             {recentlyViewed.map((item) => (
-              <RecentlyViewedCard key={item.id} item={item} />
+              <RecentlyViewedCard key={item.id} item={item} bcp47={bcp47} />
             ))}
           </Box>
         </Box>

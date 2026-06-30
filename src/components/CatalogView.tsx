@@ -19,8 +19,9 @@ import {
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import CloseIcon from '@mui/icons-material/Close';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
 import { fetchProducts, fetchCategories } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 import { useCart } from '@/providers/CartProvider';
@@ -34,6 +35,7 @@ interface CatalogViewProps {
 }
 
 export function CatalogView({ categorySlug }: CatalogViewProps) {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const restoredRef = useRef(false);
@@ -56,7 +58,8 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
       if (slug !== categorySlug) return; // different category — don't restore
       if (!qs) return;
       const base = categorySlug ? `/catalog/${categorySlug}` : '/catalog';
-      router.replace(`${base}?${qs}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.replace(`${base}?${qs}` as any);
     } catch {
       /* ignore */
     }
@@ -100,7 +103,8 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     if (updates.page === '1' || !updates.page) params.delete('page');
     const qs = params.toString();
     const base = categorySlug ? `/catalog/${categorySlug}` : '/catalog';
-    router.push(qs ? `${base}?${qs}` : base);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push(qs ? (`${base}?${qs}` as any) : (base as any));
   };
 
   const navigateToCategory = (slug?: string) => {
@@ -109,11 +113,12 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     if (inStockOnly) params.set('inStock', '1');
     const qs = params.toString();
     const base = slug ? `/catalog/${slug}` : '/catalog';
-    router.push(qs ? `${base}?${qs}` : base);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push(qs ? (`${base}?${qs}` as any) : (base as any));
   };
 
   const currentCategory = categorySlug ? categories.find((c) => c.slug === categorySlug) : null;
-  const pageTitle = currentCategory ? currentCategory.name : 'Все товары';
+  const pageTitle = currentCategory ? currentCategory.name : t('catalog.allProducts');
 
   return (
     <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 3 }}>
@@ -134,7 +139,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
         >
           {/* Categories */}
           <Typography variant="h2" sx={{ mb: 2 }}>
-            Категории
+            {t('catalog.categories')}
           </Typography>
           <Divider sx={{ borderColor: palette.primary, borderWidth: '0.5px', mb: 2 }} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
@@ -149,7 +154,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 cursor: 'pointer',
               }}
             >
-              Все товары
+              {t('catalog.allProducts')}
             </MuiLink>
             {categories.map((cat) => (
               <MuiLink
@@ -173,7 +178,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
 
           {/* Filters */}
           <Typography variant="h2" sx={{ mb: 2 }}>
-            Фильтры
+            {t('catalog.filters')}
           </Typography>
           <FormControlLabel
             control={
@@ -189,7 +194,11 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 }}
               />
             }
-            label={<Typography sx={{ fontSize: 18, color: palette.primary }}>В наличии</Typography>}
+            label={
+              <Typography sx={{ fontSize: 18, color: palette.primary }}>
+                {t('catalog.inStock')}
+              </Typography>
+            }
           />
         </Box>
 
@@ -213,7 +222,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 color: palette.primaryLight,
               }}
             >
-              Главная
+              {t('common.home')}
             </MuiLink>
             <MuiLink
               component={Link}
@@ -225,7 +234,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 color: palette.primaryLight,
               }}
             >
-              Каталог
+              {t('nav.catalog')}
             </MuiLink>
             {currentCategory && (
               <Typography
@@ -275,11 +284,11 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: palette.primary },
               }}
             >
-              <MenuItem value="name">По названию</MenuItem>
-              <MenuItem value="-name">По названию (Я-А)</MenuItem>
-              <MenuItem value="price">По цене (возр.)</MenuItem>
-              <MenuItem value="-price">По цене (убыв.)</MenuItem>
-              <MenuItem value="-date_created">Новинки</MenuItem>
+              <MenuItem value="name">{t('catalog.sortByName')}</MenuItem>
+              <MenuItem value="-name">{t('catalog.sortByNameDesc')}</MenuItem>
+              <MenuItem value="price">{t('catalog.sortByPriceAsc')}</MenuItem>
+              <MenuItem value="-price">{t('catalog.sortByPriceDesc')}</MenuItem>
+              <MenuItem value="-date_created">{t('catalog.newArrivals')}</MenuItem>
             </Select>
           </Box>
 
@@ -299,7 +308,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
               {pageTitle}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
-              {/* Фильтр button — outlined, like Figma */}
+              {/* Filter button */}
               <Box
                 component="button"
                 onClick={() => setFilterDrawerOpen(true)}
@@ -320,17 +329,17 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 }}
               >
                 <TuneIcon sx={{ fontSize: 18 }} />
-                Фильтр
+                {t('catalog.filter')}
               </Box>
 
-              {/* Сортировать по — outlined with chevron */}
+              {/* Sort select */}
               <Select
                 value={sort}
                 onChange={(e) => updateParams({ sort: e.target.value, page: '1' })}
                 size="small"
                 variant="outlined"
                 displayEmpty
-                renderValue={() => 'Сортировать по'}
+                renderValue={() => t('catalog.sortBy')}
                 sx={{
                   borderRadius: '10px',
                   fontSize: 16,
@@ -342,11 +351,11 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   '& .MuiSelect-icon': { color: palette.primary },
                 }}
               >
-                <MenuItem value="name">По названию</MenuItem>
-                <MenuItem value="-name">По названию (Я-А)</MenuItem>
-                <MenuItem value="price">По цене (возр.)</MenuItem>
-                <MenuItem value="-price">По цене (убыв.)</MenuItem>
-                <MenuItem value="-date_created">Новинки</MenuItem>
+                <MenuItem value="name">{t('catalog.sortByName')}</MenuItem>
+                <MenuItem value="-name">{t('catalog.sortByNameDesc')}</MenuItem>
+                <MenuItem value="price">{t('catalog.sortByPriceAsc')}</MenuItem>
+                <MenuItem value="-price">{t('catalog.sortByPriceDesc')}</MenuItem>
+                <MenuItem value="-date_created">{t('catalog.newArrivals')}</MenuItem>
               </Select>
             </Box>
 
@@ -367,7 +376,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   mb: 2,
                 }}
               >
-                <Typography variant="h2">Категории</Typography>
+                <Typography variant="h2">{t('catalog.categories')}</Typography>
                 <IconButton onClick={() => setFilterDrawerOpen(false)}>
                   <CloseIcon sx={{ color: palette.primary }} />
                 </IconButton>
@@ -392,7 +401,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                     p: 0,
                   }}
                 >
-                  Все товары
+                  {t('catalog.allProducts')}
                 </MuiLink>
                 {categories.map((cat) => (
                   <MuiLink
@@ -422,7 +431,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
               <Divider sx={{ borderColor: palette.primary, opacity: 0.3, my: 2 }} />
 
               <Typography variant="h2" sx={{ mb: 2 }}>
-                Фильтры
+                {t('catalog.filters')}
               </Typography>
               <FormControlLabel
                 control={
@@ -438,7 +447,9 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   />
                 }
                 label={
-                  <Typography sx={{ fontSize: 18, color: palette.primary }}>В наличии</Typography>
+                  <Typography sx={{ fontSize: 18, color: palette.primary }}>
+                    {t('catalog.inStock')}
+                  </Typography>
                 }
               />
             </Drawer>
@@ -450,7 +461,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
           ) : products.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <Typography sx={{ fontSize: 20, color: palette.primaryLight }}>
-                Товары не найдены
+                {t('catalog.noProducts')}
               </Typography>
             </Box>
           ) : (
