@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: "Phase 3 ПЛАНИРОВАНИЕ почти готово — 3 плана написаны (03-01/02/03), plan-checker ещё НЕ запускался. Пауза до завтра."
-last_updated: "2026-06-30T00:50:00.000Z"
-last_activity: 2026-06-30 -- Phase 03 planned (3 plans written; pending plan-checker)
+status: executing
+stopped_at: "Phase 3 спланирована — 3 плана (03-01 фундамент сессии · 03-02 ЛК orders/addresses · 03-03 settings+GDPR+checkout-linking), покрытие AUTH-01..07 полное. plan-checker НЕ запускался. Завтра: (опц.) plan-checker → /gsd-execute-phase 3 (нужен `make up` :4000 + `npm run dev`)."
+last_updated: "2026-06-30T05:23:16.191Z"
+last_activity: 2026-06-30 -- Phase 03 execution started
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 29
 ---
 
@@ -21,18 +21,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 3 — Авторизация и личный кабинет (ПЛАНИРОВАНИЕ, пауза)
+**Current focus:** Phase 03 — account
 
 ## Current Position
 
-Phase: 03 (account) — PLANNED (3 плана написаны), pending plan-checker → execution
-Plan: 0 of 3 executed
-Status: ⏸ ПАУЗА до завтра — discuss✅ research✅ validation✅ patterns✅ 3 плана✅; осталось: plan-checker → execute
-Last activity: 2026-06-30 -- Phase 03 spланирован (03-01/02/03), plan-checker не запускался
+Phase: 03 (account) — EXECUTING
+Plan: 3 of 3
+Status: Ready to execute
+Last activity: 2026-06-30 -- Phase 03 execution started
 
 Progress: [███░░░░░░░] 29%
 
 ### ▶ Как продолжить завтра (resume)
+
 1. `cd /home/lexun/work/puz/ACTR`
 2. `/gsd-progress` — увидеть статус, ИЛИ сразу:
 3. **Опц.** прогнать гейт качества планов: `/gsd-plan-phase 3` (предложит «Add/View/Replan» — планы уже есть; можно сразу к execute) — или пропустить.
@@ -86,6 +87,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30 (пауза)
+Last session: 2026-06-30T05:22:58.853Z
 Stopped at: Phase 3 спланирована — 3 плана (03-01 фундамент сессии · 03-02 ЛК orders/addresses · 03-03 settings+GDPR+checkout-linking), покрытие AUTH-01..07 полное. plan-checker НЕ запускался. Завтра: (опц.) plan-checker → /gsd-execute-phase 3 (нужен `make up` :4000 + `npm run dev`).
 Resume file: .planning/phases/03-account/03-01-PLAN.md

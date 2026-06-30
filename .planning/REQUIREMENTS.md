@@ -29,9 +29,9 @@
 
 ### Auth & Account
 
-- [ ] **AUTH-01**: Регистрация с согласием (terms consent)
-- [ ] **AUTH-02**: Логин и сессия (`arm_token`)
-- [ ] **AUTH-03**: Сброс пароля по email
+- [x] **AUTH-01**: Регистрация с согласием (terms consent)
+- [x] **AUTH-02**: Логин и сессия (`arm_token`)
+- [x] **AUTH-03**: Сброс пароля по email
 - [ ] **AUTH-04**: Личный кабинет: история заказов
 - [ ] **AUTH-05**: Личный кабинет: адресная книга
 - [ ] **AUTH-06**: Личный кабинет: профиль и смена пароля
@@ -93,9 +93,9 @@
 | CART-04 | Phase 2 | Complete |
 | CART-05 | Phase 2 | Complete |
 | CART-06 | Phase 2 | Complete |
-| AUTH-01 | Phase 3 | Pending |
-| AUTH-02 | Phase 3 | Pending |
-| AUTH-03 | Phase 3 | Pending |
+| AUTH-01 | Phase 3 | Complete |
+| AUTH-02 | Phase 3 | Complete |
+| AUTH-03 | Phase 3 | Complete |
 | AUTH-04 | Phase 3 | Pending |
 | AUTH-05 | Phase 3 | Pending |
 | AUTH-06 | Phase 3 | Pending |
