@@ -1,12 +1,19 @@
 /**
- * Статичная 404 (FBG-126).
+ * Localised 404 (FBG-126).
  *
- * Server Component (без `'use client'`) — тело страницы рендерится в готовый HTML и НЕ
- * гидратируется, что снижает площадь гидратации на мусорном/ботовом трафике (старые .php-URL),
- * который как раз и порождал восстановимые ошибки гидратации в GlitchTip. Ссылка «на главную» —
- * обычный `<a>` (а не клиентский next/link), чтобы не тянуть лишний клиентский код в 404.
+ * Async Server Component — body is rendered to static HTML and NOT hydrated,
+ * reducing hydration surface for garbage/bot traffic (old .php URLs) that were
+ * causing recoverable hydration errors in GlitchTip. The "go home" link is a plain
+ * <a> (not next/link) to avoid pulling extra client code into the 404 bundle.
+ *
+ * Located inside [locale] segment so NextIntl provider is active; uses
+ * getTranslations (server-side) to avoid the 'use client' penalty.
  */
-export default function NotFound() {
+import { getTranslations } from 'next-intl/server';
+
+export default async function NotFound() {
+  const t = await getTranslations('errors');
+
   return (
     <div
       style={{
@@ -21,9 +28,9 @@ export default function NotFound() {
       }}
     >
       <p style={{ margin: '0 0 8px', fontSize: '48px', fontWeight: 700, lineHeight: 1 }}>404</p>
-      <h2 style={{ margin: '0 0 12px', fontSize: '20px' }}>Страница не найдена</h2>
+      <h2 style={{ margin: '0 0 12px', fontSize: '20px' }}>{t('notFoundTitle')}</h2>
       <p style={{ margin: '0 0 24px', color: '#666', fontSize: '14px' }}>
-        Возможно, она была удалена или адрес введён неверно.
+        {t('notFoundDesc')}
       </p>
       <a
         href="/"
@@ -37,7 +44,7 @@ export default function NotFound() {
           textDecoration: 'none',
         }}
       >
-        На главную
+        {t('backHome')}
       </a>
     </div>
   );

@@ -343,5 +343,12 @@
   "partners.schools.fieldName": "İsim",
   "partners.schools.fieldPhone": "Telefon numarası",
   "partners.schools.fieldCity": "Şehir (merkez ofis ve okulların bulunduğu şehirler listesi)",
-  "partners.schools.fieldLinks": "Web sitesi veya sosyal medya bağlantıları"
+  "partners.schools.fieldLinks": "Web sitesi veya sosyal medya bağlantıları",
+
+  "errors.notFoundTitle": "Sayfa bulunamadı",
+  "errors.notFoundDesc": "Sayfa silinmiş olabilir veya adres hatalı girilmiş olabilir.",
+  "errors.backHome": "Ana Sayfaya Git",
+  "errors.errorTitle": "Bir şeyler yanlış gitti",
+  "errors.errorDesc": "Sayfa yüklenirken bir hata oluştu. Lütfen tekrar deneyin.",
+  "errors.retry": "Tekrar dene"
 }

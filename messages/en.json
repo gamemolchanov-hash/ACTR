@@ -343,5 +343,12 @@
   "partners.schools.fieldName": "Name",
   "partners.schools.fieldPhone": "Phone number",
   "partners.schools.fieldCity": "City (headquarters and list of cities with schools)",
-  "partners.schools.fieldLinks": "Links to website or social media"
+  "partners.schools.fieldLinks": "Links to website or social media",
+
+  "errors.notFoundTitle": "Page not found",
+  "errors.notFoundDesc": "It may have been deleted or the address was entered incorrectly.",
+  "errors.backHome": "Go to Home",
+  "errors.errorTitle": "Something went wrong",
+  "errors.errorDesc": "An error occurred while loading the page. Please try again.",
+  "errors.retry": "Try again"
 }

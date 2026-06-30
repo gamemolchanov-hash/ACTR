@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { isChunkLoadError, recoverFromChunkError } from '@/lib/chunkReload';
+import { useTranslations } from 'next-intl';
 
 export default function Error({
   error,
@@ -11,10 +12,12 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('errors');
+
   useEffect(() => {
-    // Транзиентный stale-chunk после редеплоя: один раз за сессию перезагружаемся
-    // (свежий HTML тянет актуальные чанки) и не шумим в Sentry. Если перезагрузка уже
-    // была — это реальный 404 (сломанный деплой): репортим и показываем UI.
+    // Transient stale-chunk after redeploy: reload once per session
+    // (fresh HTML fetches up-to-date chunks) without reporting to Sentry.
+    // If reload already happened — this is a real error (broken deploy): report and show UI.
     if (isChunkLoadError(error) && recoverFromChunkError()) {
       return;
     }
@@ -34,9 +37,9 @@ export default function Error({
         textAlign: 'center',
       }}
     >
-      <h2 style={{ margin: '0 0 12px', fontSize: '20px' }}>Что-то пошло не так</h2>
+      <h2 style={{ margin: '0 0 12px', fontSize: '20px' }}>{t('errorTitle')}</h2>
       <p style={{ margin: '0 0 24px', color: '#666', fontSize: '14px' }}>
-        Произошла ошибка при загрузке страницы. Попробуйте ещё раз.
+        {t('errorDesc')}
       </p>
       <button
         onClick={reset}
@@ -51,7 +54,7 @@ export default function Error({
           fontWeight: 500,
         }}
       >
-        Попробовать снова
+        {t('retry')}
       </button>
     </div>
   );
