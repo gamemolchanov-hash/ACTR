@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: "готово к Phase 5 (Комплаенс-UI: KDV, KVKK/«mesafeli satış», юр-страницы)"
+status: executing
 stopped_at: "Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev)."
-last_updated: "2026-06-30T14:36:13.254Z"
-last_activity: 2026-06-30 -- Phase 04 COMPLETE (verifier passed, code-review gate done)
+last_updated: "2026-06-30T15:45:04.101Z"
+last_activity: 2026-06-30 -- Phase 05 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 57
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 5 — Комплаенс-UI (следующая)
+**Current focus:** Phase 05 — ui
 
 ## Current Position
 
-Phase: 04 (i18n-en-tr) — ✅ COMPLETE (verifier PASSED 4/4, 2026-06-30)
-Plan: 5 of 5 done · build/tsc green · 0 RU-хардкода · EN+TR (TR реальный)
-Status: готово к Phase 5 (Комплаенс-UI: KDV, KVKK/«mesafeli satış», юр-страницы)
-Last activity: 2026-06-30 -- Phase 04 COMPLETE (verifier passed, code-review gate done)
+Phase: 05 (ui) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-30 -- Phase 05 execution started
 
 Progress: [██████░░░░] 57%
 
@@ -119,6 +119,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T14:36:13.250Z
+Last session: 2026-06-30T15:45:04.096Z
 Stopped at: Phase 5 СПЛАНИРОВАНА — 3 плана (05-01 legal+footer · 05-02 KDV · 05-03 consents), plan-checker PASSED 0/0. Готово к /gsd-execute-phase 5 (волны последовательны; 05-03 — human-verify checkpoint, нужен make up :4000 + npm run dev).
 Resume file: .planning/phases/05-ui/05-01-PLAN.md

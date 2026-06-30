@@ -131,7 +131,7 @@ Plans:
 
 Plans:
 
-- [ ] 05-01-PLAN.md — Legal stub pages (5) + footer links — wave 1 (COMP-02)
+- [x] 05-01-PLAN.md — Legal stub pages (5) + footer links — wave 1 (COMP-02)
 - [ ] 05-02-PLAN.md — KDV display: kdvFromBrutto + «KDV Dahil» labels + KDV line — wave 2, depends 05-01 (COMP-01)
 - [ ] 05-03-PLAN.md — Consent gate: KVKK + mesafeli checkboxes in checkout — wave 3, depends 05-01,05-02 (COMP-02)
 
@@ -180,6 +180,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Корзина и чекаут | 2/2 | Complete   | 2026-06-29 |
 | 3. Авторизация и ЛК | 3/3 | Complete | 2026-06-30 |
 | 4. i18n EN/TR | 5/5 | Complete   | 2026-06-30 |
-| 5. Комплаенс-UI | 0/3 | Planned | - |
+| 5. Комплаенс-UI | 1/3 | In Progress|  |
 | 6. Чистка + бренд TR | 0/TBD | Not started | - |
 | 7. Каталог-данные TR | 0/TBD | Not started | - |
