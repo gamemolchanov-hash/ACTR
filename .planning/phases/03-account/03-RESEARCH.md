@@ -650,16 +650,18 @@ Option 1 is safer (no BFF config change needed) and handles both dev and future 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Reset password email URL mismatch**
    - What we know: BFF generates `${ARM_STOREFRONT_URL}/reset-password?token=X`. ACTR page is at `/login/reset-password`. No redirect exists.
    - What's unclear: Whether to add the shim page or configure BFF env.
    - Recommendation: Create `src/app/reset-password/page.tsx` redirect shim (code-only change, no BFF config).
+   - **RESOLVED:** shim page — implemented in 03-01 Task 3.
 
 2. **`arm_token` migration for existing logged-in users**
    - What we know: Phase 0/1/2 users may have `sf_token` in localStorage.
    - Recommendation: Add one-time migration in `AuthProvider` mount (copy `sf_token` → `arm_token`, delete old). Low risk — at worst user re-logs in.
+   - **RESOLVED:** `migrateToken` one-time migration in AuthProvider mount — implemented in 03-01 Task 1.
 
 ---
 
