@@ -105,11 +105,15 @@ Plans:
   3. Контент товара локализуется через ARM `?lang`
   4. SEO/OG/sitemap отдаются на EN и TR
 
-**Plans**: TBD
+**Plans**: 5 (planned 2026-06-30)
 
 Plans:
 
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Каркас i18n: next-intl scaffold + миграция [locale] + переключатель/гео + оболочка + fmtMoney(WR-01/05) — wave 1 (I18N-01, I18N-02)
+- [ ] 04-02-PLAN.md — Каталог/товар: ARM ?lang passthrough + строки каталога + ProductReviews(WR-02) — wave 2, depends 04-01 (I18N-01, I18N-03)
+- [ ] 04-03-PLAN.md — Auth/account: login×4 + account×5 строки (checkout/basket подтвердить) — wave 3, depends 04-02 (I18N-01)
+- [ ] 04-04-PLAN.md — Статика: studios/delivery/contacts/faq + partners×4 + error-страницы — wave 4, depends 04-03 (I18N-01)
+- [ ] 04-05-PLAN.md — SEO: hreflang/OG/sitemap + seo.ts(TRY) + серверный ?lang + Tolgee finalize + фазовый gate — wave 5, depends 04-04 (I18N-01, I18N-04)
 
 ### Phase 5: Комплаенс-UI
 
@@ -173,7 +177,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Каталог на ARM | 1/1 | Complete | 2026-06-29 |
 | 2. Корзина и чекаут | 2/2 | Complete   | 2026-06-29 |
 | 3. Авторизация и ЛК | 3/3 | Complete | 2026-06-30 |
-| 4. i18n EN/TR | 0/TBD | Not started | - |
+| 4. i18n EN/TR | 0/5 | Planned | - |
 | 5. Комплаенс-UI | 0/TBD | Not started | - |
 | 6. Чистка + бренд TR | 0/TBD | Not started | - |
 | 7. Каталог-данные TR | 0/TBD | Not started | - |
