@@ -454,20 +454,17 @@ const kdvAmount = Math.round(total - total / 1.20);
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **KDV Dahil label on ProductCard vs ProductDetail only?**
-   - What we know: D-01 says "prices have a KDV Dahil label" — doesn't specify which views.
-   - What's unclear: Should it appear on every price occurrence (card, detail, basket, Order Summary header) or only in product detail + Order Summary?
-   - Recommendation: Add to ProductCard price display + ProductDetail price + Order Summary subtotal label (skip individual item prices in Order Summary as they're already in the total context).
+   - Recommendation: ProductCard price + ProductDetail price + Order Summary subtotal label.
+   - **RESOLVED:** Apply «KDV Dahil» to ProductCard price + ProductDetail price + Order Summary subtotal label (not per-item rows). Discretion per CONTEXT D-01.
 
 2. **Legal pages: separate column in footer or appended to existing nav?**
-   - What we know: Footer has NAV_COL1 (catalog/new/studios/partners) and NAV_COL2 (contacts/delivery/faq). Adding 5 links to NAV_COL2 makes it long.
-   - Recommendation: Add `NAV_COL_LEGAL` as a third column on desktop; append to single-column mobile list. Discretion area per CONTEXT.md.
+   - **RESOLVED:** Add `NAV_COL_LEGAL` as a 3rd footer column (desktop) / appended to the single-column mobile list (5 links too many for NAV_COL2). Discretion per CONTEXT D-08.
 
 3. **Mesafeli satış ön bilgilendirme — one page or two?**
-   - What we know: D-06 says "mesafeli satış sözleşmesi" as one of 5 pages. D-04 groups "mesafeli satış sözleşmesi + ön bilgilendirme" as one consent.
-   - Recommendation: One page (`/legal/mesafeli-satis`) covering both the contract and the pre-information form sections. Two slugs would require two checkboxes split — one combined page satisfies D-04's combined consent.
+   - **RESOLVED:** ONE page `/legal/mesafeli-satis` covering both the distance-sales contract AND the ön bilgilendirme (pre-information) sections — matches D-04's single combined consent. So the 5 legal pages = kvkk, mesafeli-satis (incl. ön bilgilendirme), iade (cayma hakkı), gizlilik, kullanim-kosullari.
 
 ---
 
