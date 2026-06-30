@@ -7,40 +7,44 @@ import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
-const menuItems = [
-  {
-    label: 'Мои заказы',
-    description: 'История и статус заказов',
-    href: '/account/orders',
-    icon: ShoppingBag,
-  },
-  {
-    label: 'Адреса доставки',
-    description: 'Управление адресами для доставки',
-    href: '/account/addresses',
-    icon: LocationOn,
-  },
-  {
-    label: 'Личные данные',
-    description: 'Имя, телефон, email',
-    href: '/account/settings',
-    icon: Person,
-  },
-  {
-    label: 'Сменить пароль',
-    description: 'Обновить пароль для входа',
-    href: '/account/settings#password',
-    icon: Lock,
-  },
-];
-
 export default function AccountPage() {
+  const t = useTranslations('account');
+  const tCommon = useTranslations('common');
+
   const { customer, loading, signOut } = useAuth();
   const router = useRouter();
+
+  const menuItems = [
+    {
+      label: t('myOrders'),
+      description: t('myOrdersDesc'),
+      href: '/account/orders',
+      icon: ShoppingBag,
+    },
+    {
+      label: t('addresses'),
+      description: t('addressesDesc'),
+      href: '/account/addresses',
+      icon: LocationOn,
+    },
+    {
+      label: t('personalData'),
+      description: t('personalDataDesc'),
+      href: '/account/settings',
+      icon: Person,
+    },
+    {
+      label: t('changePassword'),
+      description: t('changePasswordDesc'),
+      href: '/account/settings#password',
+      icon: Lock,
+    },
+  ];
 
   useEffect(() => {
     if (!loading && !customer) router.replace('/login');
@@ -55,22 +59,22 @@ export default function AccountPage() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
-          {' / Личный кабинет'}
+          {` / ${t('breadcrumb')}`}
         </Typography>
 
         <Typography
           variant="h1"
           sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
         >
-          ЛИЧНЫЙ КАБИНЕТ
+          {t('title')}
         </Typography>
 
         <Typography
           sx={{ fontFamily: fontMain, fontSize: { xs: 16, md: 20 }, color: palette.primary, mt: 1 }}
         >
-          Здравствуйте, {customer.name}!
+          {t('greeting', { name: customer.name })}
         </Typography>
       </Box>
 
@@ -145,7 +149,7 @@ export default function AccountPage() {
               py: 1,
             }}
           >
-            Выйти из аккаунта
+            {t('signOut')}
           </Button>
         </Box>
       </Box>

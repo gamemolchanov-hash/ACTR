@@ -26,11 +26,17 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrder, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
+import { useTranslations, useLocale } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function OrderDetailPage() {
+  const t = useTranslations('account');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
   const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
@@ -69,20 +75,20 @@ export default function OrderDetailPage() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/account" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Личный кабинет
+            {t('breadcrumb')}
           </Link>
           {' / '}
           <Link
             href="/account/orders"
             style={{ color: palette.primaryLight, textDecoration: 'none' }}
           >
-            Мои заказы
+            {t('myOrders')}
           </Link>
-          {order ? ` / Заказ ${order.number}` : ''}
+          {order ? ` / ${t('orderDetail', { number: order.number })}` : ''}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -97,7 +103,7 @@ export default function OrderDetailPage() {
             variant="h1"
             sx={{ fontSize: { xs: 22, md: 34 }, fontWeight: 450, letterSpacing: { xs: 1, md: 0 } }}
           >
-            {order ? `Заказ ${order.number}` : 'Заказ'}
+            {order ? t('orderDetail', { number: order.number }) : t('orderTitleFallback')}
           </Typography>
         </Box>
       </Box>
@@ -110,7 +116,7 @@ export default function OrderDetailPage() {
         ) : notFound || !order ? (
           <Box sx={{ bgcolor: palette.bgLight, borderRadius: '20px', p: 4, textAlign: 'center' }}>
             <Typography sx={{ fontFamily: fontMain, fontSize: 18, color: palette.primary, mb: 2 }}>
-              Заказ не найден
+              {t('orderNotFound')}
             </Typography>
             <Button
               component={Link}
@@ -124,7 +130,7 @@ export default function OrderDetailPage() {
                 px: 4,
               }}
             >
-              К списку заказов
+              {t('backToOrders')}
             </Button>
           </Box>
         ) : (
@@ -142,11 +148,11 @@ export default function OrderDetailPage() {
                 }}
               />
               <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primaryLight }}>
-                {new Date(order.date_created).toLocaleDateString('en-GB', {
+                {new Intl.DateTimeFormat(bcp47, {
                   day: '2-digit',
                   month: 'long',
                   year: 'numeric',
-                })}
+                }).format(new Date(order.date_created))}
               </Typography>
               {safeHttpUrl(order.track_url) && (
                 <Tooltip title="Track shipment">
@@ -190,7 +196,7 @@ export default function OrderDetailPage() {
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Товар
+                      {t('itemProduct')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -201,7 +207,7 @@ export default function OrderDetailPage() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Кол-во
+                      {t('itemQty')}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -212,7 +218,7 @@ export default function OrderDetailPage() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Цена
+                      {t('itemPrice')}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -223,7 +229,7 @@ export default function OrderDetailPage() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Сумма
+                      {t('itemTotal')}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -254,7 +260,7 @@ export default function OrderDetailPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(price, currency)}
+                          {fmtMoney(price, currency, bcp47)}
                         </TableCell>
                         <TableCell
                           align="right"
@@ -265,7 +271,7 @@ export default function OrderDetailPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(price * item.quantity, currency)}
+                          {fmtMoney(price * item.quantity, currency, bcp47)}
                         </TableCell>
                       </TableRow>
                     );
@@ -293,11 +299,11 @@ export default function OrderDetailPage() {
                   mb: 2,
                 }}
               >
-                Итог
+                {t('summary')}
               </Typography>
-              <TotalRow label="Товары" value={fmtMoney(itemsSubtotal, currency)} />
+              <TotalRow label={t('summaryItems')} value={fmtMoney(itemsSubtotal, currency, bcp47)} />
               {vat != null && vat > 0 && (
-                <TotalRow label="НДС (KDV)" value={fmtMoney(vat, currency)} />
+                <TotalRow label={t('summaryVat')} value={fmtMoney(vat, currency, bcp47)} />
               )}
               <Divider sx={{ my: 1.5 }} />
               <Box
@@ -311,7 +317,7 @@ export default function OrderDetailPage() {
                     color: palette.primary,
                   }}
                 >
-                  К оплате
+                  {t('summaryToPay')}
                 </Typography>
                 <Typography
                   sx={{
@@ -321,7 +327,7 @@ export default function OrderDetailPage() {
                     color: palette.primary,
                   }}
                 >
-                  {fmtMoney(Number(order.total), currency)}
+                  {fmtMoney(Number(order.total), currency, bcp47)}
                 </Typography>
               </Box>
             </Box>

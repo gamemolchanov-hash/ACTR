@@ -24,11 +24,17 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrders, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
+import { useTranslations, useLocale } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function OrdersPage() {
+  const t = useTranslations('account');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+
   const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
@@ -61,13 +67,13 @@ export default function OrdersPage() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/account" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Личный кабинет
+            {t('breadcrumb')}
           </Link>
-          {' / Мои заказы'}
+          {` / ${t('myOrders')}`}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -82,7 +88,7 @@ export default function OrdersPage() {
             variant="h1"
             sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
           >
-            МОИ ЗАКАЗЫ
+            {t('myOrdersTitle')}
           </Typography>
         </Box>
       </Box>
@@ -95,7 +101,7 @@ export default function OrdersPage() {
         ) : orders.length === 0 ? (
           <Box sx={{ bgcolor: palette.bgLight, borderRadius: '20px', p: 4, textAlign: 'center' }}>
             <Typography sx={{ fontFamily: fontMain, fontSize: 18, color: palette.primary, mb: 2 }}>
-              У вас пока нет заказов
+              {t('noOrders')}
             </Typography>
             <Button
               component={Link}
@@ -109,7 +115,7 @@ export default function OrdersPage() {
                 px: 4,
               }}
             >
-              Перейти в каталог
+              {t('goToCatalog')}
             </Button>
           </Box>
         ) : (
@@ -128,33 +134,33 @@ export default function OrdersPage() {
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Номер
+                      {t('orderNumber')}
                     </TableCell>
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Дата
+                      {t('orderDate')}
                     </TableCell>
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Статус
+                      {t('orderStatus')}
                     </TableCell>
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Товары
+                      {t('orderItems')}
                     </TableCell>
                     <TableCell
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Трек
+                      {t('orderTracking')}
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary }}
                     >
-                      Сумма
+                      {t('orderTotal')}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -182,7 +188,11 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {new Date(order.date_created).toLocaleDateString('en-GB')}
+                          {new Intl.DateTimeFormat(bcp47, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          }).format(new Date(order.date_created))}
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -240,7 +250,7 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(Number(order.total), order.currency)}
+                          {fmtMoney(Number(order.total), order.currency, bcp47)}
                         </TableCell>
                       </TableRow>
                     );
@@ -256,7 +266,7 @@ export default function OrdersPage() {
                   onClick={() => setPage(page - 1)}
                   sx={{ fontFamily: fontMain, color: palette.primary }}
                 >
-                  Назад
+                  {t('prevPage')}
                 </Button>
                 <Typography
                   sx={{ fontFamily: fontBody, lineHeight: '36px', color: palette.primaryLight }}
@@ -268,7 +278,7 @@ export default function OrdersPage() {
                   onClick={() => setPage(page + 1)}
                   sx={{ fontFamily: fontMain, color: palette.primary }}
                 >
-                  Далее
+                  {t('nextPage')}
                 </Button>
               </Box>
             )}
