@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planned
-stopped_at: "Phase 4 СПЛАНИРОВАНА — 5 планов (04-01..05, 5 последовательных волн), plan-checker пройден (1 блокер пофикшен: RESEARCH Open Questions RESOLVED + VALIDATION sign-off; 2 ворнинга приняты). Готово к /gsd-execute-phase 4. ⚠️ нужно: demo-BFF :4000 + Tolgee project 34 доступен + npm run dev."
-last_updated: "2026-06-30T10:30:00.000Z"
-last_activity: 2026-06-30 -- Phase 04 planned (5 plans, checker passed)
+status: executing
+stopped_at: Completed 04-01 (i18n scaffold — [locale] routing + middleware + messages + switcher + fmtMoney)
+last_updated: "2026-06-30T14:00:00.000Z"
+last_activity: 2026-06-30 -- 04-01 executed (next-intl scaffold, route migration, locale switcher, fmtMoney)
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 11
-  completed_plans: 6
-  percent: 43
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -21,26 +21,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 4 — i18n EN/TR (следующая)
+**Current focus:** Phase 04 — i18n-en-tr
 
 ## Current Position
 
-Phase: 04 (i18n EN/TR) — PLANNED (5 планов, plan-checker пройден), готово к выполнению
-Plan: 0 of 5 executed
-Status: ready for `/gsd-execute-phase 4` — 5 последовательных волн (1→2→3→4→5)
-Last activity: 2026-06-30 -- Phase 04 planned (5 plans, checker passed)
+Phase: 04 (i18n-en-tr) — EXECUTING
+Plan: 2 of 5
+Status: Executing Phase 04 — 04-01 complete
+Last activity: 2026-06-30 -- 04-01 complete (next-intl scaffold, [locale] routing, shell i18n, fmtMoney)
 
-Progress: [████░░░░░░] 43%
+Progress: [█████░░░░░] 50%
 
 ### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
 2. **Поднять окружение (нужно для 04):** demo-BFF `make up` (autoCRM :4000) + `npm run dev`
    (ACTR :3003) + Tolgee project 34 на loco.devloc.su доступен (MCP `mcp__tolgee__*`).
+
 3. **Выполнить фазу:** `/gsd-execute-phase 4` — волны строго последовательны (общий
    `messages/*.json` + `[locale]/layout.tsx` пересекаются): 04-01 каркас → 04-02 каталог/?lang →
    04-03 auth/account → 04-04 статика → 04-05 SEO/Tolgee-finalize. 04-01 — самый тяжёлый
    (next-intl scaffold + миграция ~28 роутов под `[locale]`).
+
 4. Артефакты Phase 4: `.planning/phases/04-i18n-en-tr/` (CONTEXT/RESEARCH/PATTERNS/VALIDATION + 5 PLAN).
 5. ⚠️ До go-live в реальном TR-тенанте: `arm_customers.name` nullable (GDPR/KVKK-удаление) — Pending Todos.
 
@@ -74,6 +76,7 @@ Progress: [████░░░░░░] 43%
 Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 - Foundation: переключаем копию AC-фронта на ARM API (не форк FBG); отдельный standalone-репо ~/work/puz/ACTR; рынок TR/TRY/EN+TR; деплой отложен.
+- 04-01: CJS require('next-intl/plugin') работает без конвертации в .mjs (Open Q3 закрыт); reset-password нуждается в собственном minimal layout вне [locale]; TR каталог сделан вручную (Tolgee MCP не доступен в агенте — синк в 04-05); fmtMoney locale-aware с TRY по умолчанию (WR-01/WR-05 закрыты в Header).
 
 ### Pending Todos
 
