@@ -17,6 +17,7 @@ import { useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { resetPassword } from '@/lib/auth';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -34,6 +35,9 @@ const inputSx = {
 };
 
 function ResetPasswordInner() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
+
   const params = useSearchParams();
   const token = params.get('token') || '';
   const router = useRouter();
@@ -58,23 +62,23 @@ function ResetPasswordInner() {
     if (password.length < 6) {
       setSnack({
         open: true,
-        message: 'Пароль должен быть не менее 6 символов.',
+        message: t('resetPasswordTooShort'),
         severity: 'error',
       });
       return;
     }
     if (password !== confirm) {
-      setSnack({ open: true, message: 'Пароли не совпадают.', severity: 'error' });
+      setSnack({ open: true, message: t('resetPasswordMismatch'), severity: 'error' });
       return;
     }
 
     setLoading(true);
     try {
       await resetPassword(token, password);
-      setSnack({ open: true, message: 'Пароль успешно установлен!', severity: 'success' });
+      setSnack({ open: true, message: t('resetPasswordSuccess'), severity: 'success' });
       setTimeout(() => router.push('/login'), 1500);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Ссылка недействительна или истекла.';
+      const msg = err?.response?.data?.message || t('resetLinkInvalid');
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setLoading(false);
@@ -85,10 +89,10 @@ function ResetPasswordInner() {
     return (
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, mt: 5, mb: 10, textAlign: 'center' }}>
         <Typography sx={{ fontFamily: fontMain, fontSize: 20, color: palette.primary, mb: 2 }}>
-          Недействительная ссылка
+          {t('invalidLink')}
         </Typography>
         <Typography sx={{ fontFamily: fontBody, fontSize: 16, color: palette.primaryLight, mb: 3 }}>
-          Запросите новую ссылку для сброса пароля.
+          {t('requestNewLink')}
         </Typography>
         <Button
           component={Link}
@@ -102,7 +106,7 @@ function ResetPasswordInner() {
             py: 1.5,
           }}
         >
-          Запросить сброс пароля
+          {t('requestReset')}
         </Button>
       </Box>
     );
@@ -115,19 +119,19 @@ function ResetPasswordInner() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/login" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Авторизация
+            {t('breadcrumbAuth')}
           </Link>
-          {' / Новый пароль'}
+          {` / ${t('breadcrumbNewPassword')}`}
         </Typography>
         <Typography
           variant="h1"
           sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
         >
-          НОВЫЙ ПАРОЛЬ
+          {t('newPasswordTitle')}
         </Typography>
       </Box>
 
@@ -159,7 +163,7 @@ function ResetPasswordInner() {
                   mb: 0.75,
                 }}
               >
-                Новый пароль{' '}
+                {t('newPasswordLabel')}{' '}
                 <Box component="span" sx={{ color: palette.cartBadge }}>
                   *
                 </Box>
@@ -168,7 +172,7 @@ function ResetPasswordInner() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Минимум 6 символов"
+                placeholder={t('newPasswordPlaceholder')}
                 sx={inputSx}
                 endAdornment={
                   <InputAdornment position="end">
@@ -193,7 +197,7 @@ function ResetPasswordInner() {
                   mb: 0.75,
                 }}
               >
-                Подтверждение пароля{' '}
+                {t('confirmPasswordLabel')}{' '}
                 <Box component="span" sx={{ color: palette.cartBadge }}>
                   *
                 </Box>
@@ -223,7 +227,7 @@ function ResetPasswordInner() {
                 '&:hover': { bgcolor: '#2a3d85' },
               }}
             >
-              {loading ? 'Сохранение...' : 'Установить пароль'}
+              {loading ? t('saving') : t('setPassword')}
             </Button>
           </Box>
         </Box>

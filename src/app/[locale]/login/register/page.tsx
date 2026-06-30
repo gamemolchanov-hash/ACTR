@@ -20,6 +20,7 @@ import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { register, login as doLogin, TERMS_VERSION } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -53,7 +54,7 @@ function formatPhone(value: string): string {
   return result;
 }
 
-/* ── simple math captcha ── */
+/* -- simple math captcha -- */
 
 function generateCaptcha(): { a: number; b: number; op: '+' | '-'; answer: number } {
   const ops: Array<'+' | '-'> = ['+', '-'];
@@ -72,6 +73,9 @@ function generateCaptcha(): { a: number; b: number; op: '+' | '-'; answer: numbe
 }
 
 export default function RegisterPage() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -121,13 +125,13 @@ export default function RegisterPage() {
 
     // time check
     if (Date.now() - loadedAt.current < MIN_SUBMIT_MS) {
-      setSnack({ open: true, message: 'Слишком быстро. Попробуйте ещё раз.', severity: 'error' });
+      setSnack({ open: true, message: t('tooFast'), severity: 'error' });
       return;
     }
 
     // captcha check
     if (parseInt(captchaInput, 10) !== captcha.answer) {
-      setSnack({ open: true, message: 'Неверный ответ. Попробуйте ещё раз.', severity: 'error' });
+      setSnack({ open: true, message: t('wrongCaptcha'), severity: 'error' });
       refreshCaptcha();
       return;
     }
@@ -135,14 +139,14 @@ export default function RegisterPage() {
     if (password.length < 6) {
       setSnack({
         open: true,
-        message: 'Пароль должен состоять минимум из 6 знаков.',
+        message: t('passwordTooShort'),
         severity: 'error',
       });
       return;
     }
 
     if (password !== confirmPassword) {
-      setSnack({ open: true, message: 'Пароли не совпадают.', severity: 'error' });
+      setSnack({ open: true, message: t('passwordMismatch'), severity: 'error' });
       return;
     }
 
@@ -198,13 +202,13 @@ export default function RegisterPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/login" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Авторизация
+            {t('breadcrumbAuth')}
           </Link>
-          {' / Регистрация'}
+          {` / ${t('breadcrumbRegister')}`}
         </Typography>
 
         <Typography
@@ -216,7 +220,7 @@ export default function RegisterPage() {
             letterSpacing: { xs: 2, md: 0 },
           }}
         >
-          РЕГИСТРАЦИЯ
+          {t('registerTitle')}
         </Typography>
       </Box>
 
@@ -242,23 +246,23 @@ export default function RegisterPage() {
           <Box component="form" onSubmit={handleSubmit} autoComplete="off">
             {/* Name */}
             <FieldBlock
-              label="Фамилия Имя Отчество"
+              label={t('nameLabel')}
               required
-              hint="Заполните, чтобы мы знали, как к вам обращаться."
+              hint={t('nameHint')}
             >
               <InputBase
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Иванов Иван Иванович"
+                placeholder={t('namePlaceholder')}
                 sx={inputSx}
               />
             </FieldBlock>
 
             {/* Email */}
             <FieldBlock
-              label="E-mail"
+              label={t('emailLabel')}
               required
-              hint="Для отправки уведомлений о статусе заказа. Используйте как логин для входа в личный кабинет."
+              hint={t('emailHint')}
             >
               <InputBase
                 type="email"
@@ -270,7 +274,7 @@ export default function RegisterPage() {
             </FieldBlock>
 
             {/* Phone */}
-            <FieldBlock label="Телефон" required hint="Необходим для уточнения деталей заказа.">
+            <FieldBlock label={t('phoneLabel')} required hint={t('phoneHint')}>
               <InputBase
                 value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
@@ -280,7 +284,7 @@ export default function RegisterPage() {
             </FieldBlock>
 
             {/* Password */}
-            <FieldBlock label="Пароль" required hint="Пароль должен состоять минимум из 6 знаков.">
+            <FieldBlock label={t('passwordLabel')} required hint={t('passwordHint')}>
               <InputBase
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -301,7 +305,7 @@ export default function RegisterPage() {
             </FieldBlock>
 
             {/* Confirm Password */}
-            <FieldBlock label="Подтверждение пароля" required>
+            <FieldBlock label={t('confirmPassword')} required>
               <InputBase
                 type={showConfirm ? 'text' : 'password'}
                 value={confirmPassword}
@@ -321,7 +325,7 @@ export default function RegisterPage() {
               />
             </FieldBlock>
 
-            {/* Honeypot — invisible to humans, bots fill it */}
+            {/* Honeypot -- invisible to humans, bots fill it */}
             <Box
               sx={{
                 position: 'absolute',
@@ -345,7 +349,7 @@ export default function RegisterPage() {
             </Box>
 
             {/* Math CAPTCHA */}
-            <FieldBlock label="Введите результат" required>
+            <FieldBlock label={t('captchaLabel')} required>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box
                   sx={{
@@ -388,7 +392,7 @@ export default function RegisterPage() {
                 />
                 <IconButton
                   onClick={refreshCaptcha}
-                  title="Новый пример"
+                  title={t('captchaRefresh')}
                   sx={{ color: palette.primary }}
                 >
                   <RefreshIcon />
@@ -448,7 +452,7 @@ export default function RegisterPage() {
                 '&:hover': { bgcolor: '#2a3d85' },
               }}
             >
-              {loading ? 'Регистрация...' : 'Зарегистрироваться'}
+              {loading ? t('registering') : t('register')}
             </Button>
           </Box>
 
@@ -473,7 +477,7 @@ export default function RegisterPage() {
               <Box component="span" sx={{ color: palette.cartBadge }}>
                 *
               </Box>{' '}
-              — обязательные поля
+              {t('requiredFields')}
             </Typography>
 
             <Typography
@@ -483,7 +487,7 @@ export default function RegisterPage() {
                 color: palette.primary,
               }}
             >
-              Уже есть аккаунт?{' '}
+              {t('alreadyHaveAccount')}{' '}
               <Link
                 href="/login"
                 style={{
@@ -493,7 +497,7 @@ export default function RegisterPage() {
                   fontWeight: 500,
                 }}
               >
-                Войдите
+                {t('signInLink')}
               </Link>
             </Typography>
           </Box>
@@ -518,7 +522,7 @@ export default function RegisterPage() {
   );
 }
 
-/* ── reusable field block ── */
+/* -- reusable field block -- */
 
 function FieldBlock({
   label,

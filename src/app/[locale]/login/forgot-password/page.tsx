@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { forgotPassword } from '@/lib/auth';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -23,6 +24,9 @@ const inputSx = {
 };
 
 function ForgotPasswordInner() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
+
   const params = useSearchParams();
   const [email, setEmail] = useState(params.get('email') || '');
   const [loading, setLoading] = useState(false);
@@ -47,13 +51,13 @@ function ForgotPasswordInner() {
       setSent(true);
       setSnack({
         open: true,
-        message: 'Ссылка для сброса пароля отправлена на указанный email.',
+        message: t('forgotSentSuccess'),
         severity: 'success',
       });
     } catch {
       setSnack({
         open: true,
-        message: 'Не удалось отправить. Попробуйте позже.',
+        message: t('forgotSentFailed'),
         severity: 'error',
       });
     } finally {
@@ -68,20 +72,20 @@ function ForgotPasswordInner() {
           sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
           {' / '}
           <Link href="/login" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Авторизация
+            {t('breadcrumbAuth')}
           </Link>
-          {' / Восстановление пароля'}
+          {` / ${t('breadcrumbForgotPassword')}`}
         </Typography>
 
         <Typography
           variant="h1"
           sx={{ fontSize: { xs: 24, md: 40 }, fontWeight: 450, letterSpacing: { xs: 2, md: 0 } }}
         >
-          ВОССТАНОВЛЕНИЕ ПАРОЛЯ
+          {t('forgotTitle')}
         </Typography>
       </Box>
 
@@ -113,13 +117,12 @@ function ForgotPasswordInner() {
                   mb: 2,
                 }}
               >
-                Если email <b>{email}</b> зарегистрирован, на него отправлена ссылка для установки
-                нового пароля.
+                {t('forgotCheckEmailPre')} <b>{email}</b> {t('forgotCheckEmailPost')}
               </Typography>
               <Typography
                 sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primaryLight, mb: 3 }}
               >
-                Проверьте папку «Спам», если письмо не пришло.
+                {t('forgotCheckSpam')}
               </Typography>
               <Button
                 component={Link}
@@ -136,7 +139,7 @@ function ForgotPasswordInner() {
                   py: '12px',
                 }}
               >
-                Вернуться ко входу
+                {t('backToLogin')}
               </Button>
             </>
           ) : (
@@ -149,8 +152,7 @@ function ForgotPasswordInner() {
                   mb: 3,
                 }}
               >
-                Введите email, указанный при регистрации. Мы отправим ссылку для установки нового
-                пароля.
+                {t('forgotInstruction')}
               </Typography>
               <Box sx={{ mb: 3 }}>
                 <Typography
@@ -191,7 +193,7 @@ function ForgotPasswordInner() {
                   '&:hover': { bgcolor: '#2a3d85' },
                 }}
               >
-                {loading ? 'Отправка...' : 'Отправить ссылку'}
+                {loading ? t('sending') : t('sendLink')}
               </Button>
             </Box>
           )}

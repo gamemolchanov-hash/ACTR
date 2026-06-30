@@ -19,6 +19,7 @@ import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { login as doLogin, type LoginResult } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -57,6 +58,9 @@ function isPhone(value: string): boolean {
 }
 
 export default function LoginPage() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
+
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -73,6 +77,8 @@ export default function LoginPage() {
   });
   const router = useRouter();
   const { setAuth } = useAuth();
+
+  const benefits = [t('benefit1'), t('benefit2'), t('benefit3')];
 
   const handleLoginChange = (value: string) => {
     if (isPhone(value) && !login.includes('@')) {
@@ -123,9 +129,9 @@ export default function LoginPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {tCommon('home')}
           </Link>
-          {' / Авторизация'}
+          {` / ${t('breadcrumbAuth')}`}
         </Typography>
 
         <Typography
@@ -137,7 +143,7 @@ export default function LoginPage() {
             letterSpacing: { xs: 2, md: 0 },
           }}
         >
-          АВТОРИЗАЦИЯ
+          {t('pageTitle')}
         </Typography>
 
         <Typography
@@ -150,8 +156,7 @@ export default function LoginPage() {
             mt: 1,
           }}
         >
-          Авторизировавшись, вы сможете управлять своими личными данными, следить за состоянием
-          заказов.
+          {t('pageSubtitle')}
         </Typography>
       </Box>
 
@@ -193,7 +198,7 @@ export default function LoginPage() {
                 mb: 3,
               }}
             >
-              Я зарегистрированный пользователь
+              {t('existingUser')}
             </Typography>
 
             <Box component="form" onSubmit={handleSubmit}>
@@ -209,7 +214,7 @@ export default function LoginPage() {
                     mb: 0.75,
                   }}
                 >
-                  Email / Телефон{' '}
+                  {t('emailPhone')}{' '}
                   <Box component="span" sx={{ color: palette.cartBadge }}>
                     *
                   </Box>
@@ -217,7 +222,7 @@ export default function LoginPage() {
                 <InputBase
                   value={login}
                   onChange={(e) => handleLoginChange(e.target.value)}
-                  placeholder="email@example.com или +90 (5__) ___ __ __"
+                  placeholder={t('emailPhonePlaceholder')}
                   sx={inputSx}
                 />
               </Box>
@@ -234,7 +239,7 @@ export default function LoginPage() {
                     mb: 0.75,
                   }}
                 >
-                  Пароль{' '}
+                  {t('password')}{' '}
                   <Box component="span" sx={{ color: palette.cartBadge }}>
                     *
                   </Box>
@@ -280,7 +285,7 @@ export default function LoginPage() {
                       }}
                     />
                   }
-                  label="Запомнить меня"
+                  label={t('rememberMe')}
                   sx={{
                     '& .MuiFormControlLabel-label': {
                       fontFamily: fontMain,
@@ -299,7 +304,7 @@ export default function LoginPage() {
                     textUnderlineOffset: '3px',
                   }}
                 >
-                  Забыли пароль?
+                  {t('forgotPassword')}
                 </Link>
               </Box>
 
@@ -321,7 +326,7 @@ export default function LoginPage() {
                   '&:hover': { bgcolor: '#2a3d85' },
                 }}
               >
-                {loading ? 'Вход...' : 'Войти'}
+                {loading ? t('signingIn') : t('signIn')}
               </Button>
             </Box>
 
@@ -337,7 +342,7 @@ export default function LoginPage() {
               <Box component="span" sx={{ color: palette.cartBadge }}>
                 *
               </Box>{' '}
-              — обязательные поля
+              {t('requiredFields')}
             </Typography>
           </Box>
 
@@ -365,7 +370,7 @@ export default function LoginPage() {
                 mb: 3,
               }}
             >
-              Я новый пользователь
+              {t('newUser')}
             </Typography>
 
             <Typography
@@ -378,16 +383,11 @@ export default function LoginPage() {
                 mb: 3,
               }}
             >
-              Зарегистрируйтесь, чтобы получить доступ к личному кабинету, отслеживать заказы и
-              получать персональные предложения.
+              {t('newUserPromo')}
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mb: 3 }}>
-              {[
-                'Просматривайте историю и статус заказов',
-                'Сохраняйте адреса доставки',
-                'Получайте персональные скидки и акции',
-              ].map((text) => (
+              {benefits.map((text) => (
                 <Box key={text} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                   <Box
                     sx={{
@@ -453,7 +453,7 @@ export default function LoginPage() {
                   },
                 }}
               >
-                Зарегистрироваться
+                {t('register')}
               </Button>
             </Box>
           </Box>
