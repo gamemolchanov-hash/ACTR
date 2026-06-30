@@ -1,37 +1,100 @@
 /**
- * Storefront Customer Auth API + state management
+ * ARM Storefront Customer Auth/Account API — session contract for ACTR
+ * D-01: token in localStorage['arm_token'], Bearer via proxy
+ * D-02: sf_token → arm_token (one-time migration via migrateToken)
+ * D-04 / FBG-50: only 401/403 drops session; network/5xx preserves it
+ * D-07: register sends terms_accepted + terms_version (AUTH-01)
  */
 
 import { api } from './api';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (from 03-RESEARCH.md §ARM Types — verified from BFF source)
 // ---------------------------------------------------------------------------
 
-export interface Customer {
+export interface AuthCustomer {
   id: string;
   name: string;
   email: string;
   phone: string | null;
-  type?: string;
 }
 
-export interface LoginResponse {
+// backward-compat alias for pages that import Customer
+export type Customer = AuthCustomer;
+
+export interface LoyaltyData {
+  loyalty_points: number;
+  loyalty_tier: number; // 1=Welcome, 2=Silver, 3=Gold
+  total_spent: number;
+}
+
+export interface CustomerAddress {
+  id: string;
+  label: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  address: string | null;
+  street: string | null;
+  building: string | null;
+  block: string | null;
+  apartment: string | null;
+  postal_code: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  is_default: boolean;
+}
+
+export interface CustomerOrder {
+  id: string;
+  number: string;
+  total: number | string;
+  vat_amount: number | string | null;
+  currency: string;
+  date_created: string;
+  track_number: string | null;
+  track_url: string | null;
+  status: { code: string; name: string; color: string } | null;
+  items: Array<{
+    id: string;
+    quantity: number;
+    unit_price: number;
+    product: { name: string } | null;
+  }>;
+}
+
+export interface LoginResult {
   token: string;
-  customer: Customer;
-}
-
-export interface NeedsResetResponse {
-  needsReset: true;
-  email: string;
-  message: string;
+  customer: AuthCustomer;
+  loyalty?: LoyaltyData;
+  needsReset?: boolean;
+  message?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Token storage
+// Terms version (D-07 / AUTH-01 — bump when legal copy changes, GDPR Art.7)
 // ---------------------------------------------------------------------------
 
-const TOKEN_KEY = 'sf_token';
+export const TERMS_VERSION = '2026-06-30';
+
+// ---------------------------------------------------------------------------
+// Token storage (D-01 / D-02)
+// ---------------------------------------------------------------------------
+
+export const TOKEN_KEY = 'arm_token';
+
+/**
+ * One-time migration: sf_token → arm_token for existing logged-in users.
+ * Called on AuthProvider mount. Only mention of 'sf_token' in the codebase (D-02 / Pitfall 2).
+ */
+export function migrateToken(): void {
+  if (typeof window === 'undefined') return;
+  const old = localStorage.getItem('sf_token');
+  if (old) {
+    localStorage.setItem('arm_token', old);
+    localStorage.removeItem('sf_token');
+  }
+}
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -47,7 +110,29 @@ export function clearToken(): void {
 }
 
 // ---------------------------------------------------------------------------
-// API calls
+// Auth helpers (D-04 / FBG-50 + Pattern 3)
+// ---------------------------------------------------------------------------
+
+/**
+ * True only for real auth failures (401/403) — D-04 / FBG-50.
+ * Network errors and 5xx return false, preserving the session.
+ */
+export function isAuthFailure(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    return status === 401 || status === 403;
+  }
+  return false;
+}
+
+/** Returns Authorization Bearer header for protected calls — empty {} if no token (Pitfall 5) */
+export function bearerHeader(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// ---------------------------------------------------------------------------
+// Public auth API calls
 // ---------------------------------------------------------------------------
 
 export async function register(data: {
@@ -55,19 +140,19 @@ export async function register(data: {
   email: string;
   phone?: string;
   password: string;
+  terms_accepted: boolean;
+  terms_version: string;
 }): Promise<{ message: string }> {
   const res = await api.post('/auth/register', data);
   return res.data;
 }
 
-export async function login(data: {
-  login: string;
-  password: string;
-}): Promise<LoginResponse | NeedsResetResponse> {
-  const res = await api.post('/auth/login', data);
-  if (res.data.token) {
-    setToken(res.data.token);
-  }
+/**
+ * Login — returns LoginResult. Does NOT call setToken.
+ * Token is stored by AuthContext.setAuth (D-03).
+ */
+export async function login(loginValue: string, password: string): Promise<LoginResult> {
+  const res = await api.post('/auth/login', { login: loginValue, password });
   return res.data;
 }
 
@@ -81,124 +166,77 @@ export async function resetPassword(token: string, password: string): Promise<{ 
   return res.data;
 }
 
-export interface CustomerAddress {
-  id: string;
-  city: string;
-  address: string;
-  postal_code: string | null;
-  region: string | null;
-  district: string | null;
-  street: string | null;
-  building: string | null;
-  block: string | null;
-  apartment: string | null;
-  label: string | null;
-  is_default: boolean;
-}
-
-export async function getMe(): Promise<{
-  customer: Customer;
-  address: CustomerAddress | null;
-} | null> {
-  const token = getToken();
-  if (!token) return null;
-  try {
-    const res = await api.get('/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return { customer: res.data.customer, address: res.data.address || null };
-  } catch {
-    clearToken();
-    return null;
-  }
-}
-
-export function logout(): void {
-  clearToken();
-  window.location.href = '/';
+/**
+ * GET /auth/me — throws on error.
+ * Caller (AuthContext) handles error with isAuthFailure guard (FBG-50).
+ * Does NOT call clearToken — only 401/403 via isAuthFailure drops the session.
+ */
+export async function getMe(): Promise<{ customer: AuthCustomer; loyalty: LoyaltyData | null }> {
+  const res = await api.get('/auth/me', { headers: bearerHeader() });
+  return { customer: res.data.customer, loyalty: res.data.loyalty ?? null };
 }
 
 // ---------------------------------------------------------------------------
-// Account API (protected)
+// Protected account functions (all use bearerHeader — contract for 03-02/03-03)
 // ---------------------------------------------------------------------------
 
-function authHeaders() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+export async function getMyAddresses(): Promise<{ data: CustomerAddress[] }> {
+  const res = await api.get('/auth/me/addresses', { headers: bearerHeader() });
+  return res.data;
 }
 
-export interface OrderSummary {
-  id: string;
-  number: string;
-  status: { id: string; name: string; color: string; code: string } | null;
-  total: number;
-  date_created: string;
-  track_number: string | null;
-  delivery_service: { id: string; name: string } | null;
-  items: Array<{
-    id: string;
-    quantity: number;
-    unit_price: number;
-    product: { id: string; name: string } | null;
-  }>;
-}
-
-export async function getMyAddresses(): Promise<CustomerAddress[]> {
-  const res = await api.get('/auth/me/addresses', { headers: authHeaders() });
-  return res.data.data;
+export async function addMyAddress(
+  addr: Partial<CustomerAddress>,
+): Promise<{ data: CustomerAddress }> {
+  const res = await api.post('/auth/me/addresses', addr, { headers: bearerHeader() });
+  return res.data;
 }
 
 export async function deleteMyAddress(id: string): Promise<void> {
-  await api.delete(`/auth/me/addresses/${id}`, { headers: authHeaders() });
+  await api.delete(`/auth/me/addresses/${id}`, { headers: bearerHeader() });
 }
 
 export async function getMyOrders(
   page = 1,
   limit = 10,
 ): Promise<{
-  data: OrderSummary[];
+  data: CustomerOrder[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 }> {
   const res = await api.get('/auth/me/orders', {
-    headers: authHeaders(),
+    headers: bearerHeader(),
     params: { page, limit },
   });
   return res.data;
 }
 
-export interface OrderDetail extends OrderSummary {
-  subtotal: number | string;
-  discount: number | string;
-  promo_discount: number | string;
-  payment_status: string | null;
-  delivery_tariff_type: string | null;
-  recipient_name: string | null;
-  recipient_phone: string | null;
-  shipping_zip: string | null;
-  shipping_region: string | null;
-  shipping_city: string | null;
-  shipping_address: string | null;
-  shipping_street: string | null;
-  shipping_building: string | null;
-  shipping_block: string | null;
-  shipping_apartment: string | null;
-  promo_code: { code: string } | null;
+export async function getMyOrder(id: string): Promise<{ data: CustomerOrder }> {
+  const res = await api.get(`/auth/me/orders/${id}`, { headers: bearerHeader() });
+  return res.data;
 }
 
-export async function getMyOrder(id: string): Promise<OrderDetail> {
-  const res = await api.get(`/auth/me/orders/${id}`, { headers: authHeaders() });
-  return res.data.data;
-}
-
-export async function updateProfile(data: { name?: string; phone?: string }): Promise<Customer> {
-  const res = await api.patch('/auth/me/profile', data, { headers: authHeaders() });
+export async function updateProfile(data: {
+  name?: string;
+  phone?: string;
+}): Promise<AuthCustomer> {
+  const res = await api.patch('/auth/me/profile', data, { headers: bearerHeader() });
   return res.data.customer;
 }
 
 export async function changePassword(data: {
-  currentPassword?: string;
+  currentPassword: string;
   newPassword: string;
 }): Promise<{ message: string }> {
-  const res = await api.post('/auth/me/change-password', data, { headers: authHeaders() });
+  const res = await api.post('/auth/me/change-password', data, { headers: bearerHeader() });
+  return res.data;
+}
+
+export async function exportAccount(): Promise<Record<string, unknown>> {
+  const res = await api.get('/auth/me/export', { headers: bearerHeader() });
+  return res.data;
+}
+
+export async function deleteAccount(data: { password?: string }): Promise<{ message: string }> {
+  const res = await api.post('/auth/me/delete-account', data, { headers: bearerHeader() });
   return res.data;
 }
