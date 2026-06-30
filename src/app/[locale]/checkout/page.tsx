@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import {
   Box,
@@ -39,6 +40,7 @@ import {
 import { palette } from '@/lib/theme';
 import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { kdvFromBrutto } from '@/lib/kdv';
 import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
 
 /* Stripe Embedded Checkout — client-side only */
@@ -172,6 +174,7 @@ function saveToSession(key: string, value: unknown) {
 }
 
 export default function CheckoutPage() {
+  const t = useTranslations();
   const { items, removeItem } = useCart();
   const { customer } = useAuth();
 
@@ -199,6 +202,8 @@ export default function CheckoutPage() {
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
   const finalTotal = Math.max(0, subtotal - promoDiscount);
+  // informational only — KDV portion of the KDV-inclusive subtotal (D-01/D-02)
+  const kdvAmount = kdvFromBrutto(subtotal);
 
   // Payment session (Stripe Embedded)
   const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
@@ -932,6 +937,15 @@ export default function CheckoutPage() {
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
               <Typography sx={{ color: c.main, ...text }}>Subtotal:</Typography>
               <Typography sx={{ color: c.main, ...text }}>{fmtMoney(subtotal, currency)}</Typography>
+            </Stack>
+            {/* informational only — price is already KDV-inclusive (D-01/D-02) */}
+            <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Typography sx={{ color: c['40'], ...info }}>
+                {t('price.kdvLine')}
+              </Typography>
+              <Typography sx={{ color: c['40'], ...info }}>
+                {fmtMoney(kdvAmount, currency)}
+              </Typography>
             </Stack>
             {promoDiscount > 0 && (
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
