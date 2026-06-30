@@ -21,3 +21,6 @@ next-env.d.ts
 .DS_Store
 *.log
 .claude/
+
+# GSD researcher web-fetch cache
+.planning/research/.cache/
