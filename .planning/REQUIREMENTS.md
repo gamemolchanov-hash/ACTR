@@ -39,8 +39,8 @@
 
 ### i18n
 
-- [ ] **I18N-01**: Локали EN + TR, хардкод-русского текста нет
-- [ ] **I18N-02**: Переключатель языка с сохранением выбора
+- [x] **I18N-01**: Локали EN + TR, хардкод-русского текста нет
+- [x] **I18N-02**: Переключатель языка с сохранением выбора
 - [ ] **I18N-03**: Контент товара локализован через ARM `?lang=<bcp47>`
 - [ ] **I18N-04**: SEO/OG/sitemap на EN и TR
 
@@ -100,8 +100,8 @@
 | AUTH-05 | Phase 3 | Complete |
 | AUTH-06 | Phase 3 | Complete |
 | AUTH-07 | Phase 3 | Complete |
-| I18N-01 | Phase 4 | Pending |
-| I18N-02 | Phase 4 | Pending |
+| I18N-01 | Phase 4 | Complete |
+| I18N-02 | Phase 4 | Complete |
 | I18N-03 | Phase 4 | Pending |
 | I18N-04 | Phase 4 | Pending |
 | COMP-01 | Phase 5 | Pending |
