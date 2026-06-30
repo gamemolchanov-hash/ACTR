@@ -3,7 +3,7 @@ status: testing
 phase: 05-ui
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-03 human-verify checkpoint]
 started: 2026-06-30T16:08:01Z
-updated: 2026-06-30T16:08:01Z
+updated: 2026-06-30T17:31:08Z
 ---
 
 ## Current Test
@@ -11,54 +11,101 @@ updated: 2026-06-30T16:08:01Z
 number: 1
 name: Consent gate blocks/allows order (05-03 checkpoint)
 expected: |
-  Checkout step 2: KVKK + mesafeli checkboxes render; "Proceed to Payment" disabled until BOTH
-  checked; submit-unchecked does NOT create an order (consent error). With both checked, button
-  enables and Stripe Embedded Checkout proceeds as before (flow unbroken).
+  Checkout step 2: KVKK + mesafeli checkboxes render (real Turkish/EN labels, not key strings);
+  "Proceed to Payment" disabled until BOTH checked; submit-unchecked does NOT create an order
+  (consent error). With both checked, button enables and Stripe Embedded Checkout proceeds as
+  before (flow unbroken).
 awaiting: user response
+note: |
+  Blocker resolved — site-wide i18n + legal-page RSC defects fixed in commit edf28ec. Dev server
+  running on http://127.0.0.1:3003. Test 3 (legal pages) re-verified PASS automatically. Tests 1, 2, 4
+  are now testable interactively.
 
 ## Tests
 
 ### 1. Consent gate (COMP-02) — checkout step 2
-expected: Both KVKK + mesafeli checkboxes render; submit disabled until both checked; unchecked submit blocked (consent error, no order); both checked → button enables → Stripe Embedded Checkout proceeds unchanged.
+expected: Both KVKK + mesafeli checkboxes render (real labels); submit disabled until both checked; unchecked submit blocked (consent error, no order); both checked → button enables → Stripe Embedded Checkout proceeds unchanged.
 result: [pending]
+note: "Unblocked by edf28ec — consent labels now resolve to real Turkish (e.g. 'KVKK Aydınlatma Metni'). Needs interactive user test."
 
 ### 2. Consent links → legal pages (COMP-02)
 expected: Each consent checkbox label link opens /[locale]/legal/kvkk and /legal/mesafeli-satis in a NEW tab.
 result: [pending]
+note: "Unblocked by edf28ec — target legal pages now return 200 with real localized content. Needs interactive user test."
 
 ### 3. Legal pages render (COMP-02)
 expected: All 5 legal pages render localized stubs on EN and TR — /en/legal/{kvkk,mesafeli-satis,iade,gizlilik,kullanim-kosullari} and /tr/legal/... ; footer legal column links resolve.
-result: issue
-reported: "/tr/legal/kvkk → 500 (and likely all legal routes). Fresh dev server (/tr and /tr/catalog = 200, so not a server issue)."
-severity: major
+result: pass
+verified: "2026-06-30T17:31Z — after fix edf28ec, all 10 /{en,tr}/legal/* routes return 200 with real localized content: EN 'KVKK Clarification Text', TR 'KVKK Aydınlatma Metni', TR 'İade ve Cayma Hakkı'. 0 INVALID_KEY / manifest errors in dev log. Footer legal column links resolve to these 200 routes."
+prior_reported: "All 10 legal routes (5 slugs × en/tr) → HTTP 500 on the real dev server (:3003). Re-verified 2026-06-30 after the 'add missing keys' gap-closure landed; still 500."
+prior_severity: blocker
 diagnosis: |
-  next-intl IntlError MISSING_MESSAGE thrown by getTranslations in the legal page:
-    `legal.iade.navLabel`, `legal.gizlilik.navLabel`, `legal.kullanim_kosullari.navLabel` (+ `common.workingHours`)
-  are NOT present in messages/{en,tr}.json. The legal page (and/or footer legal column) renders a
-  `navLabel` per legal slug; only some navLabel keys were added in 05-01, so rendering throws → 500.
-  Root cause: 05-01 key set was incomplete vs the keys the page references; spot-check verified key
-  COUNT/parity (43/43) but not the SPECIFIC keys consumed by the page → gap not caught at build time
-  (build doesn't fail on a missing message; the throw only surfaces at request/render time).
-  ALSO: a fully-stale dev server (started in Phase 3, before next-intl) was masking everything with a
-  global 500 / "Couldn't find next-intl config file" — killed + restarted fresh; that part is resolved.
+  CORRECTED ROOT CAUSE (the earlier MISSING_MESSAGE diagnosis was WRONG):
+  The real error is `IntlError: INVALID_KEY: Namespace keys cannot contain the character "."`
+  thrown by getTranslations on the legal page → 500. next-intl REQUIRES nested message objects
+  ({ "legal": { "kvkk": { "title": ... } } }) and categorically REJECTS flat dotted keys.
+
+  messages/en.json and messages/tr.json are 100% FLAT dotted keys ("legal.kvkk.title": "...",
+  "nav.catalog": "...", "common.workingHours": "..." — 388 keys/lang, ZERO nested objects). So every
+  key is invalid to next-intl. The 05-Phase "gap-closure" added the supposedly-missing keys in the
+  SAME flat format → it could never have worked; the keys now EXIST (388/388 parity) but are all
+  unreadable by next-intl.
+
+  This is NOT a legal-pages-only bug — it is SITE-WIDE and pre-existing since Phase 4 (commit
+  c96bd6c, the first i18n commit). It was masked because request.ts defines getMessageFallback
+  (returns the key string) + a non-throwing onError: client components (useTranslations) degrade to
+  rendering the literal key string and still return 200, so "the page loads" passed casual checks.
+  Server components that call getTranslations (the Phase-5 legal pages — first heavy server-side use)
+  THROW the INVALID_KEY error instead of degrading → 500, which is what finally surfaced it.
+
+  EVIDENCE (server :3003, fresh dev server, 2026-06-30T17:20Z):
+  - GET /tr/legal/kvkk → 500; dev log: "IntlError: INVALID_KEY … character '.'"; all 10 legal routes 500.
+  - GET /en homepage → 200 but <title>meta.defaultTitle</title>; nav renders common.account / nav.catalog literally.
+  - GET /tr/catalog → catalog.addToCart / catalog.allProducts rendered as literal key strings.
+  - request.ts imports messages JSON directly (no unflatten step); messages have ZERO nested objects.
+  - NOTE: the earlier "/tr & /tr/catalog = 200" check was run against :3000 which is a DIFFERENT app
+    (Metabase, a catch-all SPA returning 200 for every path) — a false positive. ACTR runs on :3003.
+
+  CORRECT FIX (replaces the wrong "add more flat keys" remedy):
+  Make next-intl receive NESTED messages. Two viable approaches —
+   (A) Un-flatten in request.ts at load time: messages: unflatten(json), where unflatten splits each
+       dotted key into nested objects. Minimal; keeps flat JSON as the Tolgee-friendly source of truth.
+       Watch for prefix collisions (a key that is also a parent of another key) + the .test mocks.
+   (B) Physically nest both en.json + tr.json and update flat-key tooling (messages-pull.mjs, Tolgee
+       export format).
+  Either fixes the legal 500 AND restores real translations across the WHOLE storefront.
+  After fixing: re-verify /{en,tr}/legal/* = 200 with real titles, then re-run Tests 1, 2, 4.
 
 ### 4. KDV display (COMP-01)
 expected: «KDV Dahil» label on product card + product detail price; checkout order summary shows «KDV (%20)» info line; the KDV line does NOT change the order total (informational only).
 result: [pending]
+note: "Unblocked by edf28ec. Auto-checked: /en/catalog renders a real «KDV Dahil» label (no 'price.kdvDahil' leak). Product-detail label + checkout «KDV (%20)» row + 'total unchanged' need interactive user confirmation."
 
 ## Summary
 
 total: 4
-passed: 0
-issues: 1
+passed: 1
+issues: 0
 pending: 3
+blocked: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "All 5 legal pages render localized stubs (EN+TR)"
-  status: failed
-  severity: major
-  reason: "MISSING_MESSAGE: legal.<slug>.navLabel (iade/gizlilik/kullanim_kosullari) + common.workingHours absent from messages/{en,tr}.json → getTranslations throws → 500 on legal routes."
-  fix: "Add the missing navLabel keys for all 5 legal slugs + common.workingHours to messages/en.json AND tr.json (EN base + real TR, keep parity); restart dev; re-verify /{en,tr}/legal/* = 200. Audit the legal page + footer NAV_COL_LEGAL for the full set of keys they reference."
+- truth: "The storefront renders real translations (EN+TR); legal pages render localized stubs and return 200"
+  status: resolved
+  resolution: "Fixed in commit edf28ec — (1) unflatten() in src/i18n/request.ts converts the flat dotted catalog to nested objects next-intl accepts; (2) palette extracted to src/lib/palette.ts (no 'use client') so the server legal page imports it without crossing the RSC boundary. Verified: all 10 legal routes 200 with real localized content; homepage/catalog render real translations; 0 i18n/manifest errors."
+  severity: blocker
+  reason: "SITE-WIDE i18n break. messages/{en,tr}.json use 100% FLAT dotted keys ('nav.catalog', 'legal.kvkk.title', …, 388 keys/lang). next-intl rejects dotted namespace keys → IntlError INVALID_KEY. Client components (useTranslations) degrade to rendering the literal key string (200 but broken text); server components (getTranslations, the Phase-5 legal pages) THROW → 500 on all 10 legal routes. Pre-existing since Phase 4 (commit c96bd6c); masked by getMessageFallback in request.ts. The Phase-5 gap-closure ('add missing keys') was based on a wrong MISSING_MESSAGE diagnosis and could not have worked — the added keys are flat too."
+  fix: "Make next-intl receive NESTED messages. Preferred: un-flatten in src/i18n/request.ts at load time (messages: unflatten(json)) — keeps flat JSON as the Tolgee source of truth; mind prefix collisions + update next-intl test mocks. Alternative: physically nest en.json + tr.json and adjust messages-pull.mjs/Tolgee export. Then re-verify /{en,tr}/legal/* = 200 with real <title>/<h1>, and re-run UAT Tests 1, 2, 4 (consent gate, consent links, KDV) which are blocked on this."
   test: 3
+  root_cause: "Flat dotted message keys incompatible with next-intl (requires nested objects); request.ts imports JSON with no unflatten step."
+  artifacts:
+    - path: "messages/en.json"
+      issue: "388 flat dotted keys, zero nested objects — invalid for next-intl"
+    - path: "messages/tr.json"
+      issue: "388 flat dotted keys, zero nested objects — invalid for next-intl"
+    - path: "src/i18n/request.ts"
+      issue: "imports flat JSON directly; no unflatten transform before passing to next-intl"
+  missing:
+    - "Nested message structure (or an unflatten step in request.ts) so next-intl can resolve keys"
