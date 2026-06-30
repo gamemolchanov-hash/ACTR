@@ -34,8 +34,8 @@
 - [x] **AUTH-03**: Сброс пароля по email
 - [x] **AUTH-04**: Личный кабинет: история заказов
 - [x] **AUTH-05**: Личный кабинет: адресная книга
-- [ ] **AUTH-06**: Личный кабинет: профиль и смена пароля
-- [ ] **AUTH-07**: GDPR/KVKK: экспорт и удаление аккаунта
+- [x] **AUTH-06**: Личный кабинет: профиль и смена пароля
+- [x] **AUTH-07**: GDPR/KVKK: экспорт и удаление аккаунта
 
 ### i18n
 
@@ -98,8 +98,8 @@
 | AUTH-03 | Phase 3 | Complete |
 | AUTH-04 | Phase 3 | Complete |
 | AUTH-05 | Phase 3 | Complete |
-| AUTH-06 | Phase 3 | Pending |
-| AUTH-07 | Phase 3 | Pending |
+| AUTH-06 | Phase 3 | Complete |
+| AUTH-07 | Phase 3 | Complete |
 | I18N-01 | Phase 4 | Pending |
 | I18N-02 | Phase 4 | Pending |
 | I18N-03 | Phase 4 | Pending |
