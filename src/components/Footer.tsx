@@ -74,7 +74,15 @@ export function Footer() {
     { label: 'FAQ', href: '/faq' },
   ];
 
-  const ALL_NAV = [...NAV_COL1, ...NAV_COL2];
+  const NAV_COL_LEGAL = [
+    { label: t('legal.kvkk.navLabel'), href: '/legal/kvkk' },
+    { label: t('legal.mesafeli_satis.navLabel'), href: '/legal/mesafeli-satis' },
+    { label: t('legal.iade.navLabel'), href: '/legal/iade' },
+    { label: t('legal.gizlilik.navLabel'), href: '/legal/gizlilik' },
+    { label: t('legal.kullanim_kosullari.navLabel'), href: '/legal/kullanim-kosullari' },
+  ];
+
+  const ALL_NAV = [...NAV_COL1, ...NAV_COL2, ...NAV_COL_LEGAL];
 
   return (
     <Box
@@ -123,6 +131,19 @@ export function Footer() {
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {NAV_COL2.map((item) => (
+                <MuiLink
+                  key={item.href}
+                  component={Link}
+                  href={item.href}
+                  underline="none"
+                  sx={navLinkSx}
+                >
+                  {item.label}
+                </MuiLink>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {NAV_COL_LEGAL.map((item) => (
                 <MuiLink
                   key={item.href}
                   component={Link}
