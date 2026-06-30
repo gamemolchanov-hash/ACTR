@@ -5,6 +5,7 @@
  * application_text) via dangerouslySetInnerHTML. These sinks MUST go through
  * DOMPurify.sanitize() so stored XSS in product content can't execute.
  */
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -54,6 +55,21 @@ vi.mock('@/lib/useRecentlyViewed', () => ({
   useRecentlyViewed: () => ({ items: [], addViewed: vi.fn() }),
 }));
 
+// Phase 4 (i18n): ProductDetail now uses next-intl hooks. This XSS test only
+// asserts sanitization, so a key-returning translation mock is enough.
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
+}));
+
+// Mock the next-intl navigation wrapper so the test doesn't pull in
+// `next/navigation` (createNavigation) — unresolvable under vitest/jsdom.
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, ...props }: { children?: ReactNode; [k: string]: unknown }) => <a {...props}>{children}</a>,
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/',
+}));
+
 function renderProductDetail() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -70,9 +86,10 @@ describe('ProductDetail XSS sanitization', () => {
     const { container } = renderProductDetail();
 
     // All three info panels rendered (test is not vacuous)
-    expect(await screen.findByText('Описание')).toBeTruthy();
-    expect(screen.getByText('Применение')).toBeTruthy();
-    expect(screen.getByText('Нанесение')).toBeTruthy();
+    // Phase 4 (i18n): headings are now t('product.*'); the mock returns the key.
+    expect(await screen.findByText('product.description')).toBeTruthy();
+    expect(screen.getByText('product.usage')).toBeTruthy();
+    expect(screen.getByText('product.application')).toBeTruthy();
 
     const html = container.innerHTML;
 
