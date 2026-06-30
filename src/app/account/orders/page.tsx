@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { getMyOrders, type CustomerOrder } from '@/lib/auth';
+import { getMyOrders, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
@@ -211,11 +211,11 @@ export default function OrdersPage() {
                           {(order.items?.length ?? 0) > 2 && ` (+${order.items!.length - 2})`}
                         </TableCell>
                         <TableCell sx={{ fontFamily: fontBody, fontSize: 13 }}>
-                          {order.track_url ? (
+                          {safeHttpUrl(order.track_url) ? (
                             <Tooltip title="Track shipment">
                               <IconButton
                                 component="a"
-                                href={order.track_url}
+                                href={safeHttpUrl(order.track_url)!}
                                 target="_blank"
                                 rel="noopener"
                                 onClick={(e) => e.stopPropagation()}

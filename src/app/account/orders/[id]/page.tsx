@@ -23,7 +23,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { getMyOrder, type CustomerOrder } from '@/lib/auth';
+import { getMyOrder, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
@@ -147,11 +147,11 @@ export default function OrderDetailPage() {
                   year: 'numeric',
                 })}
               </Typography>
-              {order.track_url && (
+              {safeHttpUrl(order.track_url) && (
                 <Tooltip title="Track shipment">
                   <IconButton
                     component="a"
-                    href={order.track_url}
+                    href={safeHttpUrl(order.track_url)!}
                     target="_blank"
                     rel="noopener"
                     size="small"

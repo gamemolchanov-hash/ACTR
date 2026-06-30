@@ -240,3 +240,18 @@ export async function deleteAccount(data: { password?: string }): Promise<{ mess
   const res = await api.post('/auth/me/delete-account', data, { headers: bearerHeader() });
   return res.data;
 }
+
+/**
+ * Returns `url` only when it is an absolute http(s) link, otherwise null.
+ * Guards `href` sinks against `javascript:`/`data:` schemes in backend-provided
+ * URLs (e.g. a mis-ingested carrier track_url). React does not strip such schemes.
+ */
+export function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}
