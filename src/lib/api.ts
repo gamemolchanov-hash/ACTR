@@ -192,7 +192,9 @@ export async function submitReview(
 
 /** Returns X-Currency header for ARM checkout endpoints. */
 function currencyHeader(): Record<string, string> {
-  return { 'X-Currency': process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD' };
+  // TR market default — must match the display layer (money.ts/seo.ts use TRY).
+  // USD here makes cart/validate return product_not_found for TRY-priced products.
+  return { 'X-Currency': process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY' };
 }
 
 /** Maps a CartItem to the ARM distributorProductId form. */
@@ -268,7 +270,7 @@ export async function fetchShippingRates(
     params: {
       country: params.country,
       postalCode: params.postalCode,
-      currency: params.currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD',
+      currency: params.currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY',
       items: JSON.stringify(params.items.map(toArm)),
     },
     headers: currencyHeader(),

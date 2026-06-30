@@ -47,7 +47,7 @@ const c = {
   '40': 'rgba(173, 183, 217, 1)', // #adb7d9
 };
 
-const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD';
+const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
 
 /* ---- Table column widths (from Figma absolute positions) ---- */
 const COL_PRICE = 181;

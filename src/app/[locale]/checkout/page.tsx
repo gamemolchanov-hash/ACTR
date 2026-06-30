@@ -81,7 +81,7 @@ const c = {
   red: '#ff002d',
 };
 
-const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'USD';
+const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
 
 /* ---- Input sx shared ---- */
 const inputSx = {
