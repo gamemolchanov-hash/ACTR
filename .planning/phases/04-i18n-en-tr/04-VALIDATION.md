@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: i18n-en-tr
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-06-30
+note: "Wave 0 items run INLINE during execution (next-intl plugin spike in 04-01 T1; Tolgee tag verify in 04-05 T3; arm tr-TR carried to Phase 7) — there is no separate pre-phase Wave 0. nyquist_compliant: every task in all 5 plans carries an automated tsc/vitest/grep+build verify (confirmed by plan-checker); sampling continuity holds."
 ---
 
 # Phase 4 — Validation Strategy
@@ -72,11 +73,11 @@ Wave 0 dependency). Phase-specific assertion families to cover:*
 
 ## Validation Sign-Off
 
-- [ ] All tasks have an automated verify (`tsc`/`vitest`/`grep`) or a Wave 0 dependency
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers the 3 RESEARCH open questions + plugin spike
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have an automated verify (`tsc`/`vitest`/`grep`) or a Wave 0 dependency — confirmed by plan-checker (15/15 tasks)
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers the 3 RESEARCH open questions + plugin spike — handled inline (04-01 T1, 04-05 T3); see frontmatter note
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s (build-bound)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-06-30 (RESEARCH open questions resolved; Wave 0 inline)

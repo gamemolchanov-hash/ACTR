@@ -707,27 +707,31 @@ module.exports = withSentryConfig(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **ARM translation locale codes in `arm_product_translations`**
    - What we know: BFF regex requires `/^[a-z]{2}-[A-Z]{2}$/`; proxy will send `tr-TR` and `en-US`
    - What's unclear: What locale codes the TR tenant admin will actually use when entering translations in Phase 7 (catalog data)
    - Recommendation: Document `tr-TR` as the expected code in ACTR setup notes; add to Phase 7 data ingestion requirements
+   - **RESOLVED:** Accepted risk — `tr-TR` assumed per the verified BCP-47 contract; graceful default-language fallback built into the proxy (D-08), so a mismatch degrades gracefully rather than breaking. Real catalog data lands in Phase 7 — carried there as a data-ingestion requirement (user_setup item in 04-02).
 
 2. **Tolgee project 34 language tag format**
    - What we know: Project 34 exists on loco.devloc.su; `tolgee pull --path ./messages` exports per-language files
    - What's unclear: Whether Tolgee exports to `messages/en.json` or `messages/en-US.json` (depends on language tag configured in project)
    - Recommendation: Wave 0 task — `tolgee pull` and inspect actual filenames; adjust `request.ts` import accordingly
+   - **RESOLVED:** 04-01 authors `messages/en.json` + `messages/tr.json` locally (bypasses the pull dependency for the scaffold); the actual Tolgee export filename is verified in 04-05 Task 3 (Tolgee finalize) before any `messages:pull` script is written, and `request.ts` imports are aligned then.
 
 3. **`next.config.js` ESM/CJS compatibility with `createNextIntlPlugin`**
    - What we know: Current file uses `module.exports = ...` (CJS). `next-intl/plugin` exports `createNextIntlPlugin`.
    - What's unclear: Whether `require('next-intl/plugin')` works in CJS next.config.js
    - Recommendation: Wave 0 spike — try `const createNextIntlPlugin = require('next-intl/plugin');` in the existing CJS config; if fails, convert to next.config.mjs
+   - **RESOLVED:** Inline spike in 04-01 Task 1 — attempt `require('next-intl/plugin')` in the CJS config; explicit `.mjs` conversion fallback documented in the task; `npm run build` in the task's `<verify>` closes the loop (fails fast if the plugin doesn't load).
 
 4. **Geo-detection accuracy for dev environment**
    - What we know: Middleware cannot call BFF; client-side GeoLocaleInit reads `/storefront/config`
    - What's unclear: Whether demo BFF returns a meaningful `geo_country` in local dev
    - Recommendation: GeoLocaleInit is progressive-enhancement — if config fetch fails or returns null, silently keep current locale. No hard blocker.
+   - **RESOLVED:** Progressive enhancement — `GeoLocaleInit` wraps the config fetch in `.catch(()=>{})`; on failure/null it silently keeps the current locale. Non-blocking, no action required.
 
 ---
 
