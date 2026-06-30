@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Box, Typography, Button, Card, CardContent, Grid } from '@mui/material';
-import { ShoppingBag, Person, Lock, ExitToApp } from '@mui/icons-material';
+import { ShoppingBag, Person, Lock, ExitToApp, LocationOn } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
@@ -19,6 +19,12 @@ const menuItems = [
     icon: ShoppingBag,
   },
   {
+    label: 'Адреса доставки',
+    description: 'Управление адресами для доставки',
+    href: '/account/addresses',
+    icon: LocationOn,
+  },
+  {
     label: 'Личные данные',
     description: 'Имя, телефон, email',
     href: '/account/settings',
@@ -33,12 +39,12 @@ const menuItems = [
 ];
 
 export default function AccountPage() {
-  const { customer, isLogged, loading, logout } = useAuth();
+  const { customer, loading, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !isLogged) router.replace('/login');
-  }, [loading, isLogged, router]);
+    if (!loading && !customer) router.replace('/login');
+  }, [loading, customer, router]);
 
   if (loading || !customer) return null;
 
@@ -122,7 +128,10 @@ export default function AccountPage() {
 
         <Box sx={{ mt: 4 }}>
           <Button
-            onClick={logout}
+            onClick={() => {
+              signOut();
+              router.push('/');
+            }}
             startIcon={<ExitToApp />}
             variant="outlined"
             sx={{
