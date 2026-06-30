@@ -730,11 +730,23 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             </>
           )}
 
-          {/* Price — locale-aware (WR-01/WR-05) */}
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 3 }}>
-            <Typography variant="h1">{fmtMoney(product.price, 'TRY', bcp47)}</Typography>
-            <Typography variant="body1" sx={{ lineHeight: '20px' }}>
-              {t('product.perUnit')}
+          {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+              <Typography variant="h1">{fmtMoney(product.price, 'TRY', bcp47)}</Typography>
+              <Typography variant="body1" sx={{ lineHeight: '20px' }}>
+                {t('product.perUnit')}
+              </Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontSize: 12,
+                color: palette.primaryLight,
+                fontFamily: '"Futura PT", Helvetica',
+                mt: 0.5,
+              }}
+            >
+              {t('price.kdvDahil')}
             </Typography>
           </Box>
 

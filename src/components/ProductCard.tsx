@@ -131,18 +131,28 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
       </Link>
 
       <Box sx={{ px: 2, pb: 2 }}>
-        {/* Price — locale-aware (WR-01/WR-05) */}
-        <Typography
-          sx={{
-            fontSize: 16,
-            fontWeight: 400,
-            color: palette.primary,
-            mb: '12px',
-            textAlign: 'center',
-          }}
-        >
-          {fmtMoney(product.price, 'TRY', bcp47)}
-        </Typography>
+        {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: '12px' }}>
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 400,
+              color: palette.primary,
+              textAlign: 'center',
+            }}
+          >
+            {fmtMoney(product.price, 'TRY', bcp47)}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 11,
+              color: palette.primaryLight,
+              fontFamily: '"Futura PT", Helvetica',
+            }}
+          >
+            {t('price.kdvDahil')}
+          </Typography>
+        </Box>
 
         {/* Actions: quantity + "Add to cart" */}
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 'auto' }}>
