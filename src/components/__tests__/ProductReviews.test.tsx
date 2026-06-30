@@ -14,7 +14,7 @@ import { ProductReviews } from '../ProductReviews';
 const mocks = vi.hoisted(() => ({
   fetchProductReviews: vi.fn(),
   submitReview: vi.fn(),
-  isLogged: true,
+  customer: { id: '1', name: 'Test User', email: 'test@test.com', phone: null } as { id: string; name: string; email: string; phone: string | null } | null,
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -27,7 +27,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@/lib/auth-context', () => ({
-  useAuth: () => ({ isLogged: mocks.isLogged }),
+  useAuth: () => ({ customer: mocks.customer }),
 }));
 
 function renderBlock() {
@@ -41,7 +41,7 @@ function renderBlock() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isLogged = true;
+  mocks.customer = { id: '1', name: 'Test User', email: 'test@test.com', phone: null };
   mocks.fetchProductReviews.mockResolvedValue({
     data: [
       {
@@ -75,7 +75,7 @@ describe('ProductReviews', () => {
   });
 
   it('shows a login prompt and no form when logged out', async () => {
-    mocks.isLogged = false;
+    mocks.customer = null;
     renderBlock();
     expect(await screen.findByText(/войдите в аккаунт/)).toBeTruthy();
     expect(screen.queryByText('Оставить отзыв')).toBeNull();

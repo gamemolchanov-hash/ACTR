@@ -45,7 +45,7 @@ export function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { totalQuantity } = useCart();
-  const { customer, isLogged, logout } = useAuth();
+  const { customer, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(
     searchParams.get('search') || searchParams.get('q') || '',
@@ -297,7 +297,7 @@ export function Header() {
           </Box>
         </ClickAwayListener>
 
-        {isLogged ? (
+        {!!customer ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <MuiLink
               component={Link}
@@ -314,7 +314,7 @@ export function Header() {
             </MuiLink>
             <MuiLink
               component="button"
-              onClick={logout}
+              onClick={signOut}
               underline="none"
               sx={{
                 fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
@@ -370,7 +370,7 @@ export function Header() {
           <img src="/logo.png" alt="American Creator" style={{ height: 36, width: 'auto' }} />
         </Link>
         <Box sx={{ flex: 1 }} />
-        {isLogged ? (
+        {!!customer ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
             <MuiLink
               component={Link}
@@ -387,7 +387,7 @@ export function Header() {
             </MuiLink>
             <MuiLink
               component="button"
-              onClick={logout}
+              onClick={signOut}
               underline="none"
               sx={{
                 fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
@@ -708,7 +708,7 @@ export function Header() {
         <Divider sx={{ mx: 2, my: 1 }} />
 
         <List>
-          {(isLogged
+          {(!!customer
             ? [
                 { label: 'Личный кабинет', href: '/account' },
                 { label: 'Мои заказы', href: '/account/orders' },
@@ -737,11 +737,11 @@ export function Header() {
               />
             </ListItemButton>
           ))}
-          {isLogged && (
+          {!!customer && (
             <ListItemButton
               onClick={() => {
                 setMenuOpen(false);
-                logout();
+                signOut();
               }}
             >
               <ListItemText

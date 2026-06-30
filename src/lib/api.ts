@@ -84,6 +84,7 @@ export interface PaginatedResponse<T> {
 
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
 import { armToProduct, armToCategory, armToValidatedCart, armToPromoResult } from './arm-adapter';
+import { bearerHeader } from './auth';
 import type {
   ArmDistributorProduct,
   ArmCategory,
@@ -311,7 +312,10 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
     comment: payload.comment,
     promoCode: payload.promoCode,
   };
-  const { data } = await api.post('/orders', body, { headers: currencyHeader() });
+  // D-06: bearerHeader() attaches Authorization for logged-in users; returns {} for guests
+  const { data } = await api.post('/orders', body, {
+    headers: { ...currencyHeader(), ...bearerHeader() },
+  });
   return data;
 }
 

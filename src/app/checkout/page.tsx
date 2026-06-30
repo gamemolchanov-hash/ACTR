@@ -173,7 +173,7 @@ function saveToSession(key: string, value: unknown) {
 
 export default function CheckoutPage() {
   const { items, removeItem } = useCart();
-  const { customer, isLogged } = useAuth();
+  const { customer } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
@@ -216,9 +216,9 @@ export default function CheckoutPage() {
     setHydrated(true);
   }, []);
 
-  // Load saved addresses and autofill from logged-in customer
+  // Load saved addresses and autofill from logged-in customer (D-05/D-06)
   useEffect(() => {
-    if (!hydrated || !isLogged || !customer) return;
+    if (!hydrated || !customer) return;
     setForm((prev) => ({
       ...prev,
       name: prev.name || customer.name || '',
@@ -226,9 +226,9 @@ export default function CheckoutPage() {
       phone: prev.phone || customer.phone || '',
     }));
     getMyAddresses()
-      .then((addrs) => {
-        setSavedAddresses(addrs);
-        const def = addrs.find((a) => a.is_default) || addrs[0];
+      .then(({ data: addrs }) => {
+        setSavedAddresses(addrs || []);
+        const def = (addrs || []).find((a) => a.is_default) || (addrs || [])[0];
         if (def && !form.city && !form.street) {
           setSelectedAddressId(def.id);
           setForm((prev) => ({
@@ -243,7 +243,7 @@ export default function CheckoutPage() {
         }
       })
       .catch(() => {});
-  }, [hydrated, isLogged, customer]);
+  }, [hydrated, customer]);
 
   // Persist form to sessionStorage (only after hydration)
   useEffect(() => {
@@ -600,7 +600,7 @@ export default function CheckoutPage() {
         </Box>
 
         {/* Saved address cards (logged in, has addresses) */}
-        {isLogged && savedAddresses.length > 0 && (
+        {!!customer && savedAddresses.length > 0 && (
           <Box>
             <Typography sx={{ color: c.main, ...textSm, mb: 1 }}>Delivery address</Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
@@ -982,7 +982,7 @@ export default function CheckoutPage() {
         Checkout
       </Typography>
 
-      {!isLogged && (
+      {!customer && (
         <Typography sx={{ ...textSm, color: c.main, mb: 4 }}>
           Already have an account?{' '}
           <MuiLink

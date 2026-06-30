@@ -45,7 +45,7 @@ function extractError(err: unknown): string {
 }
 
 export function ProductReviews({ productId }: Props) {
-  const { isLogged } = useAuth();
+  const { customer } = useAuth();
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -111,7 +111,7 @@ export function ProductReviews({ productId }: Props) {
 
       {/* Submit form / login prompt */}
       <Box sx={{ mb: 4 }}>
-        {isLogged ? (
+        {!!customer ? (
           <Box sx={{ maxWidth: 560 }}>
             {thanks ? (
               <Alert severity="success" onClose={() => setThanks(null)}>
