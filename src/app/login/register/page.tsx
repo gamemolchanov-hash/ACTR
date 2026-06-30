@@ -6,6 +6,8 @@ import {
   Typography,
   InputBase,
   Button,
+  Checkbox,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -16,7 +18,8 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
-import { register } from '@/lib/auth';
+import { register, login as doLogin, TERMS_VERSION } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -77,6 +80,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const { setAuth } = useAuth();
 
   // anti-bot: honeypot
   const [website, setWebsite] = useState('');
@@ -141,18 +146,36 @@ export default function RegisterPage() {
       return;
     }
 
+    // terms gate (AUTH-01 / D-07)
+    if (!agreed) {
+      setSnack({
+        open: true,
+        message: 'Please accept the Terms & Privacy Policy to register.',
+        severity: 'error',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await register({
+      const emailNorm = email.trim().toLowerCase();
+      await register({
         name: name.trim(),
-        email: email.trim().toLowerCase(),
+        email: emailNorm,
         phone: phone || undefined,
         password,
+        terms_accepted: true,
+        terms_version: TERMS_VERSION,
       });
-      setSnack({ open: true, message: res.message, severity: 'success' });
-      setTimeout(() => router.push('/login'), 1500);
+      // Auto-login after register (FBG pattern)
+      const loginRes = await doLogin(emailNorm, password);
+      setAuth(loginRes.token, loginRes.customer, loginRes.loyalty);
+      router.push('/');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Ошибка регистрации. Попробуйте ещё раз.';
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        'Registration failed. Please try again.';
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setLoading(false);
@@ -160,7 +183,7 @@ export default function RegisterPage() {
   };
   const router = useRouter();
 
-  const isValid = name && email && phone && password && confirmPassword && captchaInput;
+  const isValid = name && email && phone && password && confirmPassword && captchaInput && agreed;
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
@@ -372,6 +395,39 @@ export default function RegisterPage() {
                 </IconButton>
               </Box>
             </FieldBlock>
+
+            {/* Terms & Privacy checkbox (AUTH-01 / D-07) */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  sx={{
+                    color: palette.primaryLight,
+                    '&.Mui-checked': { color: palette.primary },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  sx={{
+                    fontFamily: fontMain,
+                    fontSize: { xs: 13, md: 15 },
+                    color: palette.primary,
+                  }}
+                >
+                  I agree to the{' '}
+                  <Link href="/terms" style={{ color: palette.primary }}>
+                    Terms of Service
+                  </Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" style={{ color: palette.primary }}>
+                    Privacy Policy
+                  </Link>
+                </Typography>
+              }
+              sx={{ mb: 1, alignItems: 'flex-start' }}
+            />
 
             {/* Submit */}
             <Button

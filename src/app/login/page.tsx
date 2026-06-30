@@ -17,7 +17,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { palette } from '@/lib/theme';
-import { login as doLogin, type NeedsResetResponse } from '@/lib/auth';
+import { login as doLogin, type LoginResult } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
@@ -70,7 +70,7 @@ export default function LoginPage() {
     severity: 'info',
   });
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { setAuth } = useAuth();
 
   const handleLoginChange = (value: string) => {
     if (isPhone(value) && !login.includes('@')) {
@@ -86,22 +86,22 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await doLogin({ login, password });
+      const res: LoginResult = await doLogin(login, password);
 
-      if ('needsReset' in res && res.needsReset) {
-        const nr = res as NeedsResetResponse;
-        setSnack({ open: true, message: nr.message, severity: 'info' });
-        setTimeout(
-          () => router.push(`/login/forgot-password?email=${encodeURIComponent(nr.email)}`),
-          1500,
-        );
+      if (res.needsReset) {
+        setSnack({
+          open: true,
+          message: res.message || 'Please reset your password to continue.',
+          severity: 'info',
+        });
+        setTimeout(() => router.push('/login/forgot-password'), 1500);
         return;
       }
 
-      await refresh();
+      setAuth(res.token, res.customer, res.loyalty);
       router.push('/');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Ошибка авторизации. Попробуйте ещё раз.';
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Login failed. Please try again.';
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setLoading(false);
