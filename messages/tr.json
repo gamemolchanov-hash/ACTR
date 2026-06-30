@@ -399,5 +399,12 @@
   "legal.kullanim_kosullari.s2Title": "Hizmetin Kullanımı",
   "legal.kullanim_kosullari.s2Body": "[Placeholder]",
   "price.kdvDahil": "KDV Dahil",
-  "price.kdvLine": "KDV (%20):"
+  "price.kdvLine": "KDV (%20):",
+  "checkout.consent.kvkkPrefix": "Kişisel verilerimin işlenmesine ilişkin",
+  "checkout.consent.kvkkLink": "KVKK Aydınlatma Metni",
+  "checkout.consent.kvkkSuffix": "ni okudum ve kabul ediyorum.",
+  "checkout.consent.mesafeliPrefix": "Tarafıma sunulan",
+  "checkout.consent.mesafeliLink": "Mesafeli Satış Sözleşmesi ve Ön Bilgilendirme Formu",
+  "checkout.consent.mesafeliSuffix": "nu okudum ve kabul ediyorum (14 günlük cayma hakkım saklıdır).",
+  "checkout.consent.required": "Siparişinizi verebilmek için lütfen her iki onay kutusunu da işaretleyin."
 }

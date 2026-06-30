@@ -399,5 +399,12 @@
   "legal.kullanim_kosullari.s2Title": "Use of Service",
   "legal.kullanim_kosullari.s2Body": "[Placeholder]",
   "price.kdvDahil": "KDV Dahil",
-  "price.kdvLine": "KDV (%20):"
+  "price.kdvLine": "KDV (%20):",
+  "checkout.consent.kvkkPrefix": "I have read and agree to the",
+  "checkout.consent.kvkkLink": "KVKK Clarification Text",
+  "checkout.consent.kvkkSuffix": "regarding processing of my personal data.",
+  "checkout.consent.mesafeliPrefix": "I have read and accept the",
+  "checkout.consent.mesafeliLink": "Distance Sales Agreement and Pre-Information Form",
+  "checkout.consent.mesafeliSuffix": "(14-day right of return applies).",
+  "checkout.consent.required": "Please accept both consent checkboxes to place your order."
 }
