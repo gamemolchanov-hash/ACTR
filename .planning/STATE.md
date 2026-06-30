@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: "Phase 3 ВЫПОЛНЕНА (3/3 плана), plan-checker ✅, build/tsc ✅, code-review ✅ (CR-01/WR-03/WR-06 пофикшены), verifier: human_needed — 4/4 must-haves статически ✅, осталось 5 браузерных UAT-проверок (см. 03-UAT.md). Нужен demo-BFF :4000 + npm run dev."
-last_updated: "2026-06-30T07:11:35.000Z"
-last_activity: 2026-06-30 -- Phase 03 executed + verified (human_needed, 5 UAT pending)
+status: phase_complete
+stopped_at: "Phase 3 ЗАВЕРШЕНА и принята. UAT 4/5 live PASS (register+terms+auto-login, login, reset-shim, GDPR export); Test 5 GDPR-delete — ACTR-сторона PASS, финальная анонимизация падает на demo-tenant schema (arm_customers.name NOT NULL), это не код ACTR. Следующее: Phase 4 (i18n EN/TR)."
+last_updated: "2026-06-30T08:22:17.000Z"
+last_activity: 2026-06-30 -- Phase 03 COMPLETE (UAT 4/5 pass, accepted)
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
   completed_plans: 6
-  percent: 38
+  percent: 43
 ---
 
 # Project State
@@ -21,26 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 03 — account
+**Current focus:** Phase 4 — i18n EN/TR (следующая)
 
 ## Current Position
 
-Phase: 03 (account) — EXECUTED, awaiting human UAT
-Plan: 3 of 3 complete
-Status: verifier human_needed — 4/4 must-haves статически ✅, 5 браузерных UAT-проверок осталось (03-UAT.md)
-Last activity: 2026-06-30 -- Phase 03 executed + verified (human_needed)
+Phase: 03 (account) — ✅ COMPLETE (принята 2026-06-30)
+Plan: 3 of 3 complete · UAT 4/5 live PASS (5-й — demo-tenant blocker, не ACTR)
+Status: готово к Phase 4 (i18n EN/TR)
+Last activity: 2026-06-30 -- Phase 03 COMPLETE
 
-Progress: [████░░░░░░] 38%
+Progress: [████░░░░░░] 43%
 
 ### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
-2. Поднять окружение: demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
-3. **Прогнать UAT:** `/gsd-verify-work 3` — 5 браузерных проверок из `.planning/phases/03-account/03-UAT.md`:
-   register(terms→arm_token) · login · reset-password shim · GDPR export · GDPR delete.
-4. Когда все 5 PASS — `/gsd-progress` повторно прогонит verifier → status `passed` → Phase 3 Complete → Phase 4 (i18n).
-5. Артефакты фазы: `.planning/phases/03-account/` (VERIFICATION/REVIEW/UAT + 3 SUMMARY). Эталон — FBG (`~/work/puz/FBG`).
-6. Отложено (см. Pending Todos): code-review WR-01/02/05 (i18n → Phase 4), WR-04 (auth edge), 3 pre-existing server-api теста.
+2. **Запланировать след. фазу:** `/gsd-plan-phase 4` (i18n EN/TR — вынос строк, переключатель, локализация контента, SEO). Учесть отложенные i18n-находки code-review (WR-01/02/05).
+3. Для live-проверок нужно окружение: demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
+4. Артефакты Phase 3: `.planning/phases/03-account/` (VERIFICATION passed / REVIEW / UAT + 3 SUMMARY). Эталон — FBG (`~/work/puz/FBG`).
+5. ⚠️ До go-live в реальном TR-тенанте: сделать `arm_customers.name` nullable (иначе GDPR/KVKK-удаление падает) — см. Pending Todos.
 
 ## Performance Metrics
 
@@ -77,8 +75,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 - **[human-verify] Live Stripe payment E2E** — code path complete & verified; live test needs demo storefront `payment_config` (ui_mode=embedded) with Stripe test keys in Portal, then `make up` + `npm run dev`, pay with `4242 4242 4242 4242`, expect redirect to `/checkout/success?order=<uuid>`. Documented in 02-02 SUMMARY + VERIFICATION.md.
 - **[Phase 4 i18n] Code-review WR-01/WR-02/WR-05** — systemic RU→TR localization leftovers from 03-REVIEW.md: `Header.tsx` search suggestions use `₽`+`ru-RU`; `ProductReviews.tsx` uses `ru-RU` dates + Russian-only pluralization; currency fallback is `USD` everywhere except order-detail (`TRY`). Defer to Phase 4 (i18n) — standardize to TRY + EN/TR. (CR-01 phone +7 / WR-06 / WR-03 track_url already fixed in Phase 3.)
-- **[Phase 3 follow-up] Code-review WR-04** — transient 5xx/network during initial `getMe()`: token preserved (FBG-50) but `customer` stays null → account pages redirect to `/login` with no retry. Consider a retry/error state instead of bounce. See 03-REVIEW.md.
+- **[Phase 3 follow-up] Code-review WR-04** — transient 5xx/network during initial `getMe()`: token preserved (FBG-50) but `customer` stays null → account pages redirect to `/login` with no retry. **Corroborated live in UAT** (fresh nav to /account/settings bounced to / once during the auth-loading window, then held on retry). Consider a retry/error/loading-guard instead of bounce. See 03-REVIEW.md / 03-UAT.md.
 - **[backlog/test] Pre-existing `server-api.test.ts` failures (3)** — `armToProduct` reads `p.name` of undefined; failing since before Phase 3 (commit a2ba277), Phase 1/2 catalog mock-vs-adapter mismatch. NOT a Phase 3 regression. Fix fixtures or add adapter null-guard in a catalog follow-up.
+- **[⚠ provisioning/compliance — pre-go-live] Demo/real tenant: `arm_customers.name` must be nullable** — GDPR/KVKK account-deletion anonymization nulls `name`; in the demo tenant Directus has `name` NOT NULL, so `POST /auth/me/delete-account` 500s ("Validation failed for field name. Value can't be null", storefront-auth.ts:1286). ACTR/BFF code is correct; the tenant schema must allow it. Make `arm_customers.name` nullable in any TR tenant before go-live, else KVKK-delete breaks. Surfaced in Phase 3 UAT. (Requires Directus admin/migration — autoCRM infra.)
+- **[demo-env, fixed — re-apply if reset] BFF storefront JWT secret** — `autocrm-bff` had `ARM_STOREFRONT_JWT_SECRET`/`STOREFRONT_JWT_SECRET` empty → storefront login 500. Fixed by adding `ARM_STOREFRONT_JWT_SECRET=<hex32>` to `~/work/autoCRM/.env` + `docker compose ... up -d --force-recreate --no-deps bff`. Re-apply if that local env is reset.
 
 ### Blockers/Concerns
 

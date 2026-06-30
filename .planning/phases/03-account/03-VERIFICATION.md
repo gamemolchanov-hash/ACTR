@@ -1,8 +1,9 @@
 ---
 phase: 03-account
 verified: 2026-06-30T11:00:00Z
-status: human_needed
+status: passed
 score: 4/4 must-haves verified
+human_uat: "Completed 2026-06-30 (03-UAT.md): 4/5 live checks PASS (register+terms+auto-login, login, reset-shim, GDPR export). Test 5 (GDPR delete) — ACTR side passes (password gate, wrong-password error, correct request); final server-side anonymization blocked by a demo-tenant Directus schema (arm_customers.name NOT NULL), not ACTR code. Two demo-env gaps surfaced: BFF empty JWT secret (FIXED) and demo-tenant name NOT NULL (tracked as provisioning/compliance todo). Owner accepted closure 2026-06-30."
 overrides_applied: 0
 human_verification:
   - test: "Register with unchecked terms → login → arm_token in localStorage"
