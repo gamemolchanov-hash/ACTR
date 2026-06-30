@@ -5,6 +5,7 @@ import { Box, Typography, InputBase, Button, Snackbar, Alert } from '@mui/materi
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -20,6 +21,7 @@ const inputSx = {
 };
 
 export default function ContactsPage() {
+  const t = useTranslations('contacts');
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -53,9 +55,9 @@ export default function ContactsPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
-          {' / Контакты'}
+          {t('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -67,7 +69,7 @@ export default function ContactsPage() {
             letterSpacing: { xs: 2, md: 0 },
           }}
         >
-          КОНТАКТЫ
+          {t('title')}
         </Typography>
       </Box>
 
@@ -131,7 +133,7 @@ export default function ContactsPage() {
           <Box
             component="img"
             src="/images/contacts/contact-hero.png"
-            alt="Контакты"
+            alt={t('heroImgAlt')}
             sx={{
               display: { xs: 'none', md: 'block' },
               width: 444,
@@ -165,7 +167,7 @@ export default function ContactsPage() {
                 mb: 1,
               }}
             >
-              НАПИШИТЕ НАМ
+              {t('formTitle')}
             </Typography>
 
             <Typography
@@ -178,7 +180,7 @@ export default function ContactsPage() {
                 mb: { xs: 2, md: 3.5 },
               }}
             >
-              Наш менеджер свяжется с вами в течении 24 часов
+              {t('formSubtitle')}
             </Typography>
 
             {/* Message field */}
@@ -193,7 +195,7 @@ export default function ContactsPage() {
                   mb: 0.75,
                 }}
               >
-                Сообщение{' '}
+                {t('fieldMessage')}{' '}
                 <Box component="span" sx={{ color: palette.cartBadge }}>
                   *
                 </Box>
@@ -260,7 +262,7 @@ export default function ContactsPage() {
                   '&:hover': { bgcolor: '#2a3d85' },
                 }}
               >
-                {sending ? 'Отправка...' : 'Отправить'}
+                {sending ? t('sending') : t('submit')}
               </Button>
             </Box>
           </Box>
@@ -304,15 +306,15 @@ export default function ContactsPage() {
               color: palette.primary,
             }}
           >
-            Юридический адрес: 108801, г. Москва, пос. Сосенское,
+            {t('legalLine1')}
             <br />
-            п. Коммунарка, ул. Александры Монаховой, д. 88, c. 2, кв 366
+            {t('legalLine2')}
             <br />
-            Расчётный счёт: 40802810638000019658
+            {t('legalLine3')}
             <br />
-            Наименование банка: ПАО Сбербанк
+            {t('legalLine4')}
             <br />
-            Корреспондентский счет: 30101810400000000225
+            {t('legalLine5')}
           </Typography>
         </Box>
       </Box>
@@ -323,9 +325,7 @@ export default function ContactsPage() {
         onClose={() => setSnack({ ...snack, open: false })}
       >
         <Alert severity={snack.ok ? 'success' : 'error'} variant="filled">
-          {snack.ok
-            ? 'Сообщение отправлено! Мы свяжемся с вами.'
-            : 'Ошибка отправки. Попробуйте позже.'}
+          {snack.ok ? t('successMsg') : t('errorMsg')}
         </Alert>
       </Snackbar>
     </Box>

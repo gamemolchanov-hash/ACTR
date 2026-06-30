@@ -5,34 +5,11 @@ import { Box, Typography, InputBase, Button, Snackbar, Alert } from '@mui/materi
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 /* ── colour aliases not in the shared palette ── */
 const gradientStart = '#184481';
 const secondaryText = '#adb7d9';
-
-/* ── discount tiers data ── */
-const DISCOUNTS = [
-  { pct: '-10%', condition: 'от 15 000 руб', prefix: 'При заказе ' },
-  {
-    pct: '-15%',
-    condition: 'от 30 000 руб',
-    prefix: 'При заказе ',
-    note: 'Скидка закрепляется и действует на все заказы вне зависимости от суммы',
-  },
-  {
-    pct: '-20%',
-    condition: 'от 70 000 руб',
-    prefix: 'При заказе ',
-    note: 'Скидка закрепляется и действует на все заказы вне зависимости от суммы',
-  },
-];
-
-/* ── certificates ── */
-const CERTS = [
-  'Декларация EAC - Российская Федерация и страны Таможенного Союза',
-  'EU Cosmetics Notification (CPNP) - Европейский союз',
-  'Voluntary Cosmetic Registration Program FDA - Соединённые Штаты Америки',
-];
 
 /* ── shared input sx ── */
 const inputSx = {
@@ -48,6 +25,28 @@ const inputSx = {
 };
 
 export default function StudiosPage() {
+  const t = useTranslations('studios');
+
+  /* ── discount tiers data ── */
+  const DISCOUNTS = [
+    { pct: '-10%', prefix: t('discountPrefix'), condition: t('discount1Cond') },
+    {
+      pct: '-15%',
+      prefix: t('discountPrefix'),
+      condition: t('discount2Cond'),
+      note: t('discountFixedNote'),
+    },
+    {
+      pct: '-20%',
+      prefix: t('discountPrefix'),
+      condition: t('discount3Cond'),
+      note: t('discountFixedNote'),
+    },
+  ];
+
+  /* ── certificates ── */
+  const CERTS = [t('cert0'), t('cert1'), t('cert2')];
+
   const [email, setEmail] = useState('');
   const [socials, setSocials] = useState('');
   const [comment, setComment] = useState('');
@@ -86,9 +85,9 @@ export default function StudiosPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
-          {' / Nail-студиям'}
+          {t('breadcrumbSep')}
         </Typography>
 
         {/* heading */}
@@ -101,9 +100,7 @@ export default function StudiosPage() {
             maxWidth: { xs: 280, md: 697 },
           }}
         >
-          ЕСЛИ ВЫ – NAIL-СТУДИЯ,
-          <br />
-          ТО У НАС К ВАМ СУПЕРПРЕДЛОЖЕНИЕ!
+          {t('heading')}
         </Typography>
       </Box>
 
@@ -143,8 +140,7 @@ export default function StudiosPage() {
                 p: 2.5,
               }}
             >
-              КОМПАНИЯ АМЕРИКАН КРИЭЙТОР МЕЧТАЕТ ПРИСОЕДИНИТЬСЯ К ВАШЕЙ КОМАНДЕ, А ИМЕННО В ЧАСТИ
-              МАТЕРИАЛОВ КОТОРЫМИ ВЫ СОЗДАЕТЕ КРАСОТУ И РАДУЕТЕ СВОИХ КЛИЕНТОВ.
+              {t('heroTitle')}
             </Typography>
 
             <Box
@@ -224,8 +220,7 @@ export default function StudiosPage() {
                   pr: { sm: '140px', md: '270px', lg: '270px' },
                 }}
               >
-                КОМПАНИЯ АМЕРИКАН КРИЭЙТОР МЕЧТАЕТ ПРИСОЕДИНИТЬСЯ К ВАШЕЙ КОМАНДЕ, А ИМЕННО В ЧАСТИ
-                МАТЕРИАЛОВ КОТОРЫМИ ВЫ СОЗДАЕТЕ КРАСОТУ И РАДУЕТЕ СВОИХ КЛИЕНТОВ.
+                {t('heroTitle')}
               </Typography>
 
               <Typography
@@ -239,9 +234,7 @@ export default function StudiosPage() {
                   pr: { xs: 0, sm: '150px', md: '215px', lg: '270px' },
                 }}
               >
-                Мы умеем работать быстро, пользуемся услугами зарекомендовавших себя курьерских и
-                транспортных компаний, тщательно следим за&nbsp;&nbsp;наличием всех наименований на
-                складе.
+                {t('heroDesc')}
               </Typography>
             </Box>
 
@@ -264,7 +257,7 @@ export default function StudiosPage() {
                     mb: { xs: 5, sm: 0 },
                   }}
                 >
-                  Гарантируем качество материалов нашего бренда
+                  {t('guarantee')}
                 </Typography>
               </Box>
             </Box>
@@ -297,7 +290,7 @@ export default function StudiosPage() {
             mb: 3,
           }}
         >
-          ИМЕЕМ СЕРТИФИКАТЫ И ДЕКЛАРАЦИИ СООТВЕТСТВИЯ ВСЕХ ВЕДУЩИХ МИРОВЫХ СТРАН:
+          {t('certsTitle')}
         </Typography>
 
         <Box
@@ -373,9 +366,7 @@ export default function StudiosPage() {
                 maxWidth: { xs: 247, md: 514 },
               }}
             >
-              ПРЕДОСТАВЛЯЕМ ПЕРСОНАЛЬНУЮ
-              <br />
-              СИСТЕМУ ЛОЯЛЬНОСТИ
+              {t('loyaltyTitle')}
             </Typography>
 
             {/* decorative gel image (desktop) */}
@@ -546,9 +537,9 @@ export default function StudiosPage() {
                         color: 'white',
                       }}
                     >
-                      При заказе{' '}
+                      {t('discount4Prefix')}{' '}
                       <Box component="span" sx={{ fontWeight: 700 }}>
-                        от 50 Color Gel
+                        {t('discount4Cond')}
                       </Box>
                     </Typography>
                     <Typography
@@ -562,7 +553,7 @@ export default function StudiosPage() {
                         maxWidth: 250,
                       }}
                     >
-                      Скидка будет действовать на всю продукцию в этом заказе
+                      {t('discount4Note')}
                     </Typography>
                   </Box>
                 </Box>
@@ -581,8 +572,7 @@ export default function StudiosPage() {
                     maxWidth: { xs: 224, md: 432 },
                   }}
                 >
-                  А так же выдается постоянный сертификат VIP партнера со скидкой 20% на всю
-                  продукцию и 30% на цветные гели - Color Gel и Disguise Collection
+                  {t('vipText')}
                 </Typography>
               </Box>
             </Box>
@@ -632,9 +622,7 @@ export default function StudiosPage() {
               fontWeight: 500,
             }}
           >
-            ЗАПОЛНИТЕ АНКЕТУ
-            <br />
-            ДЛЯ СОТРУДНИЧЕСТВА
+            {t('formTitle')}
           </Typography>
 
           <Typography
@@ -647,7 +635,7 @@ export default function StudiosPage() {
               mt: 3,
             }}
           >
-            Ответим Вам в течении рабочего дня
+            {t('formSubtitle')}
           </Typography>
 
           {/* Email */}
@@ -664,7 +652,7 @@ export default function StudiosPage() {
           {/* Social links */}
           <Box sx={{ mt: 2.5 }}>
             <Typography sx={{ fontSize: { xs: 16, md: 18 }, color: palette.primary, mb: 1 }}>
-              Ссылки на соц. сети{' '}
+              {t('fieldSocials')}{' '}
               <Box component="span" sx={{ color: palette.cartBadge }}>
                 *
               </Box>
@@ -675,7 +663,7 @@ export default function StudiosPage() {
           {/* Comments */}
           <Box sx={{ mt: 2.5 }}>
             <Typography sx={{ fontSize: { xs: 16, md: 18 }, color: palette.primary, mb: 1 }}>
-              Дополнительные комментарии
+              {t('fieldComment')}
             </Typography>
             <InputBase
               multiline
@@ -712,7 +700,7 @@ export default function StudiosPage() {
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >
-            {sending ? 'Отправка...' : 'Отправить'}
+            {sending ? t('sending') : t('submit')}
           </Button>
         </Box>
 
@@ -738,9 +726,7 @@ export default function StudiosPage() {
         onClose={() => setSnack({ ...snack, open: false })}
       >
         <Alert severity={snack.ok ? 'success' : 'error'} variant="filled">
-          {snack.ok
-            ? 'Заявка отправлена! Мы свяжемся с вами.'
-            : 'Ошибка отправки. Попробуйте позже.'}
+          {snack.ok ? t('successMsg') : t('errorMsg')}
         </Alert>
       </Snackbar>
     </Box>

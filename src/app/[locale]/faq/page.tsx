@@ -5,27 +5,18 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-
-const FAQ_ITEMS = [
-  {
-    q: 'Как осуществляется доставка в регионы?',
-    a: 'Товары нашего магазина доставляют покупателям транспортные компании.',
-  },
-  {
-    q: 'Возможен ли самовывоз заказанного товара?',
-    a: 'Для Вашего удобства мы используем только службы доставки! Самовывоз невозможен - только доставка! Благодарим за понимание!',
-  },
-  {
-    q: 'Как рассчитать стоимость доставки в определённый город?',
-    a: 'Для точного расчета стоимости доставки вашего заказа обращайтесь к операторам call-центра или задайте вопрос через онлайн-консультанта.',
-  },
-  {
-    q: 'Подскажите какой режим работы телефонного консультанта?',
-    a: 'Наши операторы работают с 9:00 до 18:00 по будням.',
-  },
-];
+import { useTranslations } from 'next-intl';
 
 export default function FaqPage() {
+  const t = useTranslations('faq');
+
+  const FAQ_ITEMS = [
+    { q: t('q0'), a: t('a0') },
+    { q: t('q1'), a: t('a1') },
+    { q: t('q2'), a: t('a2') },
+    { q: t('q3'), a: t('a3') },
+  ];
+
   return (
     <Box sx={{ overflow: 'hidden' }}>
       {/* ── Breadcrumb + Title ── */}
@@ -39,9 +30,9 @@ export default function FaqPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
-          {' / Вопрос-ответ'}
+          {t('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -52,7 +43,7 @@ export default function FaqPage() {
             fontWeight: 450,
           }}
         >
-          ВОПРОС-ОТВЕТ
+          {t('title')}
         </Typography>
       </Box>
 

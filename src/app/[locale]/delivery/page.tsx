@@ -3,14 +3,17 @@
 import { Box, Typography } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-
-const CDEK_OPTIONS = [
-  { name: 'СДЭК (Доставка курьером)', time: 'От 2х дней' },
-  { name: 'СДЭК (Постамат)', time: 'От 2х дней' },
-  { name: 'СДЭК (Пункт выдачи заказов (ПВЗ))', time: 'От 2х дней' },
-];
+import { useTranslations } from 'next-intl';
 
 export default function DeliveryPage() {
+  const t = useTranslations('delivery');
+
+  const CDEK_OPTIONS = [
+    { name: t('cdek0Name'), time: t('cdek0Time') },
+    { name: t('cdek1Name'), time: t('cdek1Time') },
+    { name: t('cdek2Name'), time: t('cdek2Time') },
+  ];
+
   return (
     <Box sx={{ overflow: 'hidden' }}>
       {/* ── Breadcrumb + Title ── */}
@@ -24,9 +27,9 @@ export default function DeliveryPage() {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Главная
+            {t('breadcrumbHome')}
           </Link>
-          {' / Условия доставки'}
+          {t('breadcrumbSep')}
         </Typography>
 
         <Typography
@@ -37,7 +40,7 @@ export default function DeliveryPage() {
             fontWeight: 450,
           }}
         >
-          УСЛОВИЯ ДОСТАВКИ И ОПЛАТЫ
+          {t('title')}
         </Typography>
       </Box>
 
@@ -80,7 +83,7 @@ export default function DeliveryPage() {
               pt: { xs: 3, md: 5 },
             }}
           >
-            Доставка
+            {t('sectionTitle')}
           </Typography>
 
           {/* Delivery description */}
@@ -96,12 +99,10 @@ export default function DeliveryPage() {
               mr: { md: '420px' },
             }}
           >
-            Доставка заказов СДЭК рассчитывается индивидуально по каждому заказу согласно тарифам
-            СДЭК. Наш интернет-магазин предлагает несколько вариантов доставки курьерской службой
-            СДЭК:
+            {t('desc')}
           </Typography>
 
-          {/* CDEK options */}
+          {/* Delivery options */}
           <Box
             sx={{
               display: 'flex',
@@ -148,7 +149,7 @@ export default function DeliveryPage() {
             ))}
           </Box>
 
-          {/* Moscow delivery note */}
+          {/* City delivery note */}
           <Typography
             sx={{
               fontFamily: '"Futura PT", Helvetica',
@@ -161,7 +162,7 @@ export default function DeliveryPage() {
               mt: 5,
             }}
           >
-            Доставка курьерской службой по Москве на следующий день.
+            {t('cityNote1')}
           </Typography>
           <Typography
             sx={{
@@ -175,12 +176,11 @@ export default function DeliveryPage() {
               mt: 2,
             }}
           >
-            Заказ будет доставлен Вам на следующий день, если Вы произвели оплату до 17.00 текущего
-            дня.
+            {t('cityNote2Line1')}
             <br />
-            Прием заказов: пн-пт.
+            {t('cityNote2Line2')}
             <br />
-            Отгрузка заказов происходит ежедневно.
+            {t('cityNote2Line3')}
           </Typography>
 
           {/* Free delivery banner */}
@@ -204,7 +204,7 @@ export default function DeliveryPage() {
                 textTransform: 'uppercase',
               }}
             >
-              Доставка бесплатная
+              {t('freeBanner')}
             </Typography>
           </Box>
         </Box>
@@ -242,7 +242,7 @@ export default function DeliveryPage() {
                   textTransform: 'uppercase',
                 }}
               >
-                Оплата
+                {t('paymentTitle')}
               </Typography>
               <Typography
                 sx={{
@@ -254,9 +254,7 @@ export default function DeliveryPage() {
                   mt: 2.5,
                 }}
               >
-                К оплате принимаются платежные карты: VISA Inc, MasterCard WorldWide, МИР. Для
-                оплаты товара банковской картой при оформлении заказа в интернет-магазине выберите
-                способ оплаты: банковской картой.
+                {t('paymentDesc')}
               </Typography>
             </Box>
 
@@ -264,7 +262,7 @@ export default function DeliveryPage() {
             <Box
               component="img"
               src="/images/delivery/payment-systems.png"
-              alt="Платёжные системы"
+              alt={t('paymentImgAlt')}
               sx={{ height: 25, width: 'auto', mt: { xs: 4, md: 5 }, alignSelf: 'flex-start' }}
             />
           </Box>
@@ -288,8 +286,7 @@ export default function DeliveryPage() {
                 textTransform: 'uppercase',
               }}
             >
-              При оплате заказа банковской картой, обработка платежа происходит на авторизационной
-              странице банка, где Вам необходимо ввести данные Вашей банковской карты:
+              {t('cardStepsTitle')}
             </Typography>
             <Box
               component="ol"
@@ -303,11 +300,11 @@ export default function DeliveryPage() {
                 pl: 2.5,
               }}
             >
-              <li>тип карты</li>
-              <li>номер карты,</li>
-              <li>срок действия карты</li>
-              <li>Имя держателя карты</li>
-              <li>CVC-код</li>
+              <li>{t('cardStep1')}</li>
+              <li>{t('cardStep2')}</li>
+              <li>{t('cardStep3')}</li>
+              <li>{t('cardStep4')}</li>
+              <li>{t('cardStep5')}</li>
             </Box>
           </Box>
         </Box>
