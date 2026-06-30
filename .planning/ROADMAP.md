@@ -88,7 +88,7 @@ Plans:
 Plans:
 
 - [x] 03-01-PLAN.md — Фундамент сессии: auth.ts(ARM)+FBG AuthContext, register(consent)/login/reset+шим — wave 1 (AUTH-01,02,03)
-- [ ] 03-02-PLAN.md — ЛК: дашборд + история заказов (TRY/fmtMoney) + адресная книга — wave 2, depends 03-01 (AUTH-04,05)
+- [x] 03-02-PLAN.md — ЛК: дашборд + история заказов (TRY/fmtMoney) + адресная книга — wave 2, depends 03-01 (AUTH-04,05)
 - [ ] 03-03-PLAN.md — Settings (профиль/смена пароля) + GDPR export/delete + checkout-linking (D-06) — wave 2, depends 03-01 (AUTH-06,07)
 - [ ] 03-03-PLAN.md — ЛК: профиль+смена пароля + GDPR export/delete + привязка чекаута (D-06) — wave 2, depends 03-01 (AUTH-06,07)
 
@@ -172,7 +172,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Каталог на ARM | 1/1 | Complete | 2026-06-29 |
 | 2. Корзина и чекаут | 2/2 | Complete   | 2026-06-29 |
-| 3. Авторизация и ЛК | 1/3 | In Progress|  |
+| 3. Авторизация и ЛК | 2/3 | In Progress|  |
 | 4. i18n EN/TR | 0/TBD | Not started | - |
 | 5. Комплаенс-UI | 0/TBD | Not started | - |
 | 6. Чистка + бренд TR | 0/TBD | Not started | - |

@@ -32,8 +32,8 @@
 - [x] **AUTH-01**: Регистрация с согласием (terms consent)
 - [x] **AUTH-02**: Логин и сессия (`arm_token`)
 - [x] **AUTH-03**: Сброс пароля по email
-- [ ] **AUTH-04**: Личный кабинет: история заказов
-- [ ] **AUTH-05**: Личный кабинет: адресная книга
+- [x] **AUTH-04**: Личный кабинет: история заказов
+- [x] **AUTH-05**: Личный кабинет: адресная книга
 - [ ] **AUTH-06**: Личный кабинет: профиль и смена пароля
 - [ ] **AUTH-07**: GDPR/KVKK: экспорт и удаление аккаунта
 
@@ -96,8 +96,8 @@
 | AUTH-01 | Phase 3 | Complete |
 | AUTH-02 | Phase 3 | Complete |
 | AUTH-03 | Phase 3 | Complete |
-| AUTH-04 | Phase 3 | Pending |
-| AUTH-05 | Phase 3 | Pending |
+| AUTH-04 | Phase 3 | Complete |
+| AUTH-05 | Phase 3 | Complete |
 | AUTH-06 | Phase 3 | Pending |
 | AUTH-07 | Phase 3 | Pending |
 | I18N-01 | Phase 4 | Pending |
