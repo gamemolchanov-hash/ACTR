@@ -51,8 +51,8 @@
 
 ### Cleanup & Brand
 
-- [ ] **CLEAN-01**: Удалена OMS-специфика (BOGO, отзывы, CDEK/PayKeeper, Bitrix-редиректы, RU-страницы)
-- [ ] **CLEAN-02**: Брендовые свопы под TR (телефон, соцсети, иконки оплаты)
+- [x] **CLEAN-01**: Удалена OMS-специфика (BOGO, отзывы, CDEK/PayKeeper, Bitrix-редиректы, RU-страницы)
+- [x] **CLEAN-02**: Брендовые свопы под TR (телефон, соцсети, иконки оплаты)
 
 ### Catalog Data
 
@@ -106,8 +106,8 @@
 | I18N-04 | Phase 4 | Complete |
 | COMP-01 | Phase 5 | Complete |
 | COMP-02 | Phase 5 | Complete |
-| CLEAN-01 | Phase 6 | Pending |
-| CLEAN-02 | Phase 6 | Pending |
+| CLEAN-01 | Phase 6 | Complete |
+| CLEAN-02 | Phase 6 | Complete |
 | DATA-01 | Phase 7 | Pending |
 
 **Coverage:**
