@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: oms-tr
 status: executing
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-07-01T11:44:20.052Z"
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-07-01T11:52:07.587Z"
 last_activity: 2026-07-01
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
   percent: 71
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 ## Current Position
 
 Phase: 06 (oms-tr) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-01 — Phase 06 execution started
 
@@ -77,6 +77,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 | Phase 04-i18n-en-tr P05 | 655 | 3 tasks | 11 files |
 | Phase 06-oms-tr P01 | 12min | 2 tasks | 8 files |
 | Phase 06 P02 | 7min | 3 tasks | 10 files |
+| Phase 06-oms-tr P03 | ~15min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - [Phase 06-01]: 06-01: BOGO auto-promo fully removed (module, 8 marker sites, assets, i18n keys); live promo-CODE feature (CART-06) verified untouched via grep-gate + tsc
 - [Phase 06]: 06-02: Reviews feature (D-09) fully removed — component, client calls, JSON-LD aggregateRating, 13 i18n keys; live promo-CODE (CART-06) verified untouched via grep (17 matches remain)
 - [Phase 06]: 06-02: robots.txt Sitemap directive de-RU'd (D-11) — relative /sitemap.xml replaces hardcoded american-creator.ru; seo.test.ts:240 assertion updated
+- [Phase ?]: 06-03: RU business pages (partners/studios routes+nav+sitemap+images) fully removed and next.config.js redirects pruned from 32 to 3 trailing-slash-hygiene entries; CLEAN-01/D-01/D-07 closed pending 06-04/06-05
 
 ### Pending Todos
 
@@ -127,6 +129,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-07-01T11:44:20.047Z
-Stopped at: Completed 06-02-PLAN.md
-Resume file: .planning/phases/06-oms-tr/06-03-PLAN.md
+Last session: 2026-07-01T11:52:07.581Z
+Stopped at: Completed 06-03-PLAN.md
+Resume file: .planning/phases/06-oms-tr/06-04-PLAN.md
