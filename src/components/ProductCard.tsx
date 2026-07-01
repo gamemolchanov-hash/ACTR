@@ -10,9 +10,6 @@ import { palette } from '@/lib/theme';
 import type { Product } from '@/lib/api';
 import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
-// BOGO HOOK START
-import { PromoBadge } from '@/features/promo-bogo';
-// BOGO HOOK END
 
 interface ProductCardProps {
   product: Product;
@@ -40,9 +37,6 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         '&:hover': { transform: 'translateY(-4px)' },
       }}
     >
-      {/* BOGO HOOK START */}
-      <PromoBadge product={product} />
-      {/* BOGO HOOK END */}
       <Link
         href={`/catalog/${product.category?.slug ?? 'all'}/${product.slug ?? product.id}`}
         style={{ textDecoration: 'none', color: 'inherit' }}

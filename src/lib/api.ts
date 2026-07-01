@@ -41,9 +41,6 @@ export interface Product {
   category: { id: string; name: string; slug: string } | null;
   images?: ProductImage[];
   date_created: string;
-  // BOGO HOOK START — populated by BFF when product is in an active auto_apply promo
-  active_promo?: { code: string; label: string; discount_type: string } | null;
-  // BOGO HOOK END
 }
 
 export interface Category {
