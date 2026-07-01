@@ -14,7 +14,8 @@ import { Footer } from '@/components/Footer';
 import { GeoLocaleInit } from '@/components/GeoLocaleInit';
 import { SITE_NAME, SITE_URL } from '@/lib/seo';
 import { routing } from '@/i18n/routing';
-import { getStorefrontCurrency } from '@/lib/storefront-config';
+import { getStorefrontConfig } from '@/lib/storefront-config';
+import { formatLocaleFromCountry } from '@/lib/format-locale';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -79,7 +80,12 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
-  const currency = await getStorefrontCurrency();
+  const {
+    currency,
+    country,
+    locale: configLocale,
+  } = await getStorefrontConfig();
+  const formatLocale = formatLocaleFromCountry(country, configLocale ?? undefined);
 
   return (
     <html lang={locale}>
@@ -90,7 +96,7 @@ export default async function LocaleLayout({
         <AppRouterCacheProvider>
           <ThemeProvider>
             <NextIntlClientProvider>
-              <CurrencyProvider initialCurrency={currency}>
+              <CurrencyProvider initialCurrency={currency} initialFormatLocale={formatLocale}>
                 <QueryProvider>
                   <AuthProvider>
                     <CartProvider>

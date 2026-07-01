@@ -30,7 +30,7 @@ import {
 import { palette } from '@/lib/theme';
 import { imgCart, imgCartSm } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
-import { useCurrency } from '@/providers/CurrencyProvider';
+import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = '"Futura PT", Helvetica';
@@ -56,6 +56,7 @@ const COL_RIGHT_TOTAL = COL_PRICE + 1 + COL_QTY + 1 + COL_TOTAL; // 555
 
 export default function BasketPage() {
   const currency = useCurrency();
+  const formatLocale = useFormatLocale();
   const { items, removeItem, updateQuantity } = useCart();
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
@@ -239,7 +240,7 @@ export default function BasketPage() {
                 <Typography sx={{ ...info, color: '#4caf50' }}>
                   {promoResult.discount_type === 'percent'
                     ? `−${promoResult.discount_value}%`
-                    : `−${fmtMoney(promoResult.discount_value || 0, currency)}`}
+                    : `−${fmtMoney(promoResult.discount_value || 0, currency, formatLocale)}`}
                 </Typography>
                 <IconButton size="small" onClick={handleRemovePromo} sx={{ ml: 0.5, p: 0.25 }}>
                   <CloseIcon sx={{ fontSize: 18, color: '#2e7d32' }} />
@@ -322,16 +323,16 @@ export default function BasketPage() {
             {promoDiscount > 0 && (
               <>
                 <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
-                  Subtotal: {fmtMoney(subtotal, currency)}
+                  Subtotal: {fmtMoney(subtotal, currency, formatLocale)}
                 </Typography>
                 <Typography sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
-                  Discount: −{fmtMoney(promoDiscount, currency)}
+                  Discount: −{fmtMoney(promoDiscount, currency, formatLocale)}
                 </Typography>
               </>
             )}
             <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>Total:</Typography>
             <Typography sx={{ ...h2, color: c.main, lineHeight: 1.2 }}>
-              {fmtMoney(finalTotal, currency)}
+              {fmtMoney(finalTotal, currency, formatLocale)}
             </Typography>
           </Box>
           <Button
@@ -462,7 +463,7 @@ export default function BasketPage() {
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'}
+                      {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'}
                     </Typography>
                   </Box>
                 ))}
@@ -590,7 +591,7 @@ export default function BasketPage() {
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency) : '—'}
+                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency, formatLocale) : '—'}
                     </Typography>
                   </Box>
                 ))}
@@ -648,7 +649,7 @@ export default function BasketPage() {
                     {item.name}
                   </Typography>
                   <Typography sx={{ fontSize: 14, color: c.main, mb: 1 }}>
-                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'}
+                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'}
                   </Typography>
                   <Box
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
@@ -696,7 +697,7 @@ export default function BasketPage() {
                       </IconButton>
                     </Box>
                     <Typography sx={{ fontSize: 15, fontWeight: 500, color: c.main }}>
-                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency) : '—'}
+                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency, formatLocale) : '—'}
                     </Typography>
                   </Box>
                 </Box>

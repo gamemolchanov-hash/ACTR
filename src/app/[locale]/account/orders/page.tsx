@@ -24,7 +24,8 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrders, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useFormatLocale } from '@/providers/CurrencyProvider';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -32,8 +33,7 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 export default function OrdersPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
-  const locale = useLocale();
-  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+  const formatLocale = useFormatLocale();
 
   const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -188,7 +188,7 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {new Intl.DateTimeFormat(bcp47, {
+                          {new Intl.DateTimeFormat(formatLocale, {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric',
@@ -250,7 +250,7 @@ export default function OrdersPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(Number(order.total), order.currency, bcp47)}
+                          {fmtMoney(Number(order.total), order.currency, formatLocale)}
                         </TableCell>
                       </TableRow>
                     );
