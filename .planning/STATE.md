@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 Phase: 07 (tr) — EXECUTING
 Plan: 1 of 1
 Status: Phase complete — ready for verification
-Last activity: 2026-07-01 — Phase 07 execution started
+Last activity: 2026-07-01 — Completed quick task 260701-unn: Fix Best Seller badge overlay in ProductCard
 
 ### ▶ Как продолжить (resume — gap closure)
 
@@ -139,6 +139,12 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 ### Blockers/Concerns
 
 - Деплой-трек содержит нерешённые внешние вопросы (Stripe-доступность в TR, реальный перевозчик, e-fatura) — не блокируют разработку, но обязательны до go-live. См. autoCRM `docs/modules/arm/ACTR/open-questions.md`.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260701-unn | Fix Best Seller badge overlay in ProductCard (no longer inflates card height) | 2026-07-01 | 201f832 | [260701-unn-fix-best-seller-badge-in-src-components-](./quick/260701-unn-fix-best-seller-badge-in-src-components-/) |
 
 ## Deferred Items
 
