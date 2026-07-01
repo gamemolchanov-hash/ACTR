@@ -30,6 +30,7 @@ import {
 import { palette } from '@/lib/theme';
 import { imgCart, imgCartSm } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = '"Futura PT", Helvetica';
@@ -47,8 +48,6 @@ const c = {
   '40': 'rgba(173, 183, 217, 1)', // #adb7d9
 };
 
-const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
-
 /* ---- Table column widths (from Figma absolute positions) ---- */
 const COL_PRICE = 181;
 const COL_QTY = 181;
@@ -56,6 +55,7 @@ const COL_TOTAL = 191;
 const COL_RIGHT_TOTAL = COL_PRICE + 1 + COL_QTY + 1 + COL_TOTAL; // 555
 
 export default function BasketPage() {
+  const currency = useCurrency();
   const { items, removeItem, updateQuantity } = useCart();
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);

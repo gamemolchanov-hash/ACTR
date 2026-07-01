@@ -27,6 +27,7 @@ import { palette } from '@/lib/theme';
 import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { fmtMoney } from '@/lib/money';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -41,9 +42,11 @@ interface ProductDetailProps {
 function RecentlyViewedCard({
   item,
   bcp47,
+  currency,
 }: {
   item: import('@/lib/useRecentlyViewed').RecentlyViewedProduct;
   bcp47: string;
+  currency: string;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
   const [imgFade, setImgFade] = useState(true);
@@ -174,7 +177,7 @@ function RecentlyViewedCard({
               pt: 0.5,
             }}
           >
-            {fmtMoney(item.price, 'TRY', bcp47)}
+            {fmtMoney(item.price, currency, bcp47)}
           </Typography>
         </Box>
       </Link>
@@ -186,6 +189,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   const t = useTranslations();
   const locale = useLocale();
   const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+  const currency = useCurrency();
 
   const { addItem } = useCart();
   const { items: recentlyViewed, addViewed } = useRecentlyViewed(productId);
@@ -732,7 +736,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <Typography variant="h1">{fmtMoney(product.price, 'TRY', bcp47)}</Typography>
+              <Typography variant="h1">{fmtMoney(product.price, currency, bcp47)}</Typography>
               <Typography variant="body1" sx={{ lineHeight: '20px' }}>
                 {t('product.perUnit')}
               </Typography>
@@ -974,7 +978,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             }}
           >
             {recentlyViewed.map((item) => (
-              <RecentlyViewedCard key={item.id} item={item} bcp47={bcp47} />
+              <RecentlyViewedCard key={item.id} item={item} bcp47={bcp47} currency={currency} />
             ))}
           </Box>
         </Box>

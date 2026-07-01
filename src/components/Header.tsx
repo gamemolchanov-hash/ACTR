@@ -29,6 +29,7 @@ import { palette } from '@/lib/theme';
 import { fetchProducts, type Product } from '@/lib/api';
 import { imgThumb } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 function productHref(p: Product) {
   return `/catalog/${p.category?.slug ?? 'all'}/${p.slug ?? p.id}`;
@@ -53,6 +54,7 @@ export function Header() {
 
   // BCP-47 locale for number formatting
   const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+  const currency = useCurrency();
 
   const NAV_ITEMS = [
     { label: t('nav.catalog'), href: '/catalog' },
@@ -270,7 +272,7 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 13, color: palette.primaryLight }}>
-                              {fmtMoney(p.price, 'TRY', bcp47)}
+                              {fmtMoney(p.price, currency, bcp47)}
                             </Typography>
                           </Box>
                         </Box>
@@ -601,7 +603,7 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 12, color: palette.primaryLight }}>
-                              {fmtMoney(p.price, 'TRY', bcp47)}
+                              {fmtMoney(p.price, currency, bcp47)}
                             </Typography>
                           </Box>
                         </Box>
