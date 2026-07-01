@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 7
-current_phase_name: Каталог-данные TR
-status: executing
+current_phase: 07
+current_phase_name: tr
+status: verifying
 stopped_at: Phase 7 context gathered
-last_updated: "2026-07-01T14:11:56.035Z"
+last_updated: "2026-07-01T15:40:54.504Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 06 complete, transitioned to Phase 7
+last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 20
-  completed_plans: 20
-  percent: 86
+  completed_phases: 7
+  total_plans: 21
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-29)
 
 **Core value:** Покупатель в Турции проходит весь путь покупки на дизайне american-creator.ru, работающем на ARM-инфраструктуре.
-**Current focus:** Phase 06 — oms-tr
+**Current focus:** Phase 07 — tr
 
 ## Current Position
 
-Phase: 7 — Каталог-данные TR
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-01 — Phase 06 complete, transitioned to Phase 7
+Phase: 07 (tr) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-07-01 — Phase 07 execution started
 
 ### ▶ Как продолжить (resume — gap closure)
 
@@ -92,6 +92,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 | Phase 06 P04 | ~10min | 2 tasks | 4 files |
 | Phase 06-oms-tr P05 | 5min | 2 tasks | 11 files |
 | Phase 06-oms-tr P06 | 2min | 2 tasks | 3 files |
+| Phase 07-tr P01 | 12min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - [Phase 06-04]: RU payment-systems.png image block + asset removed from /delivery; delivery.paymentImgAlt key dropped both locales; delivery.paymentDesc reworked to name Visa/Mastercard/Troy in prose (RU MIR dropped); EN/TR parity held at 283/283
 - [Phase 06-05]: TR phone/email/socials/payment-icon brand swap complete (D-03/D-04/D-05/D-10) — RU brand identity fully removed from Footer/Header/contacts — pay-troy.png/soc-instagram.png generated locally via PIL after ~/generate_image.py failed on an invalid Gemini API key (external auth issue, not a repo bug); 3 out-of-scope leftovers logged to deferred-items.md
 - [Phase ?]: 06-06: Gap closure - swapped contacts.legalLine1-5 RU seller-identity (Moscow/PAO Sberbank) to TR [Placeholder] disclosure in both locales (CLEAN-01 blocker); Footer.tsx copyright neutralized to dynamic-year 'American Creator' brand line, no RU domain (CLEAN-02 warning). EN/TR parity held 283/283; tsc clean; no new vitest regressions.
+- [Phase ?]: 07-01: X-Currency now emitted on every catalog code path (SSR bffGet() + client fetchProducts/fetchCategories via currencyHeader()); closed the D-06/D-07 gap where client catalog listing sent no currency at all. Stale OMS docstring fixed. Pre-existing 3 armToProduct/fixture-mismatch test failures left untouched (out of scope, tracked as backlog).
 
 ### Pending Todos
 
@@ -147,6 +149,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-07-01T14:11:56.030Z
+Last session: 2026-07-01T15:40:05.467Z
 Stopped at: Phase 7 context gathered
 Resume file: .planning/phases/07-tr/07-CONTEXT.md

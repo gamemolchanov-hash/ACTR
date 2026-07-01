@@ -56,7 +56,7 @@
 
 ### Catalog Data
 
-- [ ] **DATA-01**: TRY-витрина+дистрибьютор с товарами AC; TRY-каталог рендерится end-to-end
+- [x] **DATA-01**: TRY-витрина+дистрибьютор с товарами AC; TRY-каталог рендерится end-to-end
 
 ## v2 Requirements
 
@@ -108,7 +108,7 @@
 | COMP-02 | Phase 5 | Complete |
 | CLEAN-01 | Phase 6 | Complete |
 | CLEAN-02 | Phase 6 | Complete |
-| DATA-01 | Phase 7 | Pending |
+| DATA-01 | Phase 7 | Complete |
 
 **Coverage:**
 
