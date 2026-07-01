@@ -26,7 +26,8 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrder, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useFormatLocale } from '@/providers/CurrencyProvider';
 
 const fontMain = '"Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -34,8 +35,7 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 export default function OrderDetailPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
-  const locale = useLocale();
-  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+  const formatLocale = useFormatLocale();
 
   const { customer, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -148,9 +148,9 @@ export default function OrderDetailPage() {
                 }}
               />
               <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primaryLight }}>
-                {new Intl.DateTimeFormat(bcp47, {
+                {new Intl.DateTimeFormat(formatLocale, {
                   day: '2-digit',
-                  month: 'long',
+                  month: '2-digit',
                   year: 'numeric',
                 }).format(new Date(order.date_created))}
               </Typography>
@@ -260,7 +260,7 @@ export default function OrderDetailPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(price, currency, bcp47)}
+                          {fmtMoney(price, currency, formatLocale)}
                         </TableCell>
                         <TableCell
                           align="right"
@@ -271,7 +271,7 @@ export default function OrderDetailPage() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {fmtMoney(price * item.quantity, currency, bcp47)}
+                          {fmtMoney(price * item.quantity, currency, formatLocale)}
                         </TableCell>
                       </TableRow>
                     );
@@ -301,9 +301,9 @@ export default function OrderDetailPage() {
               >
                 {t('summary')}
               </Typography>
-              <TotalRow label={t('summaryItems')} value={fmtMoney(itemsSubtotal, currency, bcp47)} />
+              <TotalRow label={t('summaryItems')} value={fmtMoney(itemsSubtotal, currency, formatLocale)} />
               {vat != null && vat > 0 && (
-                <TotalRow label={t('summaryVat')} value={fmtMoney(vat, currency, bcp47)} />
+                <TotalRow label={t('summaryVat')} value={fmtMoney(vat, currency, formatLocale)} />
               )}
               <Divider sx={{ my: 1.5 }} />
               <Box
@@ -327,7 +327,7 @@ export default function OrderDetailPage() {
                     color: palette.primary,
                   }}
                 >
-                  {fmtMoney(Number(order.total), currency, bcp47)}
+                  {fmtMoney(Number(order.total), currency, formatLocale)}
                 </Typography>
               </Box>
             </Box>
