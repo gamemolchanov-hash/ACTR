@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 06
 current_phase_name: oms-tr
-status: gaps_found
+status: executing
 stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-07-01T12:44:31.055Z"
+last_updated: "2026-07-01T13:27:34.671Z"
 last_activity: 2026-07-01
-last_activity_desc: "Phase 06 verified: gaps_found"
+last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
   percent: 86
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 06 (oms-tr) — EXECUTED, verification gaps_found
-Plan: 5 of 5 executed (all SUMMARYs present, tsc clean, build passes)
-Status: gaps_found (20/22 must-haves) — 2 RU-residue gaps outside planned D-01..D-11 scope
-Last activity: 2026-07-01 — Phase 06 verified: gaps_found
+Phase: 06 (oms-tr) — EXECUTING
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-07-01 — Phase 06 execution started
 
 ### ▶ Как продолжить (resume — gap closure)
 
@@ -90,6 +90,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 | Phase 06-oms-tr P03 | ~15min | 3 tasks | 24 files |
 | Phase 06 P04 | ~10min | 2 tasks | 4 files |
 | Phase 06-oms-tr P05 | 5min | 2 tasks | 11 files |
+| Phase 06-oms-tr P06 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 - [Phase 06-04]: /delivery reworked for TR market — CDEK_OPTIONS array + render loop, city-delivery-note, free-delivery banner, and 11 delivery.cdek*/cityNote*/freeBanner i18n keys removed; delivery.title/desc reworked to neutral carrier-agnostic copy (no named carrier)
 - [Phase 06-04]: RU payment-systems.png image block + asset removed from /delivery; delivery.paymentImgAlt key dropped both locales; delivery.paymentDesc reworked to name Visa/Mastercard/Troy in prose (RU MIR dropped); EN/TR parity held at 283/283
 - [Phase 06-05]: TR phone/email/socials/payment-icon brand swap complete (D-03/D-04/D-05/D-10) — RU brand identity fully removed from Footer/Header/contacts — pay-troy.png/soc-instagram.png generated locally via PIL after ~/generate_image.py failed on an invalid Gemini API key (external auth issue, not a repo bug); 3 out-of-scope leftovers logged to deferred-items.md
+- [Phase ?]: 06-06: Gap closure - swapped contacts.legalLine1-5 RU seller-identity (Moscow/PAO Sberbank) to TR [Placeholder] disclosure in both locales (CLEAN-01 blocker); Footer.tsx copyright neutralized to dynamic-year 'American Creator' brand line, no RU domain (CLEAN-02 warning). EN/TR parity held 283/283; tsc clean; no new vitest regressions.
 
 ### Pending Todos
 
@@ -144,6 +146,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-07-01T12:44:31.051Z
+Last session: 2026-07-01T13:25:11.579Z
 Stopped at: Phase 6 UI-SPEC approved
 Resume file: .planning/phases/06-oms-tr/06-UI-SPEC.md
