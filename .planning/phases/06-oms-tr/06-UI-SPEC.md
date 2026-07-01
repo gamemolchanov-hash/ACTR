@@ -1,7 +1,7 @@
 ---
 phase: 6
 slug: oms-tr
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-01
@@ -79,9 +79,9 @@ content only inside the existing `Box`/`Typography` wrappers.
 
 | Role | Size | Weight | Line Height | Where used |
 |------|------|--------|-------------|------------|
-| Body (theme body1) | 18px | 400 | 23px | Global default `theme.typography.body1` |
-| Body small (theme body2) | 14px | 400 | 18px | Global default `theme.typography.body2` |
-| Caption | 13px | 400 (`Open Sans`) | 18px | Global default `theme.typography.caption` |
+| Body (theme body1) | 18px | 400 | 23px | Global default `theme.typography.body1` — reference only, NOT governed by this contract |
+| Body small (theme body2) | 14px | 400 | 18px | Global default `theme.typography.body2` — reference only, NOT governed by this contract |
+| Caption | 13px | 400 (`Open Sans`) | 18px | Global default `theme.typography.caption` — reference only, NOT governed by this contract |
 | **Legal fine-print (this phase's Gap 1 target)** | `{xs: 10, md: 14}` px | **300 (light)** | 14px | `contacts/page.tsx:287-295, 300-308` — the ONLY 300-weight text block in the touched surfaces; deliberately lighter/smaller than body2 to read as fine-print/legal disclosure |
 | **Footer copyright (this phase's Gap 2 target)** | 16px | 400 (unset → inherits `fontMain` default) | unset (browser default for 16px `Futura PT`) | `Footer.tsx:213-215` |
 | Heading h1 (page title) | `{xs: 24, md: 40}` px | 450 | `{xs: '30px', md: '50px'}` | `contacts/page.tsx:63-73` (unchanged, reference only) |
@@ -180,10 +180,11 @@ Replace the RU-domain text with a neutral brand line, format:
   domain); "American Creator" (brand name only, no URL) is the neutral, deploy-agnostic choice,
   consistent with how the Instagram social icon already links to the generic `instagram.com/` (no
   specific handle) rather than a fake handle.
-- **Year:** use `{new Date().getFullYear()}` (dynamic), not a hardcoded `2026` — this is a
-  one-line, zero-risk change that prevents this exact class of gap (a stale hardcoded value) from
-  recurring next year. If the executor prefers to keep the literal `2026` to minimize diff size,
-  that is an acceptable fallback, but dynamic year is the preferred default.
+- **Year:** use `{new Date().getFullYear()}` (dynamic) — **DETERMINED, not a coin-flip.** This is
+  the single governed choice: a one-line change that prevents this exact class of gap (a stale
+  hardcoded value) from recurring. Compute it inline in the JSX; it is SSR/hydration-safe (the year
+  is stable within any single render, so server and client render the same value). Do NOT ship a
+  hardcoded `2026`.
 - **i18n:** keep this as a static JSX string, NOT a new `t()` i18n key. "American Creator" is a
   proper noun (same on EN/TR) and the existing code already hardcodes a proper noun in the same
   file without translation (`alt="American Creator"` on the logo `<img>`, `Footer.tsx:101,169`) —
@@ -211,17 +212,19 @@ existing MUI `Typography` components already present in the codebase.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS — 5 legal-block lines (TR seller identity, `[Placeholder]`
+- [x] Dimension 1 Copywriting: PASS — 5 legal-block lines (TR seller identity, `[Placeholder]`
       convention, EN/TR label parity) + footer copyright line (`© {year} American Creator`, no
       domain) match this contract
-- [ ] Dimension 2 Visuals: PASS — no new visual elements introduced; existing `sx` blocks in both
+- [x] Dimension 2 Visuals: PASS — no new visual elements introduced; existing `sx` blocks in both
       files unchanged
-- [ ] Dimension 3 Color: PASS — `palette.primary` (legal block) and `palette.primaryLight`
+- [x] Dimension 3 Color: PASS — `palette.primary` (legal block) and `palette.primaryLight`
       (copyright line) unchanged from pre-existing values
-- [ ] Dimension 4 Typography: PASS — 300-weight `{xs:10,md:14}`/14px fine-print (legal block) and
+- [x] Dimension 4 Typography: PASS — 300-weight `{xs:10,md:14}`/14px fine-print (legal block) and
       16px default-weight (copyright) unchanged from pre-existing values
-- [ ] Dimension 5 Spacing: PASS — no spacing/layout changes; content-only swap inside existing
+- [x] Dimension 5 Spacing: PASS — no spacing/layout changes; content-only swap inside existing
       `Box`/`Typography` wrappers
-- [ ] Dimension 6 Registry Safety: PASS — not applicable, no registry/component library involved
+- [x] Dimension 6 Registry Safety: PASS — not applicable, no registry/component library involved
 
-**Approval:** pending
+**Approval:** approved — gsd-ui-checker, 2026-07-01 (6/6 dimensions PASS). The 2 non-blocking
+recommendations (Gap-2 copyright-year determinism; Typography table "reference only" labels) were
+resolved in-spec after approval.
