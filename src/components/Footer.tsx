@@ -13,9 +13,6 @@ const SOCIALS = [
 const PAYMENT_ICONS = [
   { cls: 'mastercard', w: 24, h: 16, bgPos: '-327px -200px' },
   { cls: 'visa', w: 32, h: 10, bgPos: '-40px -204px' },
-  { cls: 'yandex_money', w: 25, h: 18, bgPos: '-671px -199px' },
-  { cls: 'webmoney', w: 17, h: 18, bgPos: '-127px -199px' },
-  { cls: 'qiwi', w: 19, h: 20, bgPos: '-165px -198px' },
 ];
 
 const navLinkSx = {
@@ -224,7 +221,6 @@ export function Footer() {
               gap: 1,
             }}
           >
-            <img src="/icons/paykeeper.png" alt="PayKeeper" style={{ height: 36, width: 'auto' }} />
             <Box sx={{ display: 'flex', gap: 0.8, alignItems: 'center' }}>
               {PAYMENT_ICONS.map((p) => (
                 <Box
@@ -239,6 +235,7 @@ export function Footer() {
                   }}
                 />
               ))}
+              <img src="/icons/pay-troy.png" alt="Troy" style={{ width: 24, height: 16 }} />
             </Box>
           </Box>
         </Box>
