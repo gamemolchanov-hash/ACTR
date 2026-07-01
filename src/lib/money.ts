@@ -1,6 +1,9 @@
 /**
  * Format a monetary amount using Intl.NumberFormat.
  * Uses style:'currency' so the output includes the ISO symbol (e.g. $12.99, ₺450, €9).
+ * Uses currencyDisplay:'narrowSymbol' so the narrow currency symbol renders
+ * (e.g. TRY -> ₺) regardless of UI language (D4) — the locale arg should be
+ * the country-derived format locale, not the UI language.
  *
  * @param amount - The amount to format
  * @param currency - ISO 4217 currency code. Falls back to NEXT_PUBLIC_STOREFRONT_CURRENCY → 'TRY' (WR-05)
@@ -13,6 +16,7 @@ export function fmtMoney(amount: number, currency?: string, locale?: string): st
     return new Intl.NumberFormat(loc, {
       style: 'currency',
       currency: curr,
+      currencyDisplay: 'narrowSymbol',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
