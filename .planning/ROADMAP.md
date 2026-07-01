@@ -180,11 +180,11 @@ Plans:
   1. Есть TRY-дистрибьютор + витрина + товары AC в лирах
   2. Каталог рендерится в TRY на дизайне AC
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md — Emit X-Currency on all catalog paths (SSR bffGet + client fetchProducts/fetchCategories + proxy regression guard); fix stale OMS docstring (DATA-01 code slice)
 
 ## Progress
 

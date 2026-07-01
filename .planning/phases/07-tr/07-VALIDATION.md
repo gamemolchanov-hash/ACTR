@@ -47,11 +47,11 @@ fixed by research and MUST be honored.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | DATA-01 | — | SSR `bffGet()` sends `X-Currency` (`NEXT_PUBLIC_STOREFRONT_CURRENCY \|\| 'TRY'`) on every call (product detail, sitemap, categories, all-products) | unit | `npx vitest run src/lib/server-api.test.ts -t "X-Currency"` | ❌ W0 (extend) | ⬜ pending |
-| TBD | TBD | TBD | DATA-01 | — | Client `fetchProducts()`/`fetchCategories()` (the actual `/catalog` path) send `X-Currency` via axios | unit | `npx vitest run src/lib/api.test.ts` | ❌ W0 (new file) | ⬜ pending |
-| TBD | TBD | TBD | DATA-01 | T (low) | Proxy `route.ts` forwards inbound `X-Currency` unchanged (regression guard) | unit | `npx vitest run src/app/api/storefront/__tests__/proxy.test.ts -t "X-Currency"` | ❌ W0 (extend) | ⬜ pending |
-| TBD | TBD | TBD | DATA-01 | — | Stale `/public/oms/storefront/*` comment removed from `server-api.ts` | grep | `grep -n "oms/storefront" src/lib/server-api.ts` (expect no output) | n/a | ⬜ pending |
-| TBD | TBD | TBD | DATA-01 | — | No regression vs baseline (≤3 pre-existing failures, `tsc` clean) | full suite | `npm test && npx tsc --noEmit` | n/a | ⬜ pending |
+| T-07-01→02 | 07-01 | 1 | DATA-01 | — | SSR `bffGet()` sends `X-Currency` (`NEXT_PUBLIC_STOREFRONT_CURRENCY \|\| 'TRY'`) on every call (product detail, sitemap, categories, all-products) | unit | `npx vitest run src/lib/server-api.test.ts -t "X-Currency"` | ❌ W0 (extend) | ⬜ pending |
+| T-07-01→02 | 07-01 | 1 | DATA-01 | — | Client `fetchProducts()`/`fetchCategories()` (the actual `/catalog` path) send `X-Currency` via axios | unit | `npx vitest run src/lib/api.test.ts` | ❌ W0 (new file) | ⬜ pending |
+| T-07-01 | 07-01 | 1 | DATA-01 | T-07-01 (low) | Proxy `route.ts` forwards inbound `X-Currency` unchanged (regression guard) | unit | `npx vitest run src/app/api/storefront/__tests__/proxy.test.ts -t "X-Currency"` | ❌ W0 (extend) | ⬜ pending |
+| T-07-02 | 07-01 | 1 | DATA-01 | — | Stale `/public/oms/storefront/*` comment removed from `server-api.ts` | grep | `grep -n "oms/storefront" src/lib/server-api.ts` (expect no output) | n/a | ⬜ pending |
+| T-07-02 | 07-01 | 1 | DATA-01 | — | No regression vs baseline (≤3 pre-existing failures, `tsc` clean) | full suite | `npm test && npx tsc --noEmit` | n/a | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
