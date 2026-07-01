@@ -10,6 +10,7 @@ import { palette } from '@/lib/theme';
 import type { Product } from '@/lib/api';
 import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +21,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const t = useTranslations();
   const locale = useLocale();
   const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
+  const currency = useCurrency();
 
   const [quantity, setQuantity] = useState(1);
   const available = product.bp_available ?? 0;
@@ -137,7 +139,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               textAlign: 'center',
             }}
           >
-            {fmtMoney(product.price, 'TRY', bcp47)}
+            {fmtMoney(product.price, currency, bcp47)}
           </Typography>
           <Typography
             sx={{

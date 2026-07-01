@@ -43,6 +43,7 @@ import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 /* Stripe Embedded Checkout — client-side only */
 const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbeddedCheckout'), {
@@ -80,8 +81,6 @@ const c = {
   '40': '#adb7d9',
   red: '#ff002d',
 };
-
-const currency = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
 
 /* ---- Input sx shared ---- */
 const inputSx = {
@@ -176,6 +175,7 @@ function saveToSession(key: string, value: unknown) {
 
 export default function CheckoutPage() {
   const t = useTranslations();
+  const currency = useCurrency();
   const { items, removeItem } = useCart();
   const { customer } = useAuth();
 
