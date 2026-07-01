@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 06
-current_phase_name: oms-tr
+current_phase: 7
+current_phase_name: Каталог-данные TR
 status: executing
 stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-07-01T13:27:34.671Z"
+last_updated: "2026-07-01T13:34:20.927Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 complete, transitioned to Phase 7
 progress:
   total_phases: 7
   completed_phases: 6
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 06 (oms-tr) — EXECUTING
-Plan: 2 of 6
+Phase: 7 — Каталог-данные TR
+Plan: Not started
 Status: Ready to execute
-Last activity: 2026-07-01 — Phase 06 execution started
+Last activity: 2026-07-01 — Phase 06 complete, transitioned to Phase 7
 
 ### ▶ Как продолжить (resume — gap closure)
 
@@ -63,7 +63,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 9
 - Average duration: —
 - Total execution time: —
 
@@ -72,6 +72,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 05 | 3 | - | - |
+| 06 | 6 | - | - |
 
 **Recent Trend:**
 
