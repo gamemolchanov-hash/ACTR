@@ -73,9 +73,6 @@
   "hero.cta": "View Catalog",
   "hero.cardDescription": "Hard gels for nail extension, modeling, strengthening and repair.",
   "hero.cardCta": "Buy Now",
-  "promo.gift": "Gift: {count, plural, one {# item} other {# items}} (−{amount})",
-  "promo.giftAdd": "Add one more promo item — it will be a gift",
-  "promo.bannerAlt": "1+1: second item as a gift — on Color Gels and Disguise Collection, until May 31",
 
   "auth.breadcrumbAuth": "Authorization",
   "auth.pageTitle": "AUTHORIZATION",

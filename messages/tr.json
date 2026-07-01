@@ -73,9 +73,6 @@
   "hero.cta": "Kataloğu Gör",
   "hero.cardDescription": "Tırnak uzatma, modelleme, güçlendirme ve onarım için sert jeller.",
   "hero.cardCta": "Şimdi Satın Al",
-  "promo.gift": "Hediye: {count, plural, one {# ürün} other {# ürün}} (−{amount})",
-  "promo.giftAdd": "Bir promosyon ürünü daha ekleyin — hediye olarak gelecek",
-  "promo.bannerAlt": "1+1: ikincisi hediye — Color Gels ve Disguise Collection'da, 31 Mayıs'a kadar",
 
   "auth.breadcrumbAuth": "Giriş",
   "auth.pageTitle": "GİRİŞ",
