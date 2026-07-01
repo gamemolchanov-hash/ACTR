@@ -146,11 +146,11 @@ Plans:
   1. Удалены BOGO, отзывы, остатки CDEK/PayKeeper, Bitrix-редиректы, RU-страницы
   2. Телефон, соцсети и иконки оплаты заменены на TR-эквиваленты
 
-**Plans**: 5 plans (planned 2026-07-01)
+**Plans**: 1/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Remove dead BOGO auto-promo (module+consumers+assets+i18n) — wave 1 (CLEAN-01, D-08)
+- [x] 06-01-PLAN.md — Remove dead BOGO auto-promo (module+consumers+assets+i18n) — wave 1 (CLEAN-01, D-08)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -194,5 +194,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Авторизация и ЛК | 3/3 | Complete | 2026-06-30 |
 | 4. i18n EN/TR | 5/5 | Complete   | 2026-06-30 |
 | 5. Комплаенс-UI | 3/3 | Complete    | 2026-06-30 |
-| 6. Чистка + бренд TR | 0/5 | Not started | - |
+| 6. Чистка + бренд TR | 1/5 | In Progress|  |
 | 7. Каталог-данные TR | 0/TBD | Not started | - |

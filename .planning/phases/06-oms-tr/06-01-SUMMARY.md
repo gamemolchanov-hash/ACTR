@@ -102,7 +102,7 @@ status: complete
 Each task was committed atomically:
 
 1. **Task 1: Unwire all BOGO consumer sites** - `5fe97b6` (feat)
-2. **Task 2: Delete promo-bogo module + assets and purge promo.* i18n keys** - `6eada66` (feat)
+2. **Task 2: Delete promo-bogo module + assets and purge promo.* i18n keys** - `6eada66` (feat) + `d7bb375` (fix, see Deviations)
 
 _No TDD tasks in this plan — pure deletion/edit, verified via grep-gates + tsc, per RESEARCH.md guidance (feature had no unit tests to begin with)._
 
@@ -117,11 +117,24 @@ _No TDD tasks in this plan — pure deletion/edit, verified via grep-gates + tsc
 - `src/features/promo-bogo/**` (deleted), `public/promo-bogo/**` (deleted)
 
 ## Decisions Made
-None - followed plan as specified. The plan's exhaustive consumer graph (from 06-RESEARCH.md) matched the actual codebase state exactly; no additional BOGO references were found beyond the documented 8 marker sites + `active_promo` field.
+- CLEAN-01 requirement spans plans 06-01 through 06-04 (BOGO is only the first slice of the OMS-cleanup requirement). Did not call `requirements mark-complete CLEAN-01` in this plan — marking it now would falsely signal the full requirement (reviews, CDEK/PayKeeper, Bitrix redirects, RU pages) as done. Deferred to whichever plan closes the final sub-item (currently 06-04).
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] `messages/en.json`/`messages/tr.json` edits were never actually committed in the Task 2 commit**
+- **Found during:** Post-task-2 verification (re-running the plan-level `<verification>` grep-gate before writing SUMMARY.md)
+- **Issue:** The staging command `git add src/features/promo-bogo public/promo-bogo messages/en.json messages/tr.json` hit a fatal `pathspec 'src/features/promo-bogo' did not match any files` error (the directory was already removed via a prior `git rm -r`, leaving no working-tree path for `git add` to match) — git aborts the *entire* multi-pathspec `add` invocation on a fatal pathspec error, so `messages/en.json`/`messages/tr.json` were silently never staged despite the commit message claiming otherwise. Commit `6eada66` only contained the file deletions (already staged by the earlier `git rm`).
+- **Fix:** Re-ran `git add messages/en.json messages/tr.json` (now the only remaining pathspecs, both valid) and created a new commit `d7bb375` with the correct diff (removal of the 3 `promo.*` keys, 385/385 EN/TR parity).
+- **Files modified:** `messages/en.json`, `messages/tr.json`
+- **Verification:** `git show HEAD:messages/en.json | grep -c '"promo\.'` → 0 (both locales); i18n parity script → 385/385; `git grep -n "promo-bogo|BOGO HOOK|active_promo" -- src public` → 0; `npx tsc --noEmit` → 0 errors
+- **Committed in:** `d7bb375`
+
+---
+
+**Total deviations:** 1 auto-fixed (1 bug — self-caught staging error, no scope creep)
+**Impact on plan:** Corrected a verification gap in my own process before it reached the SUMMARY/commit boundary; final repo state matches the plan's acceptance criteria exactly.
 
 ## Issues Encountered
 None.
@@ -135,6 +148,12 @@ None - no external service configuration required.
 - Live promo-CODE feature (CART-06) demonstrably intact — safe foundation for subsequent Phase 6 plans (reviews removal, RU-pages removal, CDEK rewrite, brand swaps) that touch adjacent files
 - `npx tsc --noEmit` clean; `npx vitest run` at documented baseline (141/144, 3 pre-existing unrelated failures) — no regression introduced
 - No blockers for plan 06-02
+
+## Self-Check: PASSED
+
+All modified/created files verified present on disk (8/8); both deleted directories
+(`src/features/promo-bogo`, `public/promo-bogo`) confirmed absent; all 3 commits
+(`5fe97b6`, `6eada66`, `76e53d4`) verified present in git log.
 
 ---
 *Phase: 06-oms-tr*
