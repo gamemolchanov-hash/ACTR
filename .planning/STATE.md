@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: oms-tr
 status: gaps_found
-stopped_at: Phase 06 verification — gaps_found (2 gaps)
-last_updated: "2026-07-01T15:35:00.000Z"
+stopped_at: Phase 6 UI-SPEC approved
+last_updated: "2026-07-01T12:44:31.055Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 06 executed (5/5 plans); verification gaps_found
+last_activity_desc: "Phase 06 verified: gaps_found"
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 19
   completed_plans: 19
-  percent: 71
+  percent: 86
 ---
 
 # Project State
@@ -36,6 +36,7 @@ Last activity: 2026-07-01 — Phase 06 verified: gaps_found
 ### ▶ Как продолжить (resume — gap closure)
 
 Phase 6 plans all executed & committed, but goal verification found 2 RU-residue gaps:
+
 1. **BLOCKER** — RU seller legal identity (Moscow address + PAO Sberbank RUB account) still ships on `/contacts` via `contacts.legalLine1-5` in `messages/{en,tr}.json` (rendered `contacts/page.tsx:298-319`). Material for TR mesafeli satış compliance.
 2. **PARTIAL** — `Footer.tsx:214` copyright still hardcodes `american-creator.ru` (site-wide).
 
@@ -143,6 +144,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-07-01T12:05:58.553Z
-Stopped at: Completed 06-03-PLAN.md
-Resume file: .planning/phases/06-oms-tr/06-04-PLAN.md
+Last session: 2026-07-01T12:44:31.051Z
+Stopped at: Phase 6 UI-SPEC approved
+Resume file: .planning/phases/06-oms-tr/06-UI-SPEC.md
