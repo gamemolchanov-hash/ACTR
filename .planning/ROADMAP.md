@@ -146,7 +146,7 @@ Plans:
   1. Удалены BOGO, отзывы, остатки CDEK/PayKeeper, Bitrix-редиректы, RU-страницы
   2. Телефон, соцсети и иконки оплаты заменены на TR-эквиваленты
 
-**Plans**: 5/5 plans complete
+**Plans**: 6 plans (5 complete + 1 gap-closure pending)
 Plans:
 **Wave 1**
 
@@ -164,6 +164,10 @@ Plans:
 
 - [x] 06-04-PLAN.md — Rework /delivery for TR (drop CDEK + RU payment image) — wave 4, depends 06-03 (CLEAN-01, CLEAN-02, D-02, D-06)
 - [x] 06-05-PLAN.md — Brand swaps: TR phone/email + socials + Visa/MC/Troy icons — wave 4 (parallel), depends 06-03 (CLEAN-02, D-03, D-04, D-05, D-10)
+
+**Gap closure** *(from 06-VERIFICATION.md: 2 residual RU-residue gaps)*
+
+- [ ] 06-06-PLAN.md — Close Gap 1 (contacts legal block → TR [Placeholder] disclosure) + Gap 2 (footer copyright → dynamic-year neutral brand line) — wave 1, depends none (CLEAN-01, CLEAN-02)
 
 ### Phase 7: Каталог-данные TR
 
