@@ -479,7 +479,14 @@ curl -sI http://localhost:3003/help/delivery | head -1    # expect 404 (removed,
 | A2 | `public/robots.txt`'s hardcoded `american-creator.ru` domain and `contacts/page.tsx`'s RU email are in-scope-adjacent findings, not confirmed in-scope by any D-0x decision | Summary / Open Questions | Low-medium — if planner silently "fixes" these without a user decision, it exceeds CONTEXT.md's locked scope; if left untouched, the phase's own goal ("после неё в коде не должно остаться... RU-специфичных" contacts) is only partially met. Flagged as Open Question, not silently resolved either way. |
 | A3 | `src/lib/hydrationNoise.ts`/`chunkReload.test.ts` comments/fixtures referencing `american-creator.ru` (as a historical GlitchTip incident ID/test URL, not live brand contact) are out of scope for CLEAN-02 | Summary | Low — these are code comments and test fixture strings unrelated to user-facing brand identity; leaving them does not affect Success Criteria ("удалены... RU-платёжные иконки" etc. — these files contain neither) |
 
-## Open Questions
+## Open Questions (RESOLVED 2026-07-01 during planning)
+
+> **Resolution:** All three folded during plan-phase.
+> - **Q1 (robots.txt RU domain)** → RESOLVED as **D-11** in `06-CONTEXT.md` (de-RU robots.txt + update
+>   `seo.test.ts:240`); implemented by plan `06-02`.
+> - **Q2 (contacts RU email)** → RESOLVED as **D-10** in `06-CONTEXT.md` (TR-placeholder email); plan `06-05`.
+> - **Q3 (code-comment/test-fixture `american-creator.ru` refs)** → confirmed **out of scope** (not
+>   user-facing brand identity; does not affect Success Criteria) — discretion, not a research gap.
 
 1. **Should `public/robots.txt`'s `Sitemap: https://american-creator.ru/sitemap.xml` line be
    updated as part of this phase?**

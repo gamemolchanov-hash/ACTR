@@ -147,12 +147,21 @@ Plans:
   2. Телефон, соцсети и иконки оплаты заменены на TR-эквиваленты
 
 **Plans**: 5 plans (planned 2026-07-01)
-
 Plans:
+**Wave 1**
 
 - [ ] 06-01-PLAN.md — Remove dead BOGO auto-promo (module+consumers+assets+i18n) — wave 1 (CLEAN-01, D-08)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 06-02-PLAN.md — Remove reviews (component+JSON-LD+client calls) + robots.txt de-RU — wave 2, depends 06-01 (CLEAN-01, CLEAN-02, D-09, D-11)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 06-03-PLAN.md — Delete partners/studios routes+nav+sitemap + prune Bitrix redirects — wave 3, depends 06-02 (CLEAN-01, D-01, D-07)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 06-04-PLAN.md — Rework /delivery for TR (drop CDEK + RU payment image) — wave 4, depends 06-03 (CLEAN-01, CLEAN-02, D-02, D-06)
 - [ ] 06-05-PLAN.md — Brand swaps: TR phone/email + socials + Visa/MC/Troy icons — wave 4 (parallel), depends 06-03 (CLEAN-02, D-03, D-04, D-05, D-10)
 
