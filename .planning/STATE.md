@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 Phase: 07 (tr) — EXECUTING
 Plan: 1 of 1
 Status: Phase complete — ready for verification
-Last activity: 2026-07-01 — Completed quick task 260701-unn: Fix Best Seller badge overlay in ProductCard
+Last activity: 2026-07-01 — Completed quick task 260701-viz: Storefront display currency from BFF config.currency
 
 ### ▶ Как продолжить (resume — gap closure)
 
@@ -145,6 +145,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260701-unn | Fix Best Seller badge overlay in ProductCard (no longer inflates card height) | 2026-07-01 | 201f832 | [260701-unn-fix-best-seller-badge-in-src-components-](./quick/260701-unn-fix-best-seller-badge-in-src-components-/) |
+| 260701-viz | Storefront: display currency from BFF config.currency (server-resolved, CurrencyProvider/useCurrency) | 2026-07-01 | 55a5c66 | [260701-viz-storefront-use-bff-config-currency-for-p](./quick/260701-viz-storefront-use-bff-config-currency-for-p/) |
 
 ## Deferred Items
 
