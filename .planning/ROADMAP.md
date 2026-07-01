@@ -146,11 +146,15 @@ Plans:
   1. Удалены BOGO, отзывы, остатки CDEK/PayKeeper, Bitrix-редиректы, RU-страницы
   2. Телефон, соцсети и иконки оплаты заменены на TR-эквиваленты
 
-**Plans**: TBD
+**Plans**: 5 plans (planned 2026-07-01)
 
 Plans:
 
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md — Remove dead BOGO auto-promo (module+consumers+assets+i18n) — wave 1 (CLEAN-01, D-08)
+- [ ] 06-02-PLAN.md — Remove reviews (component+JSON-LD+client calls) + robots.txt de-RU — wave 2, depends 06-01 (CLEAN-01, CLEAN-02, D-09, D-11)
+- [ ] 06-03-PLAN.md — Delete partners/studios routes+nav+sitemap + prune Bitrix redirects — wave 3, depends 06-02 (CLEAN-01, D-01, D-07)
+- [ ] 06-04-PLAN.md — Rework /delivery for TR (drop CDEK + RU payment image) — wave 4, depends 06-03 (CLEAN-01, CLEAN-02, D-02, D-06)
+- [ ] 06-05-PLAN.md — Brand swaps: TR phone/email + socials + Visa/MC/Troy icons — wave 4 (parallel), depends 06-03 (CLEAN-02, D-03, D-04, D-05, D-10)
 
 ### Phase 7: Каталог-данные TR
 
@@ -181,5 +185,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Авторизация и ЛК | 3/3 | Complete | 2026-06-30 |
 | 4. i18n EN/TR | 5/5 | Complete   | 2026-06-30 |
 | 5. Комплаенс-UI | 3/3 | Complete    | 2026-06-30 |
-| 6. Чистка + бренд TR | 0/TBD | Not started | - |
+| 6. Чистка + бренд TR | 0/5 | Not started | - |
 | 7. Каталог-данные TR | 0/TBD | Not started | - |
