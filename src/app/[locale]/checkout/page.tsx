@@ -43,7 +43,7 @@ import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
-import { useCurrency } from '@/providers/CurrencyProvider';
+import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 /* Stripe Embedded Checkout — client-side only */
 const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbeddedCheckout'), {
@@ -176,6 +176,7 @@ function saveToSession(key: string, value: unknown) {
 export default function CheckoutPage() {
   const t = useTranslations();
   const currency = useCurrency();
+  const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
   const { customer } = useAuth();
 
@@ -827,7 +828,7 @@ export default function CheckoutPage() {
                     }
                   />
                   <Typography sx={{ color: c.main, ...btn, textAlign: 'right', flexShrink: 0 }}>
-                    {rate.is_free ? 'Free' : fmtMoney(rate.price, currency)}
+                    {rate.is_free ? 'Free' : fmtMoney(rate.price, currency, formatLocale)}
                   </Typography>
                 </Stack>
               ))}
@@ -973,7 +974,7 @@ export default function CheckoutPage() {
                     {item.quantity} pcs
                   </Typography>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
-                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency) : '—'} /pc
+                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'} /pc
                   </Typography>
                 </Box>
                 <DeleteOutlineIcon
@@ -986,7 +987,7 @@ export default function CheckoutPage() {
           <Box sx={{ mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
               <Typography sx={{ color: c.main, ...text }}>Subtotal:</Typography>
-              <Typography sx={{ color: c.main, ...text }}>{fmtMoney(subtotal, currency)}</Typography>
+              <Typography sx={{ color: c.main, ...text }}>{fmtMoney(subtotal, currency, formatLocale)}</Typography>
             </Stack>
             {/* informational only — price is already KDV-inclusive (D-01/D-02) */}
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
@@ -994,7 +995,7 @@ export default function CheckoutPage() {
                 {t('price.kdvLine')}
               </Typography>
               <Typography sx={{ color: c['40'], ...info }}>
-                {fmtMoney(kdvAmount, currency)}
+                {fmtMoney(kdvAmount, currency, formatLocale)}
               </Typography>
             </Stack>
             {promoDiscount > 0 && (
@@ -1003,7 +1004,7 @@ export default function CheckoutPage() {
                   Discount{promoResult?.code ? ` (${promoResult.code})` : ''}:
                 </Typography>
                 <Typography sx={{ color: '#2e7d32', ...text }}>
-                  −{fmtMoney(promoDiscount, currency)}
+                  −{fmtMoney(promoDiscount, currency, formatLocale)}
                 </Typography>
               </Stack>
             )}
@@ -1017,7 +1018,7 @@ export default function CheckoutPage() {
                     : selectedRate
                       ? selectedRate.is_free
                         ? 'Free'
-                        : fmtMoney(selectedRate.price, currency)
+                        : fmtMoney(selectedRate.price, currency, formatLocale)
                       : shippingUnavailable
                         ? 'TBD'
                         : '—'}
@@ -1030,7 +1031,7 @@ export default function CheckoutPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
-              {fmtMoney(step < 2 ? finalTotal : totalWithShipping, currency)}
+              {fmtMoney(step < 2 ? finalTotal : totalWithShipping, currency, formatLocale)}
             </Typography>
           </Stack>
         </>

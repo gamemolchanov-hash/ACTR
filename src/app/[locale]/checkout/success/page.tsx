@@ -10,6 +10,7 @@ import { fetchOrder } from '@/lib/api';
 import { fmtMoney } from '@/lib/money';
 import { palette } from '@/lib/theme';
 import type { ArmOrder } from '@/lib/arm-types';
+import { useFormatLocale } from '@/providers/CurrencyProvider';
 
 const font = '"Futura PT", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
@@ -19,6 +20,7 @@ function SuccessContent() {
   /** `order` query param holds the ARM order UUID returned by createOrder */
   const orderId = params.get('order') || '';
   const { clearCart } = useCart();
+  const formatLocale = useFormatLocale();
 
   const [order, setOrder] = useState<ArmOrder | null>(null);
   const [orderLoading, setOrderLoading] = useState(false);
@@ -87,7 +89,7 @@ function SuccessContent() {
               Order number: <strong>{order.number}</strong>
             </Typography>
             <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-              Total: <strong>{fmtMoney(order.total, order.currency)}</strong>
+              Total: <strong>{fmtMoney(order.total, order.currency, formatLocale)}</strong>
             </Typography>
             <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
               Status: {order.status.name}

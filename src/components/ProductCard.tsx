@@ -4,13 +4,13 @@ import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { useState } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import type { Product } from '@/lib/api';
 import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
-import { useCurrency } from '@/providers/CurrencyProvider';
+import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 interface ProductCardProps {
   product: Product;
@@ -19,9 +19,8 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const t = useTranslations();
-  const locale = useLocale();
-  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
   const currency = useCurrency();
+  const formatLocale = useFormatLocale();
 
   const [quantity, setQuantity] = useState(1);
   const available = product.bp_available ?? 0;
@@ -139,7 +138,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               textAlign: 'center',
             }}
           >
-            {fmtMoney(product.price, currency, bcp47)}
+            {fmtMoney(product.price, currency, formatLocale)}
           </Typography>
           <Typography
             sx={{

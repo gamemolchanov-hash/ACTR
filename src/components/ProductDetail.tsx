@@ -18,7 +18,7 @@ import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProduct } from '@/lib/api';
@@ -27,7 +27,7 @@ import { palette } from '@/lib/theme';
 import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { fmtMoney } from '@/lib/money';
-import { useCurrency } from '@/providers/CurrencyProvider';
+import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -41,11 +41,11 @@ interface ProductDetailProps {
 
 function RecentlyViewedCard({
   item,
-  bcp47,
+  formatLocale,
   currency,
 }: {
   item: import('@/lib/useRecentlyViewed').RecentlyViewedProduct;
-  bcp47: string;
+  formatLocale: string;
   currency: string;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
@@ -177,7 +177,7 @@ function RecentlyViewedCard({
               pt: 0.5,
             }}
           >
-            {fmtMoney(item.price, currency, bcp47)}
+            {fmtMoney(item.price, currency, formatLocale)}
           </Typography>
         </Box>
       </Link>
@@ -187,9 +187,8 @@ function RecentlyViewedCard({
 
 export function ProductDetail({ productId }: ProductDetailProps) {
   const t = useTranslations();
-  const locale = useLocale();
-  const bcp47 = locale === 'tr' ? 'tr-TR' : 'en-US';
   const currency = useCurrency();
+  const formatLocale = useFormatLocale();
 
   const { addItem } = useCart();
   const { items: recentlyViewed, addViewed } = useRecentlyViewed(productId);
@@ -736,7 +735,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <Typography variant="h1">{fmtMoney(product.price, currency, bcp47)}</Typography>
+              <Typography variant="h1">{fmtMoney(product.price, currency, formatLocale)}</Typography>
               <Typography variant="body1" sx={{ lineHeight: '20px' }}>
                 {t('product.perUnit')}
               </Typography>
@@ -978,7 +977,12 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             }}
           >
             {recentlyViewed.map((item) => (
-              <RecentlyViewedCard key={item.id} item={item} bcp47={bcp47} currency={currency} />
+              <RecentlyViewedCard
+                key={item.id}
+                item={item}
+                formatLocale={formatLocale}
+                currency={currency}
+              />
             ))}
           </Box>
         </Box>
