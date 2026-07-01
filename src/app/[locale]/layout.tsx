@@ -7,12 +7,14 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { CartProvider } from '@/providers/CartProvider';
+import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import { AuthProvider } from '@/lib/auth-context';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { GeoLocaleInit } from '@/components/GeoLocaleInit';
 import { SITE_NAME, SITE_URL } from '@/lib/seo';
 import { routing } from '@/i18n/routing';
+import { getStorefrontCurrency } from '@/lib/storefront-config';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -77,6 +79,8 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  const currency = await getStorefrontCurrency();
+
   return (
     <html lang={locale}>
       <head>
@@ -86,18 +90,20 @@ export default async function LocaleLayout({
         <AppRouterCacheProvider>
           <ThemeProvider>
             <NextIntlClientProvider>
-              <QueryProvider>
-                <AuthProvider>
-                  <CartProvider>
-                    <GeoLocaleInit currentLocale={locale} />
-                    <Suspense>
-                      <Header />
-                    </Suspense>
-                    <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
-                    <Footer />
-                  </CartProvider>
-                </AuthProvider>
-              </QueryProvider>
+              <CurrencyProvider initialCurrency={currency}>
+                <QueryProvider>
+                  <AuthProvider>
+                    <CartProvider>
+                      <GeoLocaleInit currentLocale={locale} />
+                      <Suspense>
+                        <Header />
+                      </Suspense>
+                      <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
+                      <Footer />
+                    </CartProvider>
+                  </AuthProvider>
+                </QueryProvider>
+              </CurrencyProvider>
             </NextIntlClientProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
