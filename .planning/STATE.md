@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 5 complete (UAT 4/4 PASS); next debug CART-BUG then Phase 6
-last_updated: "2026-06-30T18:11:43.749Z"
+status: planning
+stopped_at: Phase 6 context gathered
+last_updated: "2026-07-01T10:11:45.697Z"
 last_activity: 2026-06-30
 progress:
   total_phases: 7
@@ -37,10 +37,13 @@ Progress: [███████░░░] 71% (5/7 фаз)
 1. `cd /home/lexun/work/puz/ACTR`
 2. **Окружение для live:** demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
    Dev-сервер сейчас запущен (bg `bj466qf09`). ⚠️ ACTR ходит **на :3003**, НЕ :3000 (там Metabase).
+
 3. **Корзина ПОЧИНЕНА** (`39eeb5c`, currency USD→TRY). **Security Phase 5 пройден** (`6fab9ae`,
    SECURED 10/10). Остаток: каталог всё ещё ₽ (см. Pending Todos). След. крупный шаг — Phase 6 (`/gsd-plan-phase 6`).
+
 4. **⚠️ Phase 5 не прошёл `/gsd-secure-phase 5`** (security_enforcement=true, SECURITY.md нет) — фаза
    закрыта по явному решению пользователя; security-ревью consent-gate (T-05-08/09) рекомендуется до go-live.
+
 5. Артефакты Phase 5: `.planning/phases/05-ui/` (3 PLAN/SUMMARY + 05-UAT.md 4/4 PASS + фикс i18n `edf28ec`).
 
 ## Performance Metrics
@@ -116,6 +119,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ## Session Continuity
 
-Last session: 2026-06-30T18:00:00Z
-Stopped at: Phase 5 (Комплаенс-UI) COMPLETE — UAT 4/4 PASS, i18n+palette fix edf28ec. Next: debug CART-BUG, then plan Phase 6.
-Resume file: None
+Last session: 2026-07-01T10:11:45.690Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-oms-tr/06-CONTEXT.md
