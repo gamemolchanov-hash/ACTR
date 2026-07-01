@@ -8,12 +8,6 @@ import { useTranslations } from 'next-intl';
 export default function DeliveryPage() {
   const t = useTranslations('delivery');
 
-  const CDEK_OPTIONS = [
-    { name: t('cdek0Name'), time: t('cdek0Time') },
-    { name: t('cdek1Name'), time: t('cdek1Time') },
-    { name: t('cdek2Name'), time: t('cdek2Time') },
-  ];
-
   return (
     <Box sx={{ overflow: 'hidden' }}>
       {/* ── Breadcrumb + Title ── */}
@@ -101,112 +95,6 @@ export default function DeliveryPage() {
           >
             {t('desc')}
           </Typography>
-
-          {/* Delivery options */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2.5,
-              mx: { xs: 2.5, md: 5 },
-              mr: { md: '420px' },
-              mt: 5,
-            }}
-          >
-            {CDEK_OPTIONS.map((opt) => (
-              <Box
-                key={opt.name}
-                sx={{
-                  border: `1px solid ${palette.primaryLight}`,
-                  borderRadius: '20px',
-                  p: 2.5,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: '"Futura PT", Helvetica',
-                    fontSize: 18,
-                    fontWeight: 400,
-                    lineHeight: '20px',
-                    color: palette.primary,
-                  }}
-                >
-                  {opt.name}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: '"Futura PT", Helvetica',
-                    fontSize: 18,
-                    fontWeight: 450,
-                    lineHeight: '20px',
-                    color: palette.primary,
-                    mt: 1,
-                  }}
-                >
-                  {opt.time}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-
-          {/* City delivery note */}
-          <Typography
-            sx={{
-              fontFamily: '"Futura PT", Helvetica',
-              fontSize: 18,
-              fontWeight: 450,
-              lineHeight: '21px',
-              color: palette.primary,
-              mx: { xs: 2.5, md: 5 },
-              mr: { md: '420px' },
-              mt: 5,
-            }}
-          >
-            {t('cityNote1')}
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: '"Futura PT", Helvetica',
-              fontSize: 18,
-              fontWeight: 450,
-              lineHeight: '21px',
-              color: palette.primary,
-              mx: { xs: 2.5, md: 5 },
-              mr: { md: '420px' },
-              mt: 2,
-            }}
-          >
-            {t('cityNote2Line1')}
-            <br />
-            {t('cityNote2Line2')}
-            <br />
-            {t('cityNote2Line3')}
-          </Typography>
-
-          {/* Free delivery banner */}
-          <Box
-            sx={{
-              bgcolor: palette.primary,
-              borderRadius: '20px',
-              mx: { xs: 2.5, md: 5 },
-              mt: 5,
-              p: 2.5,
-              textAlign: 'center',
-            }}
-          >
-            <Typography
-              sx={{
-                fontFamily: '"Futura PT", Helvetica',
-                fontSize: { xs: 20, md: 24 },
-                fontWeight: 450,
-                lineHeight: '31px',
-                color: 'white',
-                textTransform: 'uppercase',
-              }}
-            >
-              {t('freeBanner')}
-            </Typography>
-          </Box>
         </Box>
       </Box>
 
