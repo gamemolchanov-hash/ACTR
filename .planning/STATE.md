@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 06
 current_phase_name: oms-tr
-status: verifying
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-07-01T12:07:54.998Z"
+status: gaps_found
+stopped_at: Phase 06 verification — gaps_found (2 gaps)
+last_updated: "2026-07-01T15:35:00.000Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 executed (5/5 plans); verification gaps_found
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 5
   total_plans: 19
   completed_plans: 19
-  percent: 86
+  percent: 71
 ---
 
 # Project State
@@ -28,10 +28,19 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 06 (oms-tr) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-07-01 — Phase 06 execution started
+Phase: 06 (oms-tr) — EXECUTED, verification gaps_found
+Plan: 5 of 5 executed (all SUMMARYs present, tsc clean, build passes)
+Status: gaps_found (20/22 must-haves) — 2 RU-residue gaps outside planned D-01..D-11 scope
+Last activity: 2026-07-01 — Phase 06 verified: gaps_found
+
+### ▶ Как продолжить (resume — gap closure)
+
+Phase 6 plans all executed & committed, but goal verification found 2 RU-residue gaps:
+1. **BLOCKER** — RU seller legal identity (Moscow address + PAO Sberbank RUB account) still ships on `/contacts` via `contacts.legalLine1-5` in `messages/{en,tr}.json` (rendered `contacts/page.tsx:298-319`). Material for TR mesafeli satış compliance.
+2. **PARTIAL** — `Footer.tsx:214` copyright still hardcodes `american-creator.ru` (site-wide).
+
+Report: `.planning/phases/06-oms-tr/06-VERIFICATION.md` · advisory review: `06-REVIEW.md`.
+Next: `/gsd-plan-phase 6 --gaps` → creates gap-closure plan(s) → `/gsd-execute-phase 6 --gaps-only` → re-verify.
 
 Progress: [███████░░░] 71% (5/7 фаз)
 
