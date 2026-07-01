@@ -220,6 +220,6 @@ describe('public/robots.txt artifact', () => {
     for (const path of ['/account', '/basket', '/checkout', '/login']) {
       expect(robots).toContain(`Disallow: ${path}`);
     }
-    expect(robots).toContain('Sitemap: https://american-creator.ru/sitemap.xml');
+    expect(robots).toContain('Sitemap: /sitemap.xml');
   });
 });

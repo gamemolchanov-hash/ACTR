@@ -8,4 +8,4 @@ Disallow: /basket
 Disallow: /checkout
 Disallow: /login
 
-Sitemap: https://american-creator.ru/sitemap.xml
+Sitemap: /sitemap.xml
