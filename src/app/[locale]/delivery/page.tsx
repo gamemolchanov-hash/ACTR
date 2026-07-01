@@ -145,14 +145,6 @@ export default function DeliveryPage() {
                 {t('paymentDesc')}
               </Typography>
             </Box>
-
-            {/* Payment systems image */}
-            <Box
-              component="img"
-              src="/images/delivery/payment-systems.png"
-              alt={t('paymentImgAlt')}
-              sx={{ height: 25, width: 'auto', mt: { xs: 4, md: 5 }, alignSelf: 'flex-start' }}
-            />
           </Box>
 
           {/* Right: card details */}
