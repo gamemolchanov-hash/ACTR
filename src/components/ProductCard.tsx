@@ -37,40 +37,42 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         '&:hover': { transform: 'translateY(-4px)' },
       }}
     >
+      {/* Best seller chip — absolute overlay on top-left of product image */}
+      {available > 0 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 12,
+            left: 16,
+            zIndex: 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: `1px solid ${palette.primaryLight}`,
+            borderRadius: '40px',
+            px: 1.5,
+            py: '4px',
+            bgcolor: 'white',
+          }}
+        >
+          <img src="/icons/trending-topic.png" alt="" style={{ width: 17, height: 17 }} />
+          <Typography
+            sx={{
+              fontFamily: '"Futura PT", Helvetica, sans-serif',
+              fontSize: 12,
+              color: palette.primary,
+              lineHeight: 1,
+            }}
+          >
+            {t('catalog.bestSeller')}
+          </Typography>
+        </Box>
+      )}
+
       <Link
         href={`/catalog/${product.category?.slug ?? 'all'}/${product.slug ?? product.id}`}
         style={{ textDecoration: 'none', color: 'inherit' }}
       >
-        {/* Best seller chip — top left, above image */}
-        {available > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 2, pt: 1.5 }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                border: `1px solid ${palette.primaryLight}`,
-                borderRadius: '40px',
-                px: 1.5,
-                py: '4px',
-                bgcolor: 'white',
-              }}
-            >
-              <img src="/icons/trending-topic.png" alt="" style={{ width: 17, height: 17 }} />
-              <Typography
-                sx={{
-                  fontFamily: '"Futura PT", Helvetica, sans-serif',
-                  fontSize: 12,
-                  color: palette.primary,
-                  lineHeight: 1,
-                }}
-              >
-                {t('catalog.bestSeller')}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
         {/* Product image */}
         <Box
           sx={{
