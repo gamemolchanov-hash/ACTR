@@ -32,14 +32,18 @@ ARM/TR-модели.
   ссылки в `Header.tsx` (`nav.studios`, `nav.partners`) и `Footer.tsx`, соответствующие i18n-ключи
   (`studios.*`, `partners.*`, `nav.studios`, `nav.partners`) в `messages/{en,tr}.json`, и связанные
   редиректы (`/ankety*` → partners/studios) в `next.config.js`.
+  **[research +] Также убрать `/partners*` и `/studios` из `STATIC_PATHS` в `src/app/sitemap.ts`
+  (`sitemap.ts:28-32`) — иначе sitemap.xml рекламирует мёртвые URL.**
 - **D-02:** `/delivery` — **не удалять, переписать под TR**. Убрать CDEK-специфику (`CDEK_OPTIONS`,
   ключи `delivery.cdek0/1/2*`), переписать содержимое под TR-доставку (перевозчик/условия TR).
   Реальный TR-перевозчик — деплой-трек; страница пока даёт нейтральный TR-текст доставки, не CDEK.
   Ссылка «Delivery & Payment» в футере сохраняется.
 
 ### Бренд-контакты (Footer)
-- **D-03:** Телефон `+7 995 757-84-67` (`Footer.tsx:163,204`) → **TR-плейсхолдер** (нейтральный
-  TR-формат, реальный номер перед go-live).
+- **D-03:** Телефон `+7 995 757-84-67` → **TR-плейсхолдер** (нейтральный TR-формат, реальный номер
+  перед go-live). **[research +] Номер захардкожен в 3 файлах, не 2:** `Footer.tsx:163,204`,
+  `Header.tsx:140`, `contacts/page.tsx:96,107` (+ WhatsApp `wa.me/79957578467` в `Footer.tsx:10`) —
+  заменить ВЕЗДЕ единым TR-плейсхолдером.
 - **D-04:** Соцсети (`Footer.tsx:8-17` `SOCIALS`): **удалить VK** (`soc-vk.png`) и **Wildberries**
   (`soc-wb.svg`) — чисто RU. Оставить Instagram/WhatsApp как TR-заготовки (WhatsApp `wa.me/…` →
   TR-плейсхолдер-номер; добавить/оставить Instagram). Telegram-RU (`t.me/americancreator_ru`) —
@@ -65,6 +69,10 @@ ARM/TR-модели.
   `index.ts`) целиком и все вызовы: `src/app/[locale]/page.tsx`, `catalog/page.tsx`,
   `catalog/[slug]/page.tsx`, `components/ProductCard.tsx`, `lib/arm-adapter.ts`, `lib/api.ts`.
   Удалить i18n-ключи `promo.gift`, `promo.giftAdd`, `promo.bannerAlt` и BOGO-ассеты.
+  **[research +] Naming-trap — НЕ удалять live promo-код (CART-06):** `validatePromo`,
+  `PromoValidationResult`, `armToPromoResult`, `promoCode` в `lib/api.ts`/`lib/arm-adapter.ts` —
+  ЖИВЫЕ (корзина/чекаут), оставить. Мёртвый BOGO — только `active_promo` + `src/features/promo-bogo/**`
+  + сайты, обёрнутые маркерами `// BOGO HOOK START/END` (`git grep -n "BOGO HOOK"` находит все 8).
 
 ### Отзывы (default — подтвердить research)
 - **D-09:** ARM storefront API отзывов не отдаёт (как боевая FBG-витрина). **Дефолт: удалить**
@@ -74,8 +82,15 @@ ARM/TR-модели.
   `product.yourRating`/`product.submitReview`/`product.verifiedPurchase` и т.п.
   **Research обязан подтвердить** контракт ARM (нет reviews-поля/эндпоинта) до удаления —
   если ARM внезапно отдаёт отзывы, гейтить компонент на наличие данных вместо удаления.
+  **[research: ПОДТВЕРЖДЕНО]** `server-api.ts:126` уже содержит комментарий «ARM has no storefront
+  reviews»; ARM OpenAPI не имеет `/reviews`-пути. **Удалять безусловно** (гейт-на-данные не нужен).
 
-### Claude's Discretion
+### Research follow-ups (folded from 06-RESEARCH.md — в рамках CLEAN-02)
+- **D-10:** RU-email `info@american-creator.ru` в `contacts/page.tsx:80,92` (`mailto:` + текст) →
+  **TR-плейсхолдер-email** (реальный перед go-live). Часть брендового свопа контактов (CLEAN-02).
+- **D-11:** RU-домен в SEO: `public/robots.txt:11` (`Sitemap: https://american-creator.ru/sitemap.xml`)
+  → нейтральный TR-плейсхолдер/относительный путь (финальный `.tr`-домен — на go-live). Обновить
+  соответствующий ассерт `seo.test.ts:240`, который проверяет домен, иначе тест упадёт.
 - Точный способ рендера Troy-иконки (отдельные `<img>` vs новый спрайт vs inline SVG).
 - Как именно нейтрализовать `/delivery` TR-текст (минимальная заглушка vs осмысленный TR-контент)
   — без ссылки на конкретного перевозчика (деплой-трек).
