@@ -144,47 +144,6 @@ export async function fetchCategories(): Promise<{ data: Category[] }> {
   return { data: data.data.map(armToCategory) };
 }
 
-// ---------- Product Reviews (FBG-69) ----------
-
-export interface ProductReview {
-  id: string;
-  author: string | null;
-  rating: number;
-  text: string | null;
-  verified_purchase: boolean;
-  date_created: string;
-}
-
-export interface ProductReviewsResponse {
-  data: ProductReview[];
-  meta: { total: number; page: number; limit: number; totalPages: number; average: number };
-}
-
-const EMPTY_REVIEWS: ProductReviewsResponse = {
-  data: [],
-  meta: { total: 0, page: 1, limit: 20, totalPages: 0, average: 0 },
-};
-
-export async function fetchProductReviews(
-  productId: string,
-  page = 1,
-  limit = 20,
-): Promise<ProductReviewsResponse> {
-  if (USE_MOCKS) return EMPTY_REVIEWS;
-  const { data } = await api.get('/reviews', { params: { product: productId, page, limit } });
-  return data;
-}
-
-export async function submitReview(
-  input: { product: string; rating: number; text?: string },
-  token: string,
-): Promise<{ data: { id: string; status: string; verified_purchase: boolean }; message: string }> {
-  const { data } = await api.post('/reviews', input, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return data;
-}
-
 // ---------- Checkout ----------
 
 /** Returns X-Currency header for ARM checkout endpoints. */

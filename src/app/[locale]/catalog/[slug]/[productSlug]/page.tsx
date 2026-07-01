@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { ProductDetail } from '@/components/ProductDetail';
-import { fetchProductServer, fetchProductReviewAggregateServer } from '@/lib/server-api';
+import { fetchProductServer } from '@/lib/server-api';
 import { buildProductMetadata, buildProductJsonLd, jsonLdScript } from '@/lib/seo';
 
 interface ProductPageProps {
@@ -39,16 +39,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await fetchProductServer(params.productSlug, params.locale);
   if (!product) notFound();
 
-  // Aggregate rating for the JSON-LD `aggregateRating` (star snippets, FBG-69).
-  // Non-critical: resolves to null on any failure, leaving the page untouched.
-  const reviews = await fetchProductReviewAggregateServer(product.id);
-
   return (
     <>
       <script
         type="application/ld+json"
         // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- JSON-LD, not HTML: jsonLdScript escapes '<' so '</script>' can't break out (tested in seo.test.ts); DOMPurify would corrupt the JSON.
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(buildProductJsonLd(product, reviews)) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(buildProductJsonLd(product)) }}
       />
       <Suspense>
         <ProductDetail productId={params.productSlug} />

@@ -26,7 +26,6 @@ import type { Product } from '@/lib/api';
 import { palette } from '@/lib/theme';
 import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
-import { ProductReviews } from './ProductReviews';
 import { fmtMoney } from '@/lib/money';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -888,9 +887,6 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           )}
         </Grid>
       )}
-
-      {/* ── Reviews (FBG-69) ── */}
-      <ProductReviews productId={product.id} />
 
       {/* ── Recently Viewed ── */}
       {recentlyViewed.length > 0 && (

@@ -136,28 +136,11 @@ export function buildProductMetadata(product: Product, locale: string = 'en'): M
 }
 
 /**
- * Aggregate review rating for a product, used to emit `aggregateRating` in the
- * Product JSON-LD (FBG-69). `average` is the mean of approved reviews and
- * `count` is how many there are.
- */
-export interface ReviewAggregate {
-  average: number;
-  count: number;
-}
-
-/**
  * Build schema.org Product JSON-LD (price + availability from `bp_available`).
- * When `reviews` carries at least one approved review, an `aggregateRating` is
- * added so search engines can render star snippets (FBG-69). A zero-count
- * aggregate is intentionally omitted — Google flags `aggregateRating` with no
- * reviews as invalid structured data.
  *
  * I18N-04: priceCurrency uses NEXT_PUBLIC_STOREFRONT_CURRENCY (TRY) not RUB.
  */
-export function buildProductJsonLd(
-  product: Product,
-  reviews?: ReviewAggregate | null,
-): Record<string, unknown> {
+export function buildProductJsonLd(product: Product): Record<string, unknown> {
   const url = productCanonicalUrl(product);
   const images = productImageAbsoluteUrls(product);
   const inStock = (product.bp_available ?? 0) > 0;
@@ -183,15 +166,6 @@ export function buildProductJsonLd(
   if (images.length) jsonLd.image = images;
   if (description) jsonLd.description = description;
   if (product.category?.name) jsonLd.category = product.category.name;
-  if (reviews && reviews.count > 0 && reviews.average > 0) {
-    jsonLd.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: String(reviews.average),
-      reviewCount: reviews.count,
-      bestRating: '5',
-      worstRating: '1',
-    };
-  }
 
   return jsonLd;
 }

@@ -20,7 +20,6 @@
  */
 
 import type { Product, Category } from './api';
-import type { ReviewAggregate } from './seo';
 import { armToProduct, armToCategory } from './arm-adapter';
 import type { ArmDistributorProduct, ArmCategory, ArmPaginated } from './arm-types';
 
@@ -111,21 +110,6 @@ export async function fetchProductServer(
     lang,
   );
   return res?.data ? armToProduct(res.data) : null;
-}
-
-/**
- * Aggregate rating (approved reviews) for a product, for the server-rendered
- * `aggregateRating` in the Product JSON-LD (FBG-69). Reviews are non-critical
- * SEO enrichment, so any failure (404 / BFF blip) resolves to `null` and the
- * product page still renders — unlike catalog data, a missing rating must
- * never break metadata or 5xx the page.
- */
-export async function fetchProductReviewAggregateServer(
-  productId: string,
-): Promise<ReviewAggregate | null> {
-  // ARM has no storefront reviews — aggregate is always absent (cleanup in Phase 6).
-  void productId;
-  return null;
 }
 
 /**

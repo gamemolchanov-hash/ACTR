@@ -184,25 +184,8 @@ describe('buildProductJsonLd', () => {
     ).toBe('https://schema.org/OutOfStock');
   });
 
-  it('adds aggregateRating when there are approved reviews (FBG-69)', () => {
-    const ld = buildProductJsonLd(baseProduct, { average: 4.5, count: 12 }) as Record<string, any>;
-    expect(ld.aggregateRating).toEqual({
-      '@type': 'AggregateRating',
-      ratingValue: '4.5',
-      reviewCount: 12,
-      bestRating: '5',
-      worstRating: '1',
-    });
-  });
-
-  it('omits aggregateRating without reviews (no arg, zero count, or zero average)', () => {
+  it('omits aggregateRating (reviews feature removed — always absent)', () => {
     expect((buildProductJsonLd(baseProduct) as any).aggregateRating).toBeUndefined();
-    expect(
-      (buildProductJsonLd(baseProduct, { average: 0, count: 0 }) as any).aggregateRating,
-    ).toBeUndefined();
-    expect(
-      (buildProductJsonLd(baseProduct, { average: 0, count: 3 }) as any).aggregateRating,
-    ).toBeUndefined();
   });
 });
 
