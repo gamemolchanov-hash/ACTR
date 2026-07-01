@@ -110,3 +110,21 @@ describe('ARM storefront proxy — ?lang injection (D-08, I18N-03)', () => {
     expect(calledUrl).toContain('lang=tr-TR');
   });
 });
+
+describe('ARM storefront proxy — X-Currency forwarding (D-07 regression guard)', () => {
+  it('forwards inbound X-Currency header to the BFF unchanged', async () => {
+    const req = new NextRequest('http://localhost:3000/api/storefront/products', {
+      headers: { 'x-currency': 'TRY' },
+    });
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Currency']).toBe('TRY');
+  });
+
+  it('does not add an X-Currency header when the inbound request has none', async () => {
+    const req = makeReq('categories');
+    await GET(req, makeCtx(['categories']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Currency']).toBeUndefined();
+  });
+});

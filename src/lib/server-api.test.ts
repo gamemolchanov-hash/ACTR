@@ -67,20 +67,42 @@ describe('fetchProductServer', () => {
     );
     await expect(fetchProductServer('x')).rejects.toBeInstanceOf(BffUnavailableError);
   });
+
+  // Phase 7 (DATA-01/D-06): X-Currency must be sent on the SSR product-detail
+  // path. The flat fixture reused above makes armToProduct throw (pre-existing
+  // Pitfall 3, unrelated) — fetch is invoked BEFORE the adapter runs, so the
+  // captured init is valid regardless of the adapter throw (see 07-PATTERNS.md).
+  it('sends X-Currency: TRY on the product-detail fetch (D-06)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: { id: 'p1', name: 'BASE GEL' } }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await fetchProductServer('198');
+    } catch {
+      // armToProduct throws on this flat fixture — irrelevant to this assertion.
+    }
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Currency']).toBe('TRY');
+  });
 });
 
 describe('fetchCategoriesServer', () => {
   it('returns the categories array', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ data: [{ id: 'c1', slug: 'base_gel' }] }),
-      })),
-    );
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: [{ id: 'c1', slug: 'base_gel' }] }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
     const cats = await fetchCategoriesServer();
     expect(cats).toHaveLength(1);
     expect(cats[0].slug).toBe('base_gel');
+    // Phase 7 (DATA-01/D-06): shared bffGet() init.headers seam — primary
+    // assertion for the SSR X-Currency fix (this fixture resolves cleanly,
+    // no armToProduct fixture bug to work around).
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Currency']).toBe('TRY');
   });
 
   it('throws when the BFF errors (so the sitemap is not category-less)', async () => {
@@ -130,5 +152,26 @@ describe('fetchAllProductsServer', () => {
       vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) })),
     );
     await expect(fetchAllProductsServer()).rejects.toBeInstanceOf(BffUnavailableError);
+  });
+
+  // Phase 7 (DATA-01/D-06): X-Currency must be sent on the all-products walk
+  // (sitemap path). Uses the same flat-fixture-throws-in-adapter workaround as
+  // the fetchProductServer case above — fetch is invoked before armToProduct runs.
+  it('sends X-Currency: TRY on the all-products walk (D-06)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'p1', name: 'BASE GEL' }],
+        meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await fetchAllProductsServer();
+    } catch {
+      // armToProduct throws on this flat fixture — irrelevant to this assertion.
+    }
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['X-Currency']).toBe('TRY');
   });
 });
