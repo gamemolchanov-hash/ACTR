@@ -6,14 +6,8 @@ import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
 
 const SOCIALS = [
-  { icon: '/icons/soc-telegram.png', href: 'https://t.me/americancreator_ru', label: 'Telegram' },
-  { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/79957578467', label: 'WhatsApp' },
-  { icon: '/icons/soc-vk.png', href: 'https://vk.com/american_creator', label: 'VK' },
-  {
-    icon: '/icons/soc-wb.svg',
-    href: 'https://www.wildberries.ru/brands/2623845-american-creator',
-    label: 'WB',
-  },
+  { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/905000000000', label: 'WhatsApp' },
+  { icon: '/icons/soc-instagram.png', href: 'https://www.instagram.com/', label: 'Instagram' },
 ];
 
 const PAYMENT_ICONS = [
@@ -158,7 +152,7 @@ export function Footer() {
           {/* Phone */}
           <Box>
             <Typography sx={{ fontSize: 20, fontWeight: 500, color: palette.footerText }}>
-              +7 995 757-84-67
+              +90 500 000 00 00
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
               {t('common.workingHours')}
@@ -199,7 +193,7 @@ export function Footer() {
           {/* Phone */}
           <Box>
             <Typography sx={{ fontSize: 18, fontWeight: 500, color: palette.footerText }}>
-              +7 995 757-84-67
+              +90 500 000 00 00
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
               {t('common.workingHours')}
