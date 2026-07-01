@@ -59,7 +59,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <img src="/icons/trending-topic.png" alt="" style={{ width: 17, height: 17 }} />
           <Typography
             sx={{
-              fontFamily: '"Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
               fontSize: 12,
               color: palette.primary,
               lineHeight: 1,
@@ -112,7 +112,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           {/* Name */}
           <Typography
             sx={{
-              fontFamily: '"Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
               fontWeight: 500,
               fontSize: 16,
               lineHeight: '22px',
@@ -144,7 +144,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             sx={{
               fontSize: 11,
               color: palette.primaryLight,
-              fontFamily: '"Futura PT", Helvetica',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica',
             }}
           >
             {t('price.kdvDahil')}
@@ -207,7 +207,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               flex: 1,
               bgcolor: palette.primary,
               color: 'white',
-              fontFamily: '"Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
               fontSize: 14,
               fontWeight: 450,
               cursor: 'pointer',

@@ -33,7 +33,7 @@ import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
-const font = '"Futura PT", Helvetica';
+const font = 'LiraFix, "Futura PT", Helvetica';
 const h1 = { fontFamily: font, fontWeight: 500, fontSize: 40, lineHeight: '50px' } as const;
 const h2 = { fontFamily: font, fontWeight: 500, fontSize: 24 } as const;
 const h3 = { fontFamily: font, fontWeight: 400, fontSize: 20 } as const;

@@ -67,7 +67,7 @@ export default function DeliveryPage() {
           {/* Delivery title */}
           <Typography
             sx={{
-              fontFamily: '"Futura PT", Helvetica',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica',
               fontSize: 24,
               fontWeight: 450,
               lineHeight: '31px',
@@ -83,7 +83,7 @@ export default function DeliveryPage() {
           {/* Delivery description */}
           <Typography
             sx={{
-              fontFamily: '"Futura PT", Helvetica',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica',
               fontSize: 18,
               fontWeight: 450,
               lineHeight: '21px',
@@ -122,7 +122,7 @@ export default function DeliveryPage() {
             <Box>
               <Typography
                 sx={{
-                  fontFamily: '"Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
                   fontSize: 24,
                   fontWeight: 450,
                   lineHeight: '31px',
@@ -134,7 +134,7 @@ export default function DeliveryPage() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: '"Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
                   fontSize: 18,
                   fontWeight: 400,
                   lineHeight: '20px',
@@ -158,7 +158,7 @@ export default function DeliveryPage() {
           >
             <Typography
               sx={{
-                fontFamily: '"Futura PT", Helvetica',
+                fontFamily: 'LiraFix, "Futura PT", Helvetica',
                 fontSize: 20,
                 fontWeight: 500,
                 lineHeight: '26px',
@@ -171,7 +171,7 @@ export default function DeliveryPage() {
             <Box
               component="ol"
               sx={{
-                fontFamily: '"Futura PT", Helvetica',
+                fontFamily: 'LiraFix, "Futura PT", Helvetica',
                 fontSize: 18,
                 fontWeight: 400,
                 lineHeight: '24px',

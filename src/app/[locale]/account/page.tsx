@@ -9,7 +9,7 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslations } from 'next-intl';
 
-const fontMain = '"Futura PT", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function AccountPage() {

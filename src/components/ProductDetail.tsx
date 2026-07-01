@@ -33,7 +33,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { imgDetail, imgThumb, imgCard } from '@/lib/image-url';
 
-const fontMain = '"Futura PT", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Futura PT", Helvetica, sans-serif';
 
 interface ProductDetailProps {
   productId: string;
@@ -153,7 +153,7 @@ function RecentlyViewedCard({
           {/* Name */}
           <Typography
             sx={{
-              fontFamily: '"Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
               fontWeight: 500,
               fontSize: 16,
               lineHeight: '20px',
@@ -657,7 +657,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 <img src="/icons/check-circle.svg" alt="" width={22} height={22} />
                 <Typography
                   sx={{
-                    fontFamily: '"Futura PT", Helvetica',
+                    fontFamily: 'LiraFix, "Futura PT", Helvetica',
                     fontWeight: 450,
                     color: palette.primary,
                     fontSize: 14,
@@ -744,7 +744,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
               sx={{
                 fontSize: 12,
                 color: palette.primaryLight,
-                fontFamily: '"Futura PT", Helvetica',
+                fontFamily: 'LiraFix, "Futura PT", Helvetica',
                 mt: 0.5,
               }}
             >

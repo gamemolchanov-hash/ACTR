@@ -12,7 +12,7 @@ import { palette } from '@/lib/theme';
 import type { ArmOrder } from '@/lib/arm-types';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
-const font = '"Futura PT", Helvetica';
+const font = 'LiraFix, "Futura PT", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
 
 function SuccessContent() {

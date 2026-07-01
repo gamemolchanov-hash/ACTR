@@ -18,7 +18,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Futura PT", Helvetica, sans-serif',
+    fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
     h1: {
       fontWeight: 450,
       fontSize: '40px',
@@ -69,7 +69,7 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: 10,
-          fontFamily: '"Futura PT", "Jost", sans-serif',
+          fontFamily: 'LiraFix, "Futura PT", "Jost", sans-serif',
           fontWeight: 450,
           fontSize: '18px',
           padding: '12px 20px',
@@ -101,7 +101,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 40,
-          fontFamily: '"Futura PT", "Jost", sans-serif',
+          fontFamily: 'LiraFix, "Futura PT", "Jost", sans-serif',
           fontWeight: 450,
           fontSize: '14px',
         },

@@ -89,7 +89,7 @@ export default function FaqPage() {
             >
               <Typography
                 sx={{
-                  fontFamily: '"Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
                   fontSize: { xs: 18, md: 20 },
                   fontWeight: 450,
                   lineHeight: '26px',
@@ -104,7 +104,7 @@ export default function FaqPage() {
             <AccordionDetails sx={{ px: 0, pb: 3 }}>
               <Typography
                 sx={{
-                  fontFamily: '"Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
                   fontSize: 18,
                   fontWeight: 400,
                   lineHeight: '22px',

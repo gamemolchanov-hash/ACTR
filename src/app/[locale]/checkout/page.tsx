@@ -56,7 +56,7 @@ const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbedded
 });
 
 /* ---- Figma design tokens ---- */
-const font = '"Futura PT", Helvetica';
+const font = 'LiraFix, "Futura PT", Helvetica';
 const h1Sx = {
   fontFamily: font,
   fontWeight: 500,

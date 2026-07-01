@@ -27,7 +27,7 @@ import { fmtMoney } from '@/lib/money';
 import { useTranslations } from 'next-intl';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
-const fontMain = '"Futura PT", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Futura PT", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function OrdersPage() {

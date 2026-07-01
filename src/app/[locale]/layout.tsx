@@ -91,14 +91,16 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <head>
         <link href="https://fonts.cdnfonts.com/css/futura-pt" rel="stylesheet" />
-        {/* Futura PT's ₺ (U+20BA) glyph reads like a ruble; override just that
-            codepoint with a clean sans-serif lira. Same family name so it
-            composes with Futura PT — digits stay Futura, only ₺ swaps.
-            Use dangerouslySetInnerHTML so React does NOT HTML-escape the quotes
-            (`"` → `&quot;` breaks the CSS and causes a hydration mismatch). */}
+        {/* Futura PT's ₺ (U+20BA) glyph reads like a ruble. Define a tiny
+            "LiraFix" family that maps ONLY the lira codepoint to a clean
+            sans-serif (Arial/…), and place it FIRST in every price font stack
+            (`LiraFix, "Futura PT", …`). Per-glyph fallback then uses Arial's ₺
+            and Futura PT for all other characters — the reliable mechanism
+            (same-family composition does NOT win over the CDN Futura face).
+            dangerouslySetInnerHTML keeps React from escaping the quotes. */}
         <style
           dangerouslySetInnerHTML={{
-            __html: `@font-face{font-family:"Futura PT";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Tahoma"),local("Verdana");unicode-range:U+20BA;font-weight:100 900;font-style:normal;font-display:swap;}`,
+            __html: `@font-face{font-family:"LiraFix";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Tahoma"),local("Verdana");unicode-range:U+20BA;font-display:swap;}`,
           }}
         />
       </head>

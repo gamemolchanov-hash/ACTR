@@ -261,7 +261,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
           >
             <Typography
               sx={{
-                fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
                 fontWeight: 450,
                 fontSize: 30,
                 lineHeight: '38px',
@@ -296,7 +296,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
           <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
             <Typography
               sx={{
-                fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
                 fontWeight: 450,
                 fontSize: 30,
                 lineHeight: '38px',
@@ -323,7 +323,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   px: 2,
                   py: 1,
                   color: palette.primary,
-                  fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
                   fontSize: 16,
                   fontWeight: 450,
                 }}
@@ -344,7 +344,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   borderRadius: '10px',
                   fontSize: 16,
                   fontWeight: 450,
-                  fontFamily: '"Futura PT", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
                   color: palette.primary,
                   height: 40,
                   '& .MuiOutlinedInput-notchedOutline': { borderColor: palette.primary },
