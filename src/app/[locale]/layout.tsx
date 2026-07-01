@@ -93,17 +93,14 @@ export default async function LocaleLayout({
         <link href="https://fonts.cdnfonts.com/css/futura-pt" rel="stylesheet" />
         {/* Futura PT's ₺ (U+20BA) glyph reads like a ruble; override just that
             codepoint with a clean sans-serif lira. Same family name so it
-            composes with Futura PT — digits stay Futura, only ₺ swaps. */}
-        <style>{`
-@font-face {
-  font-family: "Futura PT";
-  src: local("Arial"), local("Liberation Sans"), local("Helvetica Neue"), local("Tahoma"), local("Verdana");
-  unicode-range: U+20BA;
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-`}</style>
+            composes with Futura PT — digits stay Futura, only ₺ swaps.
+            Use dangerouslySetInnerHTML so React does NOT HTML-escape the quotes
+            (`"` → `&quot;` breaks the CSS and causes a hydration mismatch). */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `@font-face{font-family:"Futura PT";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Tahoma"),local("Verdana");unicode-range:U+20BA;font-weight:100 900;font-style:normal;font-display:swap;}`,
+          }}
+        />
       </head>
       <body style={{ margin: 0, overflowX: 'hidden' }}>
         <AppRouterCacheProvider>
