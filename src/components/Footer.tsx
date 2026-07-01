@@ -211,7 +211,7 @@ export function Footer() {
           }}
         >
           <Typography sx={{ fontSize: 16, color: palette.primaryLight }}>
-            2026 &copy; american-creator.ru
+            {new Date().getFullYear()} &copy; American Creator
           </Typography>
           <Box
             sx={{
