@@ -124,7 +124,10 @@ export async function fetchProducts(params?: {
       meta: { total: items.length, page, limit, totalPages: Math.ceil(items.length / limit) },
     };
   }
-  const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>('/products', { params });
+  const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>('/products', {
+    params,
+    headers: currencyHeader(),
+  });
   return { data: data.data.map(armToProduct), meta: data.meta };
 }
 
@@ -140,7 +143,9 @@ export async function fetchProduct(id: string): Promise<{ data: Product }> {
 
 export async function fetchCategories(): Promise<{ data: Category[] }> {
   if (USE_MOCKS) return { data: MOCK_CATEGORIES };
-  const { data } = await api.get<{ data: ArmCategory[] }>('/categories');
+  const { data } = await api.get<{ data: ArmCategory[] }>('/categories', {
+    headers: currencyHeader(),
+  });
   return { data: data.data.map(armToCategory) };
 }
 

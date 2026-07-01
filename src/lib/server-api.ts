@@ -5,7 +5,7 @@
  * (`generateMetadata`, `sitemap.ts`) where the browser-only axios client and
  * its relative `/api/storefront` rewrite are unavailable. Talks to the BFF
  * directly over the internal URL with the tenant header, mirroring how the
- * Next.js rewrite proxies `/api/storefront/* → ${BFF}/public/oms/storefront/*`.
+ * Next.js rewrite proxies `/api/storefront/* → ${BFF}/public/arm/storefront/*`.
  *
  * Failure handling deliberately distinguishes two cases (FBG-67 review):
  *   - genuine 404 (resource absent)        → `null`  → caller renders notFound()
@@ -29,6 +29,8 @@ const BFF_INTERNAL_URL = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000
 );
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
+// D-06: single canonical currency source, reused across api.ts / money.ts / here.
+const STOREFRONT_CURRENCY = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
 const STOREFRONT_BASE = `${BFF_INTERNAL_URL}/public/arm/storefront`;
 
 // Catalog data is cached at the BFF/CDN already; re-fetch server-side at most
@@ -72,6 +74,7 @@ async function bffGet<T>(path: string, lang?: string): Promise<T | null> {
       headers: {
         'X-Tenant-ID': TENANT_ID,
         ...(STOREFRONT_KEY ? { 'X-Storefront-Key': STOREFRONT_KEY } : {}),
+        'X-Currency': STOREFRONT_CURRENCY,
       },
       next: { revalidate: REVALIDATE_SECONDS },
     };
