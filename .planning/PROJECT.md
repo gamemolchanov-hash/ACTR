@@ -20,6 +20,7 @@ API** (`/public/arm/storefront/*`, как forza-brava.com). Отдельный s
 
 - ✓ Standalone-репо `~/work/puz/ACTR` из копии `services/storefront`, baseline на GitHub — Phase 0
 - ✓ Локальное окружение: ARM BFF (demo-tenant) достижим на :4000, dev-сервер поднимается — Phase 0b
+- ✓ Чистка OMS-специфики + брендовые свопы под TR — Phase 6 (validated 2026-07-01; gap-closure 06-06 закрыл RU-остатки: юр-блок контактов + копирайт футера)
 
 ### Active
 
@@ -30,7 +31,6 @@ API** (`/public/arm/storefront/*`, как forza-brava.com). Отдельный s
 - [ ] Авторизация и личный кабинет на ARM (consent, заказы, адреса, GDPR/KVKK) — Phase 3
 - [ ] i18n EN/TR (вынос строк, переключатель, локализация контента, SEO) — Phase 4
 - [ ] Комплаенс-UI (KDV, KVKK/«mesafeli satış», юр-страницы) — Phase 5
-- [ ] Чистка OMS-специфики + брендовые свопы под TR — Phase 6
 - [ ] Каталог-данные TR (TRY-витрина с товарами AC) — Phase 7
 
 ### Out of Scope
@@ -97,4 +97,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-29 after initialization*
+*Last updated: 2026-07-01 after Phase 6 completion (OMS cleanup + TR brand swap)*
