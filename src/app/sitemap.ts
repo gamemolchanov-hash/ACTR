@@ -25,11 +25,6 @@ const STATIC_PATHS = [
   '/delivery',
   '/faq',
   '/contacts',
-  '/partners',
-  '/partners/shops',
-  '/partners/bloggers',
-  '/partners/schools',
-  '/studios',
 ];
 
 /**

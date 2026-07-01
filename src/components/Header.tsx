@@ -57,8 +57,6 @@ export function Header() {
   const NAV_ITEMS = [
     { label: t('nav.catalog'), href: '/catalog' },
     { label: t('nav.new'), href: '/catalog?sort=-date_created' },
-    { label: t('nav.studios'), href: '/studios' },
-    { label: t('nav.partners'), href: '/partners' },
     { label: t('nav.contacts'), href: '/contacts' },
   ];
 

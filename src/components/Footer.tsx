@@ -64,8 +64,6 @@ export function Footer() {
   const NAV_COL1 = [
     { label: t('nav.catalog'), href: '/catalog' },
     { label: t('nav.new'), href: '/catalog?sort=-date_created' },
-    { label: t('nav.studios'), href: '/studios' },
-    { label: t('nav.partners'), href: '/partners' },
   ];
 
   const NAV_COL2 = [
