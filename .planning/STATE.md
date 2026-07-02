@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07
-current_phase_name: tr
-status: verifying
-stopped_at: Phase 7 context gathered
-last_updated: "2026-07-01T15:40:54.504Z"
-last_activity: 2026-07-01
-last_activity_desc: Phase 07 execution started
+current_phase: 7
+status: milestone_ready
+stopped_at: Phase 7 verified (passed); milestone lifecycle deferred by user
+last_updated: "2026-07-03"
+last_activity: 2026-07-03
+last_activity_desc: Phase 7 human-validated → passed (TRY catalog renders live on ARM data)
 progress:
   total_phases: 7
   completed_phases: 7
   total_plans: 21
   completed_plans: 21
   percent: 100
+current_phase_name: tr
 ---
 
 # Project State
@@ -28,42 +28,31 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 
 ## Current Position
 
-Phase: 07 (tr) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-07-02 — Completed quick task 260701-xae: Storefront money/date formatting by config.country
+Phase: 7 (tr) — ✅ VERIFIED (passed)
+Plan: 1/1 complete
+Status: Milestone v1.0 code-complete (7/7 phases). Phase 7 human-validated 2026-07-03 — TRY catalog renders live on ARM demo data. Milestone lifecycle (audit → complete → cleanup) NOT run — deferred by user after Phase 7.
+Last activity: 2026-07-03 — Phase 7 → passed; demo BFF/Directus data gap fixed, ₺ catalog confirmed live
 
-### ▶ Как продолжить (resume — gap closure)
+Progress: [██████████] 100% (7/7 фаз)
 
-Phase 6 plans all executed & committed, but goal verification found 2 RU-residue gaps:
+### ▶ Verification status per phase
 
-1. **BLOCKER** — RU seller legal identity (Moscow address + PAO Sberbank RUB account) still ships on `/contacts` via `contacts.legalLine1-5` in `messages/{en,tr}.json` (rendered `contacts/page.tsx:298-319`). Material for TR mesafeli satış compliance.
-2. **PARTIAL** — `Footer.tsx:214` copyright still hardcodes `american-creator.ru` (site-wide).
-
-Report: `.planning/phases/06-oms-tr/06-VERIFICATION.md` · advisory review: `06-REVIEW.md`.
-Next: `/gsd-plan-phase 6 --gaps` → creates gap-closure plan(s) → `/gsd-execute-phase 6 --gaps-only` → re-verify.
-
-Progress: [███████░░░] 71% (5/7 фаз)
+- **Passed:** 1, 3, 4, 6, 7
+- **Not formally verified (code-complete, closed by decision):** 2 (`verify=missing` — live-Stripe human item) and 5 (`verify=missing` — has `05-SECURITY.md` 10/10 + UAT 4/4, but no passing VERIFICATION.md). The autonomous phase-discovery still flags these two as incomplete.
 
 ### ▶ Как продолжить (resume)
 
 1. `cd /home/lexun/work/puz/ACTR`
-2. **Окружение для live:** demo-BFF `make up` (autoCRM :4000) + `npm run dev` (ACTR :3003).
-   Dev-сервер сейчас запущен (bg `bj466qf09`). ⚠️ ACTR ходит **на :3003**, НЕ :3000 (там Metabase).
-
-3. **Корзина ПОЧИНЕНА** (`39eeb5c`, currency USD→TRY). **Security Phase 5 пройден** (`6fab9ae`,
-   SECURED 10/10). Остаток: каталог всё ещё ₽ (см. Pending Todos). След. крупный шаг — Phase 6 (`/gsd-plan-phase 6`).
-
-4. **⚠️ Phase 5 не прошёл `/gsd-secure-phase 5`** (security_enforcement=true, SECURITY.md нет) — фаза
-   закрыта по явному решению пользователя; security-ревью consent-gate (T-05-08/09) рекомендуется до go-live.
-
-5. Артефакты Phase 5: `.planning/phases/05-ui/` (3 PLAN/SUMMARY + 05-UAT.md 4/4 PASS + фикс i18n `edf28ec`).
+2. **Live-окружение:** demo-BFF из autoCRM (`make up`, :4000) + `npm run dev` (ACTR :3003). ⚠️ ACTR на **:3003** (не :3000 — там Metabase).
+3. **Demo-данные почищены (2026-07-03):** Directus demo-тенанта отдавал FORBIDDEN на ARM-коллекции → каталог 500. Теперь `/config,/categories,/products` = 200, витрина рендерит ₺ (₺1.020,00, «KDV Dahil»).
+4. **Закрыть milestone:** `/gsd-audit-uat` (разобрать pre-go-live список) → `/gsd-audit-milestone` → `/gsd-complete-milestone v1.0`. Либо `/gsd-autonomous` — но его discovery повторно войдёт в фазы 2 и 5 (discuss→plan→execute→verify).
+5. **Или формально верифицировать 2 & 5** без переисполнения: `/gsd-verify-work 2` и `/gsd-verify-work 5`, затем milestone lifecycle.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: —
 - Total execution time: —
 
@@ -73,6 +62,7 @@ Progress: [███████░░░] 71% (5/7 фаз)
 |-------|-------|-------|----------|
 | 05 | 3 | - | - |
 | 06 | 6 | - | - |
+| 7 | 1 | - | - |
 
 **Recent Trend:**
 
@@ -138,7 +128,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 
 ### Blockers/Concerns
 
-- Деплой-трек содержит нерешённые внешние вопросы (Stripe-доступность в TR, реальный перевозчик, e-fatura) — не блокируют разработку, но обязательны до go-live. См. autoCRM `docs/modules/arm/ACTR/open-questions.md`.
+- Деплой-трек содержит нерешённые внешние вопросы (Stripe-доступность в TR, реальный перевозчик, e-fatura) — не блокируют разработку, но обязательны до go-live. См. `docs/open-questions.md`.
 
 ### Quick Tasks Completed
 

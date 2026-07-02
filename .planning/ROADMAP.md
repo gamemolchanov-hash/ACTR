@@ -199,4 +199,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. i18n EN/TR | 5/5 | Complete   | 2026-06-30 |
 | 5. Комплаенс-UI | 3/3 | Complete    | 2026-06-30 |
 | 6. Чистка + бренд TR | 6/6 | Complete    | 2026-07-01 |
-| 7. Каталог-данные TR | 1/1 | Complete   | 2026-07-01 |
+| 7. Каталог-данные TR | 1/1 | Complete    | 2026-07-01 |

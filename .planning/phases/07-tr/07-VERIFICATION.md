@@ -1,11 +1,15 @@
 ---
 phase: 07-tr
 verified: 2026-07-01T18:55:00Z
-status: human_needed
-score: 5/7 must-haves verified
+status: passed
+score: 7/7 must-haves verified
 behavior_unverified: 0
 overrides_applied: 2
 mode: mvp
+human_validated:
+  at: "2026-07-03"
+  by: "Aliaksei"
+  result: "TR data now present in the local demo tenant; /tr/catalog loads with no 500 and renders ₺ prices (e.g. ₺1.020,00). BFF /config, /categories, /products all return 200. Both owner-owned must-haves — SC1 (TRY distributor + storefront + AC products in lira) and SC2 (catalog renders in TRY on the AC design) — confirmed live via browser screenshot + direct curl."
 overrides:
   - must_have: "ROADMAP SC1 — Есть TRY-дистрибьютор + витрина + товары AC в лирах"
     reason: "Data population is owner-owned and manual (D-01, decided during discuss-phase 2026-07-01); not achievable in code. ACTR's code slice (X-Currency plumbing) is complete and tested."
@@ -26,7 +30,7 @@ gaps:
       - "TRY arm_distributor row (currency=TRY) in the local demo ARM tenant"
       - "arm_storefront_distributors link (storefront, TRY) -> distributor, is_default=true"
       - "arm_products + arm_distributor_products with TRY prices, show_in_storefront=true, is_available=true"
-      - "This is exclusively an owner/manual data-entry action per autoCRM/docs/modules/arm/ACTR/TZ.md §6 — NOT a code task in this repo"
+      - "This is exclusively an owner/manual data-entry action per docs/TZ.md §6 — NOT a code task in this repo"
   - truth: "ROADMAP SC2 — Каталог рендерится в TRY на дизайне AC (the catalog renders in TRY on the AC design)"
     status: failed
     reason: "/catalog cannot render products today because the upstream BFF call 500s (see SC1 — same root cause, a data gap, not a header/code gap). The display layer (ProductCard.tsx, Header.tsx, money.ts) is already TRY-formatted and unchanged/verified correct, but is never reached because fetchProducts()/fetchCategories() receive a 5xx from the BFF before any product data returns."
@@ -158,7 +162,7 @@ overrides:
 
 ### 1. Owner-only, deferred: TR catalog live render check (D-04/D-05)
 
-**Test:** After the owner populates TR data in the local `demo` ARM tenant per `autoCRM/docs/modules/arm/ACTR/TZ.md` §6 (distributor `currency=TRY` + storefront + products + `arm_storefront_distributors` `is_default` link), load `/catalog` on the ACTR dev server (`:3003`).
+**Test:** After the owner populates TR data in the local `demo` ARM tenant per `docs/TZ.md` §6 (distributor `currency=TRY` + storefront + products + `arm_storefront_distributors` `is_default` link), load `/catalog` on the ACTR dev server (`:3003`).
 **Expected:** No 500 in the browser console; product prices render in ₺ (TRY).
 **Why human:** Requires manually populated backend data (owner-owned, out of this repo's code scope, D-01) and a running dev server with a real browser session — not reproducible by static code/test analysis.
 
@@ -172,5 +176,16 @@ However, the phase goal as literally stated in `ROADMAP.md` ("TRY-витрина
 
 ---
 
+## Human Validation Result (2026-07-03) — status → passed
+
+The single outstanding human-check ("Owner-only, deferred: TR catalog live render check", §Human Verification Required above) is now **satisfied**. The data-population gap that produced the two `gaps_found` items (SC1/SC2) has been closed in the local demo ARM tenant, and the live render was confirmed jointly with the owner:
+
+- **BFF (direct curl, valid `X-Storefront-Key` + `X-Currency: TRY`):** `/public/arm/storefront/config`, `/categories`, `/products` all return **HTTP 200** (was 500). `/config` reports a TRY storefront (`currency: TRY`, `country: TR`, `locale: tr-TR`); `/products` returns AC products priced in lira (e.g. `ABSOLUTE BLACK` = `1020.00`).
+- **Root cause of the prior 500 (now fixed):** the demo tenant's Directus returned `FORBIDDEN` on the ARM collections (permission/data gap), not an ACTR code fault — the `X-Currency` plumbing this phase delivered was already correct.
+- **ACTR end-to-end (`:3003`):** proxy `/api/storefront/categories` → 200 (8 categories), `/api/storefront/products` → 200 (12 products). Browser at `/tr/catalog` renders product cards with **₺ prices** (`₺1.020,00`), `KDV Dahil` labels, and TR UI — screenshot captured, no 500.
+
+Both owner-owned success criteria (SC1 TRY distributor + storefront + AC products; SC2 catalog renders in TRY on the AC design) are therefore confirmed. Score updated 5/7 → **7/7**; status `human_needed` → **passed**.
+
+_Human-validated: 2026-07-03 · Aliaksei (owner) + Claude_
 _Verified: 2026-07-01_
 _Verifier: Claude (gsd-verifier)_
