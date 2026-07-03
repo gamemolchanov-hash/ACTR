@@ -29,7 +29,12 @@ const PROJECT_ROOT = resolve(__dirname, '..');
 const MESSAGES_DIR = resolve(PROJECT_ROOT, 'messages');
 const TOLGEE_BASE = process.env.TOLGEE_API_BASE_URL || 'https://loco.devloc.su';
 const PROJECT_ID = 34;
-const LANGUAGES = ['en', 'tr'];
+// [local file basename, Tolgee language tag] — project 34 uses regional tags
+// (en-GB base + tr-TR), while next-intl routing works with short codes.
+const LANGUAGES = [
+  ['en', 'en-GB'],
+  ['tr', 'tr-TR'],
+];
 
 const apiKey = process.env.TOLGEE_API_KEY;
 if (!apiKey) {
@@ -41,7 +46,9 @@ if (!apiKey) {
 async function fetchTranslations(languageTag) {
   // Tolgee v2 export API — exports keys as flat JSON for the given language.
   // Format=FLAT_JSON is compatible with next-intl flat-key catalogs.
-  const url = `${TOLGEE_BASE}/v2/projects/${PROJECT_ID}/export?format=JSON&languages=${languageTag}&structureDelimiter=`;
+  // zip=false keeps a single-language export as raw JSON (otherwise Tolgee
+  // wraps even one language into a ZIP archive).
+  const url = `${TOLGEE_BASE}/v2/projects/${PROJECT_ID}/export?format=JSON&languages=${languageTag}&structureDelimiter=&zip=false`;
   const res = await fetch(url, {
     headers: {
       'X-API-Key': apiKey,
@@ -71,10 +78,10 @@ async function main() {
   mkdirSync(MESSAGES_DIR, { recursive: true });
 
   let successCount = 0;
-  for (const lang of LANGUAGES) {
+  for (const [lang, tag] of LANGUAGES) {
     try {
-      console.log(`Pulling ${lang} from Tolgee project ${PROJECT_ID}...`);
-      const messages = await fetchTranslations(lang);
+      console.log(`Pulling ${lang} (${tag}) from Tolgee project ${PROJECT_ID}...`);
+      const messages = await fetchTranslations(tag);
       const outPath = resolve(MESSAGES_DIR, `${lang}.json`);
       writeFileSync(outPath, JSON.stringify(messages, null, 2) + '\n', 'utf-8');
       console.log(`  Wrote ${Object.keys(messages).length} keys to ${outPath}`);
