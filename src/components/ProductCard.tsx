@@ -15,9 +15,18 @@ import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (productId: string, quantity: number) => void;
+  /** 0-based position in the catalog grid. Leading cards get LCP priority. */
+  index?: number;
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+/**
+ * How many leading cards are treated as above-the-fold and get LCP priority
+ * (eager load + fetchPriority="high"). Mobile catalog is 1 column, desktop 3,
+ * so 4 covers the first visible row without over-prioritising (FBG-226).
+ */
+const PRIORITY_CARD_COUNT = 4;
+
+export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProps) {
   const t = useTranslations();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
@@ -25,6 +34,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const available = product.bp_available ?? 0;
   const primaryImage = product.images?.sort((a, b) => a.sort - b.sort)[0] ?? null;
+  // LCP optimisation (FBG-226): eagerly fetch + prioritise the first row of
+  // cards, lazy-load the rest so they don't compete with the LCP image.
+  const priority = index < PRIORITY_CARD_COUNT;
 
   return (
     <Card
@@ -91,6 +103,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
               component="img"
               src={imgCard(primaryImage.file_path)}
               alt={product.name}
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
+              decoding={priority ? 'auto' : 'async'}
               sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           ) : (

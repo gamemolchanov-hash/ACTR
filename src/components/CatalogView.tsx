@@ -474,8 +474,13 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   mb: 4,
                 }}
               >
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} onAddToCart={addItem} />
+                {products.map((product, i) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={i}
+                    onAddToCart={addItem}
+                  />
                 ))}
               </Box>
 
