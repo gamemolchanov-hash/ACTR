@@ -24,16 +24,17 @@ function pngSize(buf: Buffer) {
 }
 
 describe('FBG-228 raster budgets', () => {
-  // [file, maxBytes, maxW, maxH] — ceilings sit above the optimised files but
-  // below the originals (44 KB / 512², 14.7 KB / 720², 10.4 KB / 480²).
-  const cases: [string, number, number, number][] = [
-    ['icons/trending-topic.png', 4_000, 64, 64],
-    ['logo.png', 6_000, 512, 130],
-    ['icons/logo-white.png', 6_000, 440, 120],
+  // [label, bytes, maxBytes, maxW, maxH] — each file is read up front via a
+  // literal path (no dynamic resolve()) and its buffer carried into the case.
+  // Ceilings sit above the optimised files but below the originals
+  // (44 KB / 512², 14.7 KB / 720², 10.4 KB / 480²).
+  const cases: [string, Buffer, number, number, number][] = [
+    ['trending-topic.png', readFileSync(resolve(PUBLIC, 'icons/trending-topic.png')), 4_000, 64, 64],
+    ['logo.png', readFileSync(resolve(PUBLIC, 'logo.png')), 6_000, 512, 130],
+    ['logo-white.png', readFileSync(resolve(PUBLIC, 'icons/logo-white.png')), 6_000, 440, 120],
   ];
 
-  it.each(cases)('%s stays within the weight + size budget', (rel, maxBytes, maxW, maxH) => {
-    const buf = readFileSync(resolve(PUBLIC, rel));
+  it.each(cases)('%s stays within the weight + size budget', (_label, buf, maxBytes, maxW, maxH) => {
     expect(buf.length).toBeLessThanOrEqual(maxBytes);
     const { width, height } = pngSize(buf);
     expect(width).toBeLessThanOrEqual(maxW);
