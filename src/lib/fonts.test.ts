@@ -37,6 +37,30 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
     expect(FONT_FACE_CSS).not.toMatch(/cdnfonts|googleapis|https?:\/\//);
   });
 
+  // Weight→face must mirror the cdnfonts stylesheet the 1:1 reference (american-creator.ru)
+  // renders with — cdnfonts assigns Medium→450 and Demi→500. This is the pixel-fidelity
+  // contract, NOT the ticket's "Medium 500 / Demi 600" shorthand: renumbering would make the
+  // most-used weight (500, 59×) render Medium instead of Demi — lighter than the reference.
+  it('maps each weight to the exact face cdnfonts served (1:1 rendering)', () => {
+    const faces = [
+      ...FONT_FACE_CSS.matchAll(
+        /@font-face\{font-family:"Futura PT";font-style:normal;font-weight:(\d+);[^}]*url\("\/fonts\/([^"]+)"\)/g,
+      ),
+    ];
+    const byWeight = Object.fromEntries(faces.map((m) => [Number(m[1]), m[2]]));
+    expect(byWeight).toEqual({
+      300: 'FuturaPT-Light.woff',
+      400: 'FuturaPT-Book.woff',
+      450: 'FuturaPT-Medium.woff',
+      500: 'FuturaPT-Demi.woff',
+      600: 'FuturaPT-Heavy.woff',
+      700: 'FuturaPT-Bold.woff',
+    });
+    // Guard the two weights the reviewer flagged: intentionally Demi / Heavy, not Medium / Demi.
+    expect(byWeight[500]).toBe('FuturaPT-Demi.woff');
+    expect(byWeight[600]).toBe('FuturaPT-Heavy.woff');
+  });
+
   it('defines a metric-adjusted Arial fallback to curb swap CLS', () => {
     expect(FONT_FACE_CSS).toContain('font-family:"Futura PT Fallback"');
     expect(FONT_FACE_CSS).toMatch(/size-adjust:\d/);

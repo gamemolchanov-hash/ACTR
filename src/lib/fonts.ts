@@ -13,8 +13,25 @@
 
 type FontFace = { weight: number; file: string };
 
-// weight → local file. Same mapping the cdnfonts stylesheet used:
-// 300 Light · 400 Book · 450 Medium · 500 Demi · 600 Heavy · 700 Bold.
+// weight → local .woff. This mirrors EXACTLY the @font-face rules that
+// `fonts.cdnfonts.com/css/futura-pt` served — and that american-creator.ru (our 1:1
+// design reference, which loads the very same stylesheet) renders with — so self-hosting
+// changes no pixels. Verified against the live CDN CSS:
+//
+//   cdnfonts @font-face        →  this file
+//   font-weight:300  Light     →  FuturaPT-Light.woff
+//   font-weight:400  Book      →  FuturaPT-Book.woff
+//   font-weight:450  Medium    →  FuturaPT-Medium.woff
+//   font-weight:500  Demi      →  FuturaPT-Demi.woff
+//   font-weight:600  Heavy     →  FuturaPT-Heavy.woff
+//   font-weight:700  Bold      →  FuturaPT-Bold.woff
+//
+// Note: cdnfonts assigns Medium→450 and Demi→500 — NOT the "Medium 500 / Demi 600"
+// shorthand in the ticket. The storefront's most-used weights are 500 (59×) and 450 (36×);
+// with an exact match present the browser renders 500=Demi and 450=Medium on the reference.
+// Renumbering to the ticket's labels would make 500 resolve to Medium (visibly LIGHTER than
+// the reference) — a real 1:1 regression. So we mirror the CDN's actual weights, not the
+// ticket's naming. See the weight→file assertions in fonts.test.ts.
 const FUTURA_FACES: FontFace[] = [
   { weight: 300, file: 'FuturaPT-Light.woff' },
   { weight: 400, file: 'FuturaPT-Book.woff' },
