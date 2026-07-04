@@ -1,0 +1,11 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    // Storefront mirrors american-creator.ru 1:1 and serves every image through
+    // our own ARM proxy/resizer (/api/storefront/images/...). next/image's
+    // optimizer adds no value here and would alter markup/sizing, so plain
+    // <img> is intentional across the app — keep the rule off rather than
+    // scattering 16 per-line disables (FBG-231).
+    "@next/next/no-img-element": "off"
+  }
+}

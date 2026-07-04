@@ -14,7 +14,6 @@ import { NextRequest } from 'next/server';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — dynamic route directory with bracket name; valid FS path
 import { GET } from '../[...path]/route';
 

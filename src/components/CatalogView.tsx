@@ -58,7 +58,6 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
       if (slug !== categorySlug) return; // different category — don't restore
       if (!qs) return;
       const base = categorySlug ? `/catalog/${categorySlug}` : '/catalog';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.replace(`${base}?${qs}` as any);
     } catch {
       /* ignore */
@@ -103,7 +102,6 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     if (updates.page === '1' || !updates.page) params.delete('page');
     const qs = params.toString();
     const base = categorySlug ? `/catalog/${categorySlug}` : '/catalog';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push(qs ? (`${base}?${qs}` as any) : (base as any));
   };
 
@@ -113,7 +111,6 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     if (inStockOnly) params.set('inStock', '1');
     const qs = params.toString();
     const base = slug ? `/catalog/${slug}` : '/catalog';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push(qs ? (`${base}?${qs}` as any) : (base as any));
   };
 

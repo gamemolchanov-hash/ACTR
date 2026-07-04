@@ -254,6 +254,10 @@ export default function CheckoutPage() {
         }
       })
       .catch(() => {});
+    // Autofill runs once per hydration/customer change; form.city/form.street are
+    // read only as guards so we don't clobber user edits, and must NOT be deps
+    // (adding them would re-run autofill on every keystroke).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, customer]);
 
   // Persist form to sessionStorage (only after hydration)

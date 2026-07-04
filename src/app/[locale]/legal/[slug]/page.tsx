@@ -21,7 +21,6 @@ export default async function LegalPage({ params }: Props) {
 
   const slug = params.slug as LegalSlug;
   const nsKey = slug.replace(/-/g, '_');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = await getTranslations(`legal.${nsKey}` as any);
 
   const sectionCount = SECTION_COUNT[slug];
