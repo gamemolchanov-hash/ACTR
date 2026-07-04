@@ -13,10 +13,15 @@ type NestedMessages = { [key: string]: string | NestedMessages };
  * un-flatten at load time. All catalog values are leaf strings and the key set
  * has no prefix collisions, so this is lossless.
  */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export function unflatten(flat: Record<string, string>): NestedMessages {
   const out: NestedMessages = {};
   for (const [flatKey, value] of Object.entries(flat)) {
     const parts = flatKey.split('.');
+    // Ключи каталога — наши собственные, но сегмент вида __proto__ всё равно
+    // отбрасываем: запись по нему загрязняет прототип (semgrep, FBG-230).
+    if (parts.some((p) => UNSAFE_KEYS.has(p))) continue;
     let cursor: NestedMessages = out;
     parts.forEach((part, i) => {
       if (i === parts.length - 1) {
