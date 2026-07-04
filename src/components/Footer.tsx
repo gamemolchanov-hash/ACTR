@@ -42,7 +42,7 @@ function SocialIcons() {
             backgroundColor: 'rgba(255,255,255,0.1)',
           }}
         >
-          <img src={s.icon} alt={s.label} style={{ width: 24, height: 24 }} />
+          <img src={s.icon} alt={s.label} width={24} height={24} style={{ width: 24, height: 24 }} />
         </a>
       ))}
     </Box>
@@ -96,9 +96,13 @@ export function Footer() {
         >
           {/* Logo */}
           <Box sx={{ flexShrink: 0 }}>
+            {/* FBG-229: intrinsic width/height (480×114) let the browser reserve the
+                aspect-ratio box before the PNG loads → no footer shift (CLS). */}
             <img
               src="/icons/logo-white.png"
               alt="American Creator"
+              width={480}
+              height={114}
               style={{ width: 200, height: 'auto' }}
             />
           </Box>
@@ -164,9 +168,12 @@ export function Footer() {
         <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 3, mb: 4 }}>
           {/* Logo + Social icons row */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* FBG-229: intrinsic size reserves the aspect-ratio box (see desktop logo). */}
             <img
               src="/icons/logo-white.png"
               alt="American Creator"
+              width={480}
+              height={114}
               style={{ width: 150, height: 'auto' }}
             />
             <SocialIcons />
@@ -235,7 +242,7 @@ export function Footer() {
                   }}
                 />
               ))}
-              <img src="/icons/pay-troy.png" alt="Troy" style={{ width: 24, height: 16 }} />
+              <img src="/icons/pay-troy.png" alt="Troy" width={24} height={16} style={{ width: 24, height: 16 }} />
             </Box>
           </Box>
         </Box>
