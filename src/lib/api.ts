@@ -1,87 +1,18 @@
 import axios from 'axios';
 
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'tenant_snailmarket';
-
-export const api = axios.create({
-  baseURL: '/api/storefront',
-  timeout: 30_000,
-  headers: {
-    'X-Tenant-ID': TENANT_ID,
-  },
-});
-
-// ---------- Types ----------
-
-export interface ProductImage {
-  id: string;
-  file_path: string;
-  sort: number;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  sku: string;
-  slug: string | null;
-  description: string | null;
-  detail_text?: string | null;
-  usage_text?: string | null;
-  application_text?: string | null;
-  badge?: string | null;
-  video_url?: string | null;
-  volume_ml?: number | null;
-  price: number;
-  wholesale_price: number | null;
-  weight: number | null;
-  volume: number | null;
-  length: number | null;
-  width: number | null;
-  height: number | null;
-  bp_available: number | null;
-  category: { id: string; name: string; slug: string } | null;
-  images?: ProductImage[];
-  date_created: string;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface CartItem {
-  productId: string;
-  quantity: number;
-}
-
-export interface ValidatedCartItem {
-  productId: string;
-  valid: boolean;
-  name?: string;
-  sku?: string;
-  unitPrice?: number;
-  quantity: number;
-  available?: number;
-  lineTotal?: number;
-  image?: string | null;
-  error?: string | null;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-// ---------- API Functions (with mock fallback for local dev) ----------
-
+import { ENDPOINTS, currencyHeader, storefrontCurrency, tenantHeader } from './arm-contract';
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
 import { armToProduct, armToCategory, armToValidatedCart, armToPromoResult } from './arm-adapter';
 import { bearerHeader } from './auth';
+import type {
+  ProductImage,
+  Product,
+  Category,
+  CartItem,
+  ValidatedCartItem,
+  PaginatedResponse,
+  PromoValidationResult,
+} from './domain-types';
 import type {
   ArmDistributorProduct,
   ArmCategory,
@@ -91,6 +22,30 @@ import type {
   ArmPaymentSession,
   ArmOrder,
 } from './arm-types';
+
+export const api = axios.create({
+  baseURL: '/api/storefront',
+  timeout: 30_000,
+  headers: tenantHeader(),
+});
+
+// ---------- Types ----------
+// Доменные типы живут в ./domain-types (FBG-232); X-Currency helper — в ./arm-contract.
+// Re-export сохраняет обратную совместимость импортов из '@/lib/api' (компоненты не
+// правим) и публичную сигнатуру currencyHeader() (используется тестами currency-default).
+
+export type {
+  ProductImage,
+  Product,
+  Category,
+  CartItem,
+  ValidatedCartItem,
+  PaginatedResponse,
+  PromoValidationResult,
+};
+export { currencyHeader };
+
+// ---------- API Functions (with mock fallback for local dev) ----------
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
@@ -124,7 +79,7 @@ export async function fetchProducts(params?: {
       meta: { total: items.length, page, limit, totalPages: Math.ceil(items.length / limit) },
     };
   }
-  const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>('/products', {
+  const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>(ENDPOINTS.products, {
     params,
     headers: currencyHeader(),
   });
@@ -137,13 +92,13 @@ export async function fetchProduct(id: string): Promise<{ data: Product }> {
     if (!product) throw new Error('Product not found');
     return { data: product };
   }
-  const { data } = await api.get<{ data: ArmDistributorProduct }>(`/products/${id}`);
+  const { data } = await api.get<{ data: ArmDistributorProduct }>(ENDPOINTS.product(id));
   return { data: armToProduct(data.data) };
 }
 
 export async function fetchCategories(): Promise<{ data: Category[] }> {
   if (USE_MOCKS) return { data: MOCK_CATEGORIES };
-  const { data } = await api.get<{ data: ArmCategory[] }>('/categories', {
+  const { data } = await api.get<{ data: ArmCategory[] }>(ENDPOINTS.categories, {
     headers: currencyHeader(),
   });
   return { data: data.data.map(armToCategory) };
@@ -151,29 +106,12 @@ export async function fetchCategories(): Promise<{ data: Category[] }> {
 
 // ---------- Checkout ----------
 
-/** Returns X-Currency header for ARM checkout endpoints. */
-export function currencyHeader(): Record<string, string> {
-  // TR market default — must match the display layer (money.ts/seo.ts use TRY).
-  // USD here makes cart/validate return product_not_found for TRY-priced products.
-  return { 'X-Currency': process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY' };
-}
-
 /** Maps a CartItem to the ARM distributorProductId form. */
 function toArm(i: CartItem) {
   return { distributorProductId: i.productId, quantity: i.quantity };
 }
 
 // ---------- Promo Codes ----------
-
-export interface PromoValidationResult {
-  valid: boolean;
-  error?: string;
-  code?: string;
-  discount_type?: 'percent' | 'fixed';
-  discount_value?: number;
-  discount_amount?: number;
-  description?: string | null;
-}
 
 /**
  * Validate a promo code against a subtotal.
@@ -184,7 +122,7 @@ export async function validatePromo(
   subtotal: number,
 ): Promise<{ data: PromoValidationResult }> {
   const { data } = await api.post(
-    '/promo/validate',
+    ENDPOINTS.promoValidate,
     { code, subtotal },
     { headers: currencyHeader() },
   );
@@ -204,7 +142,7 @@ export async function validateCart(items: CartItem[]): Promise<{
   };
 }> {
   const { data } = await api.post(
-    '/cart/validate',
+    ENDPOINTS.cartValidate,
     { items: items.map(toArm) },
     { headers: currencyHeader() },
   );
@@ -227,11 +165,11 @@ export interface FetchShippingRatesParams {
 export async function fetchShippingRates(
   params: FetchShippingRatesParams,
 ): Promise<ArmShippingRatesResponse> {
-  const { data } = await api.get('/shipping/rates', {
+  const { data } = await api.get(ENDPOINTS.shippingRates, {
     params: {
       country: params.country,
       postalCode: params.postalCode,
-      currency: params.currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY',
+      currency: params.currency || storefrontCurrency(),
       items: JSON.stringify(params.items.map(toArm)),
     },
     headers: currencyHeader(),
@@ -276,7 +214,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
     promoCode: payload.promoCode,
   };
   // D-06: bearerHeader() attaches Authorization for logged-in users; returns {} for guests
-  const { data } = await api.post('/orders', body, {
+  const { data } = await api.post(ENDPOINTS.orders, body, {
     headers: { ...currencyHeader(), ...bearerHeader() },
   });
   return data;
@@ -291,7 +229,7 @@ export async function createPaymentSession(
   successUrl: string,
   cancelUrl: string,
 ): Promise<{ data: ArmPaymentSession }> {
-  const { data } = await api.post('/payment/create-session', {
+  const { data } = await api.post(ENDPOINTS.paymentCreateSession, {
     orderId,
     successUrl,
     cancelUrl,
@@ -304,6 +242,6 @@ export async function createPaymentSession(
  * ARM contract: GET /orders/{id}
  */
 export async function fetchOrder(id: string): Promise<{ data: ArmOrder }> {
-  const { data } = await api.get(`/orders/${id}`);
+  const { data } = await api.get(ENDPOINTS.order(id));
   return { data: data.data ?? data };
 }

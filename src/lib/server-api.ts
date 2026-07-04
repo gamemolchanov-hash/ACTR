@@ -19,7 +19,13 @@
  * the active locale. The BFF requires full BCP-47 (e.g. tr-TR not tr).
  */
 
-import type { Product, Category } from './api';
+import {
+  ENDPOINTS,
+  ARM_STOREFRONT_BASE_PATH,
+  currencyHeader,
+  tenantHeader,
+} from './arm-contract';
+import type { Product, Category } from './domain-types';
 import { armToProduct, armToCategory } from './arm-adapter';
 import type { ArmDistributorProduct, ArmCategory, ArmPaginated } from './arm-types';
 
@@ -27,11 +33,8 @@ const BFF_INTERNAL_URL = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000
   /\/+$/,
   '',
 );
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
-// D-06: single canonical currency source, reused across api.ts / money.ts / here.
-const STOREFRONT_CURRENCY = process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
-const STOREFRONT_BASE = `${BFF_INTERNAL_URL}/public/arm/storefront`;
+const STOREFRONT_BASE = `${BFF_INTERNAL_URL}${ARM_STOREFRONT_BASE_PATH}`;
 
 // Catalog data is cached at the BFF/CDN already; re-fetch server-side at most
 // every 5 min so metadata/sitemap stay fresh without hammering the BFF.
@@ -72,9 +75,9 @@ async function bffGet<T>(path: string, lang?: string): Promise<T | null> {
     // an intersection so plain `tsc` (no Next augmentation) still compiles.
     const init: RequestInit & { next?: { revalidate?: number } } = {
       headers: {
-        'X-Tenant-ID': TENANT_ID,
+        ...tenantHeader(),
         ...(STOREFRONT_KEY ? { 'X-Storefront-Key': STOREFRONT_KEY } : {}),
-        'X-Currency': STOREFRONT_CURRENCY,
+        ...currencyHeader(),
       },
       next: { revalidate: REVALIDATE_SECONDS },
     };
@@ -109,7 +112,7 @@ export async function fetchProductServer(
 ): Promise<Product | null> {
   const lang = locale ? (LOCALE_TO_BCP47[locale] || 'en-US') : undefined;
   const res = await bffGet<{ data: ArmDistributorProduct }>(
-    `/products/${encodeURIComponent(idOrSlug)}`,
+    ENDPOINTS.product(encodeURIComponent(idOrSlug)),
     lang,
   );
   return res?.data ? armToProduct(res.data) : null;
@@ -122,7 +125,7 @@ export async function fetchProductServer(
  * (the endpoint returns `200 + []` when there are genuinely no categories).
  */
 export async function fetchCategoriesServer(): Promise<Category[]> {
-  const res = await bffGet<{ data: ArmCategory[] }>('/categories');
+  const res = await bffGet<{ data: ArmCategory[] }>(ENDPOINTS.categories);
   if (res === null) {
     throw new BffUnavailableError(404, 'Storefront BFF responded 404 for /categories');
   }
@@ -142,7 +145,7 @@ export async function fetchAllProductsServer(): Promise<Product[]> {
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const res = await bffGet<ArmPaginated<ArmDistributorProduct>>(
-      `/products?limit=${limit}&page=${page}`,
+      `${ENDPOINTS.products}?limit=${limit}&page=${page}`,
     );
     if (res === null) {
       throw new BffUnavailableError(404, `Storefront BFF responded 404 for /products page ${page}`);

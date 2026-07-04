@@ -15,6 +15,8 @@ import 'server-only';
  * `formatLocaleFromCountry`) apply their own defaulting.
  */
 
+import { ENDPOINTS, ARM_STOREFRONT_BASE_PATH, tenantId } from './arm-contract';
+
 export type StorefrontConfig = {
   currency: string;
   country: string | null;
@@ -22,15 +24,14 @@ export type StorefrontConfig = {
 };
 
 const BFF = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000').replace(/\/+$/, '');
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
 
 export async function getStorefrontConfig(): Promise<StorefrontConfig> {
   try {
-    const headers: Record<string, string> = { 'X-Tenant-ID': TENANT_ID };
+    const headers: Record<string, string> = { 'X-Tenant-ID': tenantId() };
     if (STOREFRONT_KEY) headers['X-Storefront-Key'] = STOREFRONT_KEY;
 
-    const res = await fetch(`${BFF}/public/arm/storefront/config`, {
+    const res = await fetch(`${BFF}${ARM_STOREFRONT_BASE_PATH}${ENDPOINTS.config}`, {
       headers,
       next: { revalidate: 300 },
     });

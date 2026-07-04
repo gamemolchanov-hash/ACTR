@@ -8,7 +8,13 @@
  * ВАЖНО: `Product.id` = `distributorProductId` (ARM `dp.id`) — именно его ждут
  * cart/order endpoints ARM (фазы 2+). Мастер-id товара отдельно не нужен витрине.
  */
-import type { Product, Category, ProductImage, ValidatedCartItem, PromoValidationResult } from './api';
+import type {
+  Product,
+  Category,
+  ProductImage,
+  ValidatedCartItem,
+  PromoValidationResult,
+} from './domain-types';
 import type {
   ArmDistributorProduct,
   ArmProductImage,

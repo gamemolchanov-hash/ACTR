@@ -11,12 +11,13 @@
  */
 import type { NextRequest } from 'next/server';
 
+import { tenantId, ARM_STOREFRONT_BASE_PATH } from '@/lib/arm-contract';
+
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const BFF = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000').replace(/\/+$/, '');
-const ARM_BASE = `${BFF}/public/arm/storefront`;
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
+const ARM_BASE = `${BFF}${ARM_STOREFRONT_BASE_PATH}`;
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
 
 /**
@@ -45,7 +46,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
 
   const target = `${ARM_BASE}/${path.map(encodeURIComponent).join('/')}${url.search}`;
 
-  const headers: Record<string, string> = { 'X-Tenant-ID': TENANT_ID };
+  const headers: Record<string, string> = { 'X-Tenant-ID': tenantId() };
   if (STOREFRONT_KEY) headers['X-Storefront-Key'] = STOREFRONT_KEY;
   const currency = req.headers.get('x-currency');
   if (currency) headers['X-Currency'] = currency;

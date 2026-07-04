@@ -7,6 +7,7 @@
  */
 
 import { api } from './api';
+import { ENDPOINTS } from './arm-contract';
 
 // ---------------------------------------------------------------------------
 // Types (from 03-RESEARCH.md §ARM Types — verified from BFF source)
@@ -143,7 +144,7 @@ export async function register(data: {
   terms_accepted: boolean;
   terms_version: string;
 }): Promise<{ message: string }> {
-  const res = await api.post('/auth/register', data);
+  const res = await api.post(ENDPOINTS.auth.register, data);
   return res.data;
 }
 
@@ -152,17 +153,17 @@ export async function register(data: {
  * Token is stored by AuthContext.setAuth (D-03).
  */
 export async function login(loginValue: string, password: string): Promise<LoginResult> {
-  const res = await api.post('/auth/login', { login: loginValue, password });
+  const res = await api.post(ENDPOINTS.auth.login, { login: loginValue, password });
   return res.data;
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-  const res = await api.post('/auth/forgot-password', { email });
+  const res = await api.post(ENDPOINTS.auth.forgotPassword, { email });
   return res.data;
 }
 
 export async function resetPassword(token: string, password: string): Promise<{ message: string }> {
-  const res = await api.post('/auth/reset-password', { token, password });
+  const res = await api.post(ENDPOINTS.auth.resetPassword, { token, password });
   return res.data;
 }
 
@@ -172,7 +173,7 @@ export async function resetPassword(token: string, password: string): Promise<{ 
  * Does NOT call clearToken — only 401/403 via isAuthFailure drops the session.
  */
 export async function getMe(): Promise<{ customer: AuthCustomer; loyalty: LoyaltyData | null }> {
-  const res = await api.get('/auth/me', { headers: bearerHeader() });
+  const res = await api.get(ENDPOINTS.auth.me, { headers: bearerHeader() });
   return { customer: res.data.customer, loyalty: res.data.loyalty ?? null };
 }
 
@@ -181,19 +182,19 @@ export async function getMe(): Promise<{ customer: AuthCustomer; loyalty: Loyalt
 // ---------------------------------------------------------------------------
 
 export async function getMyAddresses(): Promise<{ data: CustomerAddress[] }> {
-  const res = await api.get('/auth/me/addresses', { headers: bearerHeader() });
+  const res = await api.get(ENDPOINTS.auth.addresses, { headers: bearerHeader() });
   return res.data;
 }
 
 export async function addMyAddress(
   addr: Partial<CustomerAddress>,
 ): Promise<{ data: CustomerAddress }> {
-  const res = await api.post('/auth/me/addresses', addr, { headers: bearerHeader() });
+  const res = await api.post(ENDPOINTS.auth.addresses, addr, { headers: bearerHeader() });
   return res.data;
 }
 
 export async function deleteMyAddress(id: string): Promise<void> {
-  await api.delete(`/auth/me/addresses/${id}`, { headers: bearerHeader() });
+  await api.delete(ENDPOINTS.auth.address(id), { headers: bearerHeader() });
 }
 
 export async function getMyOrders(
@@ -203,7 +204,7 @@ export async function getMyOrders(
   data: CustomerOrder[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 }> {
-  const res = await api.get('/auth/me/orders', {
+  const res = await api.get(ENDPOINTS.auth.orders, {
     headers: bearerHeader(),
     params: { page, limit },
   });
@@ -211,7 +212,7 @@ export async function getMyOrders(
 }
 
 export async function getMyOrder(id: string): Promise<{ data: CustomerOrder }> {
-  const res = await api.get(`/auth/me/orders/${id}`, { headers: bearerHeader() });
+  const res = await api.get(ENDPOINTS.auth.order(id), { headers: bearerHeader() });
   return res.data;
 }
 
@@ -219,7 +220,7 @@ export async function updateProfile(data: {
   name?: string;
   phone?: string;
 }): Promise<AuthCustomer> {
-  const res = await api.patch('/auth/me/profile', data, { headers: bearerHeader() });
+  const res = await api.patch(ENDPOINTS.auth.profile, data, { headers: bearerHeader() });
   return res.data.customer;
 }
 
@@ -227,17 +228,17 @@ export async function changePassword(data: {
   currentPassword: string;
   newPassword: string;
 }): Promise<{ message: string }> {
-  const res = await api.post('/auth/me/change-password', data, { headers: bearerHeader() });
+  const res = await api.post(ENDPOINTS.auth.changePassword, data, { headers: bearerHeader() });
   return res.data;
 }
 
 export async function exportAccount(): Promise<Record<string, unknown>> {
-  const res = await api.get('/auth/me/export', { headers: bearerHeader() });
+  const res = await api.get(ENDPOINTS.auth.export, { headers: bearerHeader() });
   return res.data;
 }
 
 export async function deleteAccount(data: { password?: string }): Promise<{ message: string }> {
-  const res = await api.post('/auth/me/delete-account', data, { headers: bearerHeader() });
+  const res = await api.post(ENDPOINTS.auth.deleteAccount, data, { headers: bearerHeader() });
   return res.data;
 }
 
