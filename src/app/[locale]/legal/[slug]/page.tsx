@@ -69,7 +69,7 @@ export default async function LegalPage({ params }: Props) {
           {/* Intro */}
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", Helvetica',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
               fontSize: 18,
               fontWeight: 400,
               lineHeight: '24px',
@@ -85,7 +85,7 @@ export default async function LegalPage({ params }: Props) {
             <Box key={n} sx={{ mb: 3 }}>
               <Typography
                 sx={{
-                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
                   fontSize: 20,
                   fontWeight: 450,
                   lineHeight: '26px',
@@ -98,7 +98,7 @@ export default async function LegalPage({ params }: Props) {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'LiraFix, "Futura PT", Helvetica',
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
                   fontSize: 16,
                   fontWeight: 400,
                   lineHeight: '22px',

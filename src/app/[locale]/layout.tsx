@@ -16,6 +16,7 @@ import { SITE_NAME, SITE_URL } from '@/lib/seo';
 import { routing } from '@/i18n/routing';
 import { getStorefrontConfig } from '@/lib/storefront-config';
 import { formatLocaleFromCountry } from '@/lib/format-locale';
+import { FONT_FACE_CSS, FUTURA_PRELOAD_HREF } from '@/lib/fonts';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -90,19 +91,18 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
-        <link href="https://fonts.cdnfonts.com/css/futura-pt" rel="stylesheet" />
-        {/* Futura PT's ₺ (U+20BA) glyph reads like a ruble. Define a tiny
-            "LiraFix" family that maps ONLY the lira codepoint to a clean
-            sans-serif (Arial/…), and place it FIRST in every price font stack
-            (`LiraFix, "Futura PT", …`). Per-glyph fallback then uses Arial's ₺
-            and Futura PT for all other characters — the reliable mechanism
-            (same-family composition does NOT win over the CDN Futura face).
+        {/* Self-hosted Futura PT (FBG-225) — replaces render-blocking fonts.cdnfonts.com.
+            Preload the primary (Book) face; @font-face rules (incl. metric-adjusted
+            fallback and the LiraFix ₺ family) live in FONT_FACE_CSS.
             dangerouslySetInnerHTML keeps React from escaping the quotes. */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `@font-face{font-family:"LiraFix";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Tahoma"),local("Verdana");unicode-range:U+20BA;font-display:swap;}`,
-          }}
+        <link
+          rel="preload"
+          href={FUTURA_PRELOAD_HREF}
+          as="font"
+          type="font/woff"
+          crossOrigin="anonymous"
         />
+        <style dangerouslySetInnerHTML={{ __html: FONT_FACE_CSS }} />
       </head>
       <body style={{ margin: 0, overflowX: 'hidden' }}>
         <AppRouterCacheProvider>

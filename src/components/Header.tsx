@@ -129,7 +129,7 @@ export function Header() {
         <Box sx={{ ml: 3, display: { xs: 'none', lg: 'block' } }}>
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
               fontSize: 20,
               fontWeight: 500,
               lineHeight: '26px',
@@ -140,7 +140,7 @@ export function Header() {
           </Typography>
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
               fontSize: 14,
               fontWeight: 300,
               lineHeight: '14px',
@@ -174,7 +174,7 @@ export function Header() {
                 }}
                 sx={{
                   flex: 1,
-                  fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                   fontSize: { sm: 14, lg: 18 },
                   fontWeight: 400,
                   color: palette.primary,
@@ -324,7 +324,7 @@ export function Header() {
                 bgcolor: locale === lng ? palette.primary : 'transparent',
                 color: locale === lng ? 'white' : palette.primary,
                 cursor: 'pointer',
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 12,
                 fontWeight: 500,
                 textTransform: 'uppercase' as const,
@@ -342,7 +342,7 @@ export function Header() {
               href="/account"
               underline="none"
               sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 14,
                 color: palette.primary,
                 whiteSpace: 'nowrap',
@@ -355,7 +355,7 @@ export function Header() {
               onClick={signOut}
               underline="none"
               sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 13,
                 color: palette.primaryLight,
                 cursor: 'pointer',
@@ -415,7 +415,7 @@ export function Header() {
               href="/account"
               underline="none"
               sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 14,
                 color: palette.primary,
                 whiteSpace: 'nowrap',
@@ -428,7 +428,7 @@ export function Header() {
               onClick={signOut}
               underline="none"
               sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 13,
                 color: palette.primaryLight,
                 whiteSpace: 'nowrap',
@@ -447,7 +447,7 @@ export function Header() {
             href="/login"
             underline="none"
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
               fontSize: 14,
               color: palette.primary,
               whiteSpace: 'nowrap',
@@ -507,7 +507,7 @@ export function Header() {
                 }}
                 sx={{
                   flex: 1,
-                  fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                   fontSize: 14,
                   color: palette.primary,
                   '& ::placeholder': { color: '#adb7d9' },
@@ -672,7 +672,7 @@ export function Header() {
                 href={item.href}
                 underline="none"
                 sx={{
-                  fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                   fontSize: { sm: 14, md: 16, lg: 18 },
                   fontWeight: isActive ? 700 : 400,
                   lineHeight: '23px',
@@ -699,7 +699,7 @@ export function Header() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
               fontSize: 18,
               fontWeight: 700,
               color: palette.primary,
@@ -731,7 +731,7 @@ export function Header() {
                 bgcolor: locale === lng ? palette.primary : 'transparent',
                 color: locale === lng ? 'white' : palette.primary,
                 cursor: 'pointer',
-                fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                 fontSize: 13,
                 fontWeight: 500,
                 textTransform: 'uppercase' as const,
@@ -760,7 +760,7 @@ export function Header() {
                   primary={item.label}
                   primaryTypographyProps={{
                     sx: {
-                      fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                      fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                       fontSize: 18,
                       fontWeight: isActive ? 700 : 400,
                       color: palette.primary,
@@ -795,7 +795,7 @@ export function Header() {
                 primary={item.label}
                 primaryTypographyProps={{
                   sx: {
-                    fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                     fontSize: 18,
                     fontWeight: 400,
                     color: palette.primary,
@@ -816,7 +816,7 @@ export function Header() {
                 primary={t('common.signOut')}
                 primaryTypographyProps={{
                   sx: {
-                    fontFamily: 'LiraFix, "Futura PT", "Ubuntu", Arial, sans-serif',
+                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                     fontSize: 18,
                     fontWeight: 400,
                     color: palette.primaryLight,

@@ -22,7 +22,7 @@ import { register, login as doLogin, TERMS_VERSION } from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslations } from 'next-intl';
 
-const fontMain = 'LiraFix, "Futura PT", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 const inputSx = {
@@ -539,7 +539,7 @@ function FieldBlock({
     <Box sx={{ mb: 2.5 }}>
       <Typography
         sx={{
-          fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
+          fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
           fontWeight: 400,
           fontSize: { xs: 14, md: 18 },
           lineHeight: '20px',

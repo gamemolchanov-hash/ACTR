@@ -71,7 +71,7 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
           <img src="/icons/trending-topic.png" alt="" style={{ width: 17, height: 17 }} />
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
               fontSize: 12,
               color: palette.primary,
               lineHeight: 1,
@@ -127,7 +127,7 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
           {/* Name */}
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
               fontWeight: 500,
               fontSize: 16,
               lineHeight: '22px',
@@ -159,7 +159,7 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
             sx={{
               fontSize: 11,
               color: palette.primaryLight,
-              fontFamily: 'LiraFix, "Futura PT", Helvetica',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
             }}
           >
             {t('price.kdvDahil')}
@@ -222,7 +222,7 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
               flex: 1,
               bgcolor: palette.primary,
               color: 'white',
-              fontFamily: 'LiraFix, "Futura PT", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
               fontSize: 14,
               fontWeight: 450,
               cursor: 'pointer',

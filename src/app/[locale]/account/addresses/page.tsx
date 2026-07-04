@@ -35,7 +35,7 @@ import {
 } from '@/lib/auth';
 import { useTranslations } from 'next-intl';
 
-const fontMain = 'LiraFix, "Futura PT", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 const emptyForm = {
