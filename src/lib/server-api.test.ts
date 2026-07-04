@@ -21,7 +21,7 @@ describe('fetchProductServer', () => {
   it('returns product data and sends the tenant header to the storefront BFF', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
-      json: async () => ({ data: { id: 'p1', name: 'BASE GEL' } }),
+      json: async () => ({ data: { id: 'p1', price: '10.00', product: { name: 'BASE GEL' } } }),
     }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -30,12 +30,12 @@ describe('fetchProductServer', () => {
     expect(product?.id).toBe('p1');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toContain('/public/oms/storefront/products/198');
+    expect(url).toContain('/public/arm/storefront/products/198');
     expect((init.headers as Record<string, string>)['X-Tenant-ID']).toBeTruthy();
   });
 
   it('encodes the slug/id path segment', async () => {
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: { id: 'x' } }) }));
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ data: { id: 'x', price: '1.00', product: { name: 'X' } } }) }));
     vi.stubGlobal('fetch', fetchMock);
     await fetchProductServer('a/b c');
     const [url] = fetchMock.mock.calls[0] as unknown as [string];
@@ -117,11 +117,11 @@ describe('fetchCategoriesServer', () => {
 describe('fetchAllProductsServer', () => {
   it('walks every page until totalPages and concatenates results', async () => {
     const page1 = {
-      data: Array.from({ length: 100 }, (_, i) => ({ id: `p${i}` })),
+      data: Array.from({ length: 100 }, (_, i) => ({ id: `p${i}`, price: '1.00', product: { name: `P${i}` } })),
       meta: { total: 150, page: 1, limit: 100, totalPages: 2 },
     };
     const page2 = {
-      data: Array.from({ length: 50 }, (_, i) => ({ id: `q${i}` })),
+      data: Array.from({ length: 50 }, (_, i) => ({ id: `q${i}`, price: '1.00', product: { name: `Q${i}` } })),
       meta: { total: 150, page: 2, limit: 100, totalPages: 2 },
     };
     const fetchMock = vi.fn(async (url: string) => ({
