@@ -1,5 +1,6 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 const createNextIntlPlugin = require('next-intl/plugin');
+const { STATIC_CACHE_HEADERS } = require('./next-cache-headers');
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -7,6 +8,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 const nextConfig = {
   output: 'standalone',
   skipTrailingSlashRedirect: true,
+
+  // FBG-227: long-lived Cache-Control for public/ static so returning visitors
+  // stop re-downloading unchanged chrome on Cloudflare's 4h default TTL.
+  // Table (and the rename-on-change rationale) lives in ./next-cache-headers.js.
+  async headers() {
+    return STATIC_CACHE_HEADERS;
+  },
 
   async redirects() {
     // Trailing-slash hygiene only for existing TR routes (D-07, CLEAN-01).
