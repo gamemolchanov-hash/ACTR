@@ -11,7 +11,7 @@
  */
 import type { NextRequest } from 'next/server';
 
-import { tenantId, ARM_STOREFRONT_BASE_PATH } from '@/lib/arm-contract';
+import { tenantId, ARM_STOREFRONT_BASE_PATH, LOCALE_TO_BCP47 } from '@/lib/arm-contract';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,15 +20,10 @@ const BFF = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000').replace(/\
 const ARM_BASE = `${BFF}${ARM_STOREFRONT_BASE_PATH}`;
 const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
 
-/**
- * Maps storefront locale cookie values to BCP-47 codes accepted by the BFF.
- * BFF validates via /^[a-z]{2}-[A-Z]{2}$/ — short codes (en/tr) are silently
- * ignored. Only full BCP-47 codes produce translated product content (D-08).
- */
-const LOCALE_TO_BCP47: Record<string, string> = {
-  en: 'en-US',
-  tr: 'tr-TR',
-};
+// LOCALE_TO_BCP47 (единый контракт, arm-contract.ts): маппинг cookie-локали в BCP-47.
+// BFF валидирует /^[a-z]{2}-[A-Z]{2}$/ — короткие en/tr молча игнорируются; переведённый
+// контент даёт только полный код (D-08). Проксирует как фолбэк, когда клиент не передал
+// ?lang явно (FBG-258 шлёт его для tr из URL-локали; здесь остаётся защита для en/legacy).
 
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   // Inject ?lang=<bcp47> ONLY on product-detail (path.length===2 && path[0]==='products').

@@ -22,6 +22,7 @@
 import {
   ENDPOINTS,
   ARM_STOREFRONT_BASE_PATH,
+  LOCALE_TO_BCP47,
   currencyHeader,
   tenantHeader,
 } from './arm-contract';
@@ -39,12 +40,6 @@ const STOREFRONT_BASE = `${BFF_INTERNAL_URL}${ARM_STOREFRONT_BASE_PATH}`;
 // Catalog data is cached at the BFF/CDN already; re-fetch server-side at most
 // every 5 min so metadata/sitemap stay fresh without hammering the BFF.
 const REVALIDATE_SECONDS = 300;
-
-/** BCP-47 mapping for ARM ?lang= (BFF requires full form, e.g. tr-TR not tr). */
-const LOCALE_TO_BCP47: Record<string, string> = {
-  en: 'en-US',
-  tr: 'tr-TR',
-};
 
 /** Thrown when the BFF is unreachable or returns a non-404 error (transient). */
 export class BffUnavailableError extends Error {

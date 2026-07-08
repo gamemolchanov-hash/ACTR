@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-import { ENDPOINTS, currencyHeader, storefrontCurrency, tenantHeader } from './arm-contract';
+import {
+  ENDPOINTS,
+  currencyHeader,
+  productLangParam,
+  storefrontCurrency,
+  tenantHeader,
+} from './arm-contract';
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
 import { armToProduct, armToCategory, armToValidatedCart, armToPromoResult } from './arm-adapter';
 import { bearerHeader } from './auth';
@@ -86,13 +92,21 @@ export async function fetchProducts(params?: {
   return { data: data.data.map(armToProduct), meta: data.meta };
 }
 
-export async function fetchProduct(id: string): Promise<{ data: Product }> {
+export async function fetchProduct(id: string, locale?: string): Promise<{ data: Product }> {
   if (USE_MOCKS) {
     const product = MOCK_PRODUCTS.find((p) => p.id === id);
     if (!product) throw new Error('Product not found');
     return { data: product };
   }
-  const { data } = await api.get<{ data: ArmDistributorProduct }>(ENDPOINTS.product(id));
+  // FBG-258: локаль tr → ?lang=tr-TR — BFF COALESCE'ит перевод поверх базовых EN-полей;
+  // при отсутствии перевода отдаётся база (translation_locale=null, безопасный фолбэк).
+  // en (и неизвестные локали) → без параметра: базовый EN, как раньше. Локаль берётся из
+  // URL (next-intl useLocale), а не из cookie — согласованно с SSR/SEO (server-api.ts).
+  const lang = productLangParam(locale);
+  const { data } = await api.get<{ data: ArmDistributorProduct }>(
+    ENDPOINTS.product(id),
+    lang ? { params: { lang } } : undefined,
+  );
   return { data: armToProduct(data.data) };
 }
 

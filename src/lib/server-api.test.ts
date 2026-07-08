@@ -42,6 +42,31 @@ describe('fetchProductServer', () => {
     expect(url).toContain('/products/a%2Fb%20c');
   });
 
+  // FBG-258: the SEO path (generateMetadata / JSON-LD) must request the same
+  // localized content as the visible page — ?lang=<bcp47> threaded from the URL
+  // locale. Guards the shared LOCALE_TO_BCP47 map after centralizing it.
+  it('threads ?lang=tr-TR when locale=tr (localized SEO metadata)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: { id: 'p1', price: '10.00', product: { name: 'BAZ JEL' } } }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    await fetchProductServer('198', 'tr');
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toContain('lang=tr-TR');
+  });
+
+  it('sends no ?lang param when locale is omitted (locale-agnostic fetch)', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: { id: 'p1', price: '10.00', product: { name: 'BASE GEL' } } }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    await fetchProductServer('198');
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).not.toMatch(/[?&]lang=/);
+  });
+
   it('returns null on a genuine 404 (product absent → notFound())', async () => {
     vi.stubGlobal(
       'fetch',

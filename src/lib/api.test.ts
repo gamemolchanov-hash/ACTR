@@ -59,3 +59,54 @@ describe('fetchCategories — X-Currency header', () => {
     );
   });
 });
+
+describe('fetchProduct — ?lang locale param (FBG-258)', () => {
+  // Minimal ArmDistributorProduct fixture with base EN fields; `translation_locale`
+  // (top-level, ARM metadata) is ignored by the adapter — it only signals whether a
+  // translation was COALESCE'd. name/description arrive already-resolved from the BFF.
+  const armProduct = {
+    id: 'dp1',
+    price: '1250.00',
+    product: { name: 'BASE GEL', description: 'English description', sku: 'SKU-1', slug: 'base-gel' },
+  };
+
+  beforeEach(() => {
+    mockGet.mockResolvedValue({ data: { data: armProduct } });
+  });
+
+  it('requests ?lang=tr-TR on the product-detail fetch when locale=tr', async () => {
+    const { fetchProduct } = await import('./api');
+    await fetchProduct('198', 'tr');
+    const [url, config] = mockGet.mock.calls[0];
+    expect(url).toBe('/products/198');
+    expect(config?.params?.lang).toBe('tr-TR');
+  });
+
+  it('sends NO ?lang param when locale=en (base EN content)', async () => {
+    const { fetchProduct } = await import('./api');
+    await fetchProduct('198', 'en');
+    const [url, config] = mockGet.mock.calls[0];
+    expect(url).toBe('/products/198');
+    expect(config?.params?.lang).toBeUndefined();
+  });
+
+  it('sends NO ?lang param when locale is omitted', async () => {
+    const { fetchProduct } = await import('./api');
+    await fetchProduct('198');
+    const [, config] = mockGet.mock.calls[0];
+    expect(config?.params?.lang).toBeUndefined();
+  });
+
+  it('falls back to base EN content when the BFF returns translation_locale=null (no translation yet)', async () => {
+    // 185 TR translations are loaded asynchronously; until then the BFF returns the
+    // base row with translation_locale=null. The tr request must still resolve to the
+    // EN text (no throw, no empty fields) — the safe fallback contract.
+    mockGet.mockResolvedValue({
+      data: { data: { ...armProduct, translation_locale: null } },
+    });
+    const { fetchProduct } = await import('./api');
+    const { data } = await fetchProduct('198', 'tr');
+    expect(data.name).toBe('BASE GEL');
+    expect(data.description).toBe('English description');
+  });
+});

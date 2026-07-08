@@ -7,7 +7,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import {
   ENDPOINTS,
   ARM_STOREFRONT_BASE_PATH,
+  LOCALE_TO_BCP47,
   currencyHeader,
+  productLangParam,
   storefrontCurrency,
   tenantHeader,
   tenantId,
@@ -84,5 +86,30 @@ describe('ARM contract — headers (client + server share one builder)', () => {
 
     process.env.NEXT_PUBLIC_TENANT_ID = 'tenant_x';
     expect(tenantHeader()).toEqual({ 'X-Tenant-ID': 'tenant_x' });
+  });
+});
+
+describe('ARM contract — product ?lang param (FBG-258, single source of truth)', () => {
+  it('maps short locales to the full BCP-47 codes the BFF validates', () => {
+    // BFF regex /^[a-z]{2}-[A-Z]{2}$/ — short en/tr must never leak through.
+    expect(LOCALE_TO_BCP47.en).toBe('en-US');
+    expect(LOCALE_TO_BCP47.tr).toBe('tr-TR');
+  });
+
+  it('returns tr-TR for the Turkish locale (requests the translation)', () => {
+    expect(productLangParam('tr')).toBe('tr-TR');
+  });
+
+  it('returns undefined for English → no ?lang param, base EN content', () => {
+    expect(productLangParam('en')).toBeUndefined();
+  });
+
+  it('returns undefined when locale is omitted (locale-agnostic client fetch)', () => {
+    expect(productLangParam()).toBeUndefined();
+    expect(productLangParam(undefined)).toBeUndefined();
+  });
+
+  it('falls back to undefined (base EN) for an unknown locale', () => {
+    expect(productLangParam('de')).toBeUndefined();
   });
 });

@@ -18,7 +18,7 @@ import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProduct } from '@/lib/api';
@@ -187,6 +187,7 @@ function RecentlyViewedCard({
 
 export function ProductDetail({ productId }: ProductDetailProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
@@ -200,9 +201,11 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   const [lbPan, setLbPan] = useState({ x: 0, y: 0 });
   const [quantity, setQuantity] = useState(1);
 
+  // FBG-258: locale входит в ключ кэша — при переключении en↔tr товар перезапрашивается
+  // (иначе React Query отдал бы закэшированный текст чужого языка в пределах staleTime).
   const { data, isLoading, error } = useQuery({
-    queryKey: ['product', productId],
-    queryFn: () => fetchProduct(productId),
+    queryKey: ['product', productId, locale],
+    queryFn: () => fetchProduct(productId, locale),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
