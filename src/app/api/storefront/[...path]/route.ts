@@ -69,10 +69,11 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   });
 }
 
-type Ctx = { params: { path: string[] } };
+// Next 15: route-handler context params are async — await before use.
+type Ctx = { params: Promise<{ path: string[] }> };
 
-export const GET = (req: NextRequest, ctx: Ctx) => proxy(req, ctx.params.path);
-export const POST = (req: NextRequest, ctx: Ctx) => proxy(req, ctx.params.path);
-export const PUT = (req: NextRequest, ctx: Ctx) => proxy(req, ctx.params.path);
-export const PATCH = (req: NextRequest, ctx: Ctx) => proxy(req, ctx.params.path);
-export const DELETE = (req: NextRequest, ctx: Ctx) => proxy(req, ctx.params.path);
+export const GET = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path);
+export const POST = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path);
+export const PUT = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path);
+export const PATCH = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path);
+export const DELETE = async (req: NextRequest, ctx: Ctx) => proxy(req, (await ctx.params).path);

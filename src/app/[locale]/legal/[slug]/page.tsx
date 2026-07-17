@@ -11,15 +11,17 @@ export function generateStaticParams() {
 }
 
 interface Props {
-  params: { slug: string; locale: string };
+  // Next 15: dynamic route params are async (awaited before use).
+  params: Promise<{ slug: string; locale: string }>;
 }
 
 export default async function LegalPage({ params }: Props) {
-  if (!LEGAL_SLUGS.includes(params.slug as LegalSlug)) {
+  const { slug: rawSlug } = await params;
+  if (!LEGAL_SLUGS.includes(rawSlug as LegalSlug)) {
     notFound();
   }
 
-  const slug = params.slug as LegalSlug;
+  const slug = rawSlug as LegalSlug;
   const nsKey = slug.replace(/-/g, '_');
   const t = await getTranslations(`legal.${nsKey}` as any);
 

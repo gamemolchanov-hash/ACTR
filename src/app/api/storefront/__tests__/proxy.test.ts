@@ -42,7 +42,8 @@ function makeReq(pathStr: string, locale?: string, query?: string): NextRequest 
 }
 
 function makeCtx(pathParts: string[]) {
-  return { params: { path: pathParts } };
+  // Next 15: route-handler context params are async (a Promise).
+  return { params: Promise.resolve({ path: pathParts }) };
 }
 
 describe('ARM storefront proxy — ?lang injection (D-08, I18N-03)', () => {

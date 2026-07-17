@@ -50,7 +50,8 @@ export function Header() {
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  // React 19 types: useRef requires an initial value (no zero-arg overload).
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const currency = useCurrency();
   const formatLocale = useFormatLocale();

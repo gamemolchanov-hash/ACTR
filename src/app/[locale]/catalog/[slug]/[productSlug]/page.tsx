@@ -7,7 +7,8 @@ import { fetchProductServer } from '@/lib/server-api';
 import { buildProductMetadata, buildProductJsonLd, jsonLdScript } from '@/lib/seo';
 
 interface ProductPageProps {
-  params: { locale: string; slug: string; productSlug: string };
+  // Next 15: dynamic route params are async (awaited before use).
+  params: Promise<{ locale: string; slug: string; productSlug: string }>;
 }
 
 // Server-rendered SEO metadata: title, description, canonical, OG/Twitter cards
@@ -22,21 +23,23 @@ interface ProductPageProps {
 // I18N-04 (04-05): locale threaded to fetchProductServer (?lang for BFF) and
 // buildProductMetadata (hreflang alternates, OG locale, locale-aware canonical).
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  setRequestLocale(params.locale);
+  const { locale, productSlug } = await params;
+  setRequestLocale(locale);
   // I18N-03: pass locale so BFF returns localized product name/description (?lang=<bcp47>)
-  const product = await fetchProductServer(params.productSlug, params.locale);
+  const product = await fetchProductServer(productSlug, locale);
   if (!product) notFound();
   // I18N-04: pass locale for hreflang alternates + OG locale
-  return buildProductMetadata(product, params.locale);
+  return buildProductMetadata(product, locale);
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  setRequestLocale(params.locale);
+  const { locale, productSlug } = await params;
+  setRequestLocale(locale);
   // Same lookup as generateMetadata — Next dedupes identical fetches per request.
   // Used only to embed Product JSON-LD in the initial HTML; the visible product
   // is still rendered client-side by <ProductDetail> via React Query.
   // I18N-03: pass locale so JSON-LD contains localized product content
-  const product = await fetchProductServer(params.productSlug, params.locale);
+  const product = await fetchProductServer(productSlug, locale);
   if (!product) notFound();
 
   return (
@@ -47,7 +50,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(buildProductJsonLd(product)) }}
       />
       <Suspense>
-        <ProductDetail productId={params.productSlug} />
+        <ProductDetail productId={productSlug} />
       </Suspense>
     </>
   );

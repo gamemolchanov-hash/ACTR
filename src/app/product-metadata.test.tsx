@@ -56,7 +56,7 @@ describe('product page generateMetadata', () => {
   it('builds title, canonical and OG image from the fetched product (EN)', async () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
 
-    const md = await generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } });
+    const md = await generateMetadata({ params: Promise.resolve({ locale: 'en', slug: 'base_gel', productSlug: '198' }) });
 
     // I18N-03: fetchProductServer called with locale param
     expect(fetchProductServer).toHaveBeenCalledWith('198', 'en');
@@ -73,7 +73,7 @@ describe('product page generateMetadata', () => {
   it('emits hreflang alternates.languages with en and tr (I18N-04)', async () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
 
-    const md = await generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } });
+    const md = await generateMetadata({ params: Promise.resolve({ locale: 'en', slug: 'base_gel', productSlug: '198' }) });
     const alternates = md.alternates as { languages: Record<string, string> };
     expect(alternates.languages['en']).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
     expect(alternates.languages['tr']).toBe(`${SITE_URL}/tr/catalog/base_gel/198`);
@@ -82,7 +82,7 @@ describe('product page generateMetadata', () => {
   it('uses tr_TR OG locale and /tr/ canonical for tr locale (I18N-04)', async () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(product);
 
-    const md = await generateMetadata({ params: { locale: 'tr', slug: 'base_gel', productSlug: '198' } });
+    const md = await generateMetadata({ params: Promise.resolve({ locale: 'tr', slug: 'base_gel', productSlug: '198' }) });
     // I18N-03: fetchProductServer called with tr locale
     expect(fetchProductServer).toHaveBeenCalledWith('198', 'tr');
     const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
@@ -95,7 +95,7 @@ describe('product page generateMetadata', () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     await expect(
-      generateMetadata({ params: { locale: 'en', slug: 'x', productSlug: 'missing' } }),
+      generateMetadata({ params: Promise.resolve({ locale: 'en', slug: 'x', productSlug: 'missing' }) }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalledTimes(1);
   });
@@ -104,7 +104,7 @@ describe('product page generateMetadata', () => {
     (fetchProductServer as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('BFF 503'));
 
     await expect(
-      generateMetadata({ params: { locale: 'en', slug: 'base_gel', productSlug: '198' } }),
+      generateMetadata({ params: Promise.resolve({ locale: 'en', slug: 'base_gel', productSlug: '198' }) }),
     ).rejects.toThrow('BFF 503');
     // Crucially, a transient failure must NOT be turned into a 404/noindex.
     expect(notFound).not.toHaveBeenCalled();
