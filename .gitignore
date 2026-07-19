@@ -22,5 +22,13 @@ next-env.d.ts
 *.log
 .claude/
 
+# Project docs (Obsidian vault в Dropbox, симлинк)
+/docs
+
 # GSD researcher web-fetch cache
 .planning/research/.cache/
+graphify-out/
+
+# env-бэкапы редактора/скриптов
+.env.*.bak.*
+.env.local.bak.*
