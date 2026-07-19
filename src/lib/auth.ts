@@ -23,10 +23,34 @@ export interface AuthCustomer {
 // backward-compat alias for pages that import Customer
 export type Customer = AuthCustomer;
 
+/** XP that will expire soon (Creator Club burn badge — FBG-384). */
+export interface XpExpiringSoon {
+  /** XP amount about to expire. */
+  xp: number;
+  /** Days until it expires. */
+  days: number;
+}
+
 export interface LoyaltyData {
   loyalty_points: number;
   loyalty_tier: number; // 1=Welcome, 2=Silver, 3=Gold
   total_spent: number;
+  // ---------------------------------------------------------------------------
+  // Creator Club V1 (FBG-384) — additive, all optional. The FBG storefront
+  // (points_discount program) never sends these, so the loyalty account page
+  // must degrade gracefully when they are absent. Shapes are assumed from the
+  // AutoCRM/ACTR vault spec (§10) — the clone carries no contract file.
+  // ---------------------------------------------------------------------------
+  /** Cashback wallet balance in store currency (TRY, major units). */
+  wallet_balance?: number;
+  /** Current tier code (matches a tier `code` from /config). */
+  tier_code?: string;
+  /** Cashback rate for the current tier (fraction, e.g. 0.05 = 5%). */
+  cashback_rate?: number;
+  /** Σ active XP over the rolling window — drives the tier progress bar. */
+  xp_active?: number;
+  /** XP due to expire soon, or null when nothing is expiring. */
+  xp_expiring_soon?: XpExpiringSoon | null;
 }
 
 export interface CustomerAddress {

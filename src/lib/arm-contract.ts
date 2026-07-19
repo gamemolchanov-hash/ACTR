@@ -99,6 +99,11 @@ export const ENDPOINTS = {
     address: (id: string) => `/auth/me/addresses/${id}`,
     orders: '/auth/me/orders',
     order: (id: string) => `/auth/me/orders/${id}`,
+    // Creator Club V1 (FBG-384): ledger history for the loyalty account page.
+    // Both are `/auth/me/*`-scoped like every other authenticated me-endpoint
+    // (contract spec lives in the AutoCRM/ACTR vault, not the clone).
+    walletHistory: '/auth/me/wallet/history',
+    loyaltyHistory: '/auth/me/loyalty/history',
     profile: '/auth/me/profile',
     changePassword: '/auth/me/change-password',
     export: '/auth/me/export',

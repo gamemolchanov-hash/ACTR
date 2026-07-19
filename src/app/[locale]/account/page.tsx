@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Box, Typography, Button, Card, CardContent, Grid } from '@mui/material';
-import { ShoppingBag, Person, Lock, ExitToApp, LocationOn } from '@mui/icons-material';
+import { ShoppingBag, Person, Lock, ExitToApp, LocationOn, Loyalty } from '@mui/icons-material';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
@@ -20,6 +20,12 @@ export default function AccountPage() {
   const router = useRouter();
 
   const menuItems = [
+    {
+      label: t('loyalty'),
+      description: t('loyaltyDesc'),
+      href: '/account/loyalty',
+      icon: Loyalty,
+    },
     {
       label: t('myOrders'),
       description: t('myOrdersDesc'),

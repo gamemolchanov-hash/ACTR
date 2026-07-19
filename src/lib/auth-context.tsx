@@ -16,7 +16,7 @@ import {
 
 interface AuthContextType {
   customer: AuthCustomer | null;
-  loyalty: LoyaltyData | null; // held in type, not rendered in Phase 3 (LOYL-01 deferred v2)
+  loyalty: LoyaltyData | null; // Creator Club loyalty snapshot from /auth/me (rendered by FBG-384 loyalty page)
   token: string | null;
   loading: boolean;
   setAuth: (token: string, customer: AuthCustomer, loyalty?: LoyaltyData | null) => void;
