@@ -42,7 +42,7 @@ import { palette } from '@/lib/theme';
 import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
-import { effectiveWalletAmount } from '@/lib/wallet';
+import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
 import WalletWidget from '@/components/WalletWidget';
 import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
@@ -440,7 +440,11 @@ export default function CheckoutPage() {
         window.location.assign(`${origin}/checkout/success?order=${orderRes.data.id}`);
       }
     } catch (err: any) {
+      // Known machine-readable codes get localized en/tr text; anything else
+      // falls back to the BFF's English `error` string (FBG-385 review).
+      const codeKey = checkoutErrorKey(err?.response?.data?.code);
       const msg =
+        (codeKey ? t(codeKey) : null) ||
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||

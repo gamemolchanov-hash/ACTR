@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Typography, Button, Card, CardContent, Grid } from '@mui/material';
 import { ShoppingBag, Person, Lock, ExitToApp, LocationOn, Loyalty } from '@mui/icons-material';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
+import { fetchLoyaltyConfig } from '@/lib/loyalty';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
@@ -19,13 +20,34 @@ export default function AccountPage() {
   const { customer, loading, signOut } = useAuth();
   const router = useRouter();
 
+  // Creator Club entry is dormant until the storefront actually runs the
+  // cashback_wallet program (owner launches it with the acquirer) — advertising
+  // an unlaunched loyalty programme is a spec violation (FBG-384 review).
+  const [loyaltyProgram, setLoyaltyProgram] = useState<string | null>(null);
+  useEffect(() => {
+    if (!customer) return;
+    let cancelled = false;
+    fetchLoyaltyConfig()
+      .then((cfg) => {
+        if (!cancelled) setLoyaltyProgram(cfg.program);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [customer]);
+
   const menuItems = [
-    {
-      label: t('loyalty'),
-      description: t('loyaltyDesc'),
-      href: '/account/loyalty',
-      icon: Loyalty,
-    },
+    ...(loyaltyProgram === 'cashback_wallet'
+      ? [
+          {
+            label: t('loyalty'),
+            description: t('loyaltyDesc'),
+            href: '/account/loyalty',
+            icon: Loyalty,
+          },
+        ]
+      : []),
     {
       label: t('myOrders'),
       description: t('myOrdersDesc'),

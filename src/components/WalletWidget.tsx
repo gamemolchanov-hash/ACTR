@@ -49,6 +49,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
   const formatLocale = useFormatLocale();
 
   const [balance, setBalance] = useState<number | null>(null);
+  const [program, setProgram] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [input, setInput] = useState('');
 
@@ -60,7 +61,10 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
     let cancelled = false;
     validateWallet(0, total)
       .then((res) => {
-        if (!cancelled) setBalance(res.data.balance);
+        if (!cancelled) {
+          setBalance(res.data.balance);
+          setProgram(res.data.program);
+        }
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -107,9 +111,11 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applied, total, promoActive]);
 
-  // Balance unknown or fetch failed → render nothing. The wallet is optional and
-  // must never block checkout (keeps the no-wallet / BFF-down flow clean).
-  if (failed || balance == null) return null;
+  // Balance unknown, fetch failed, or the storefront doesn't run cashback_wallet
+  // (dormant until the program launches — /wallet/validate answers the zero
+  // preview with program:'points_discount' today) → render nothing. The wallet
+  // is optional and must never block checkout.
+  if (failed || balance == null || program !== 'cashback_wallet') return null;
 
   const commit = (raw: number) => onChange(clampWalletAmount(raw, balance, total));
 

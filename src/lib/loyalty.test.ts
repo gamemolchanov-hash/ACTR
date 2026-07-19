@@ -102,10 +102,10 @@ describe('ARM adapters (defensive coercion)', () => {
   it('adaptWalletEntry coerces string amounts and keeps currency', () => {
     const e = adaptWalletEntry({
       id: 'w1',
-      created_at: '2026-01-01',
+      date_created: '2026-01-01',
       amount: '250.5',
       currency: 'TRY',
-      description: 'Cashback',
+      note: 'Cashback',
     });
     expect(e).toEqual({
       id: 'w1',
@@ -125,20 +125,35 @@ describe('ARM adapters (defensive coercion)', () => {
     expect(e.description).toBeNull();
   });
 
-  it('adaptLoyaltyEntry reads the XP delta from xp | points | amount', () => {
+  it('adaptLoyaltyEntry reads the XP delta (amount first) and passes status through', () => {
     expect(adaptLoyaltyEntry({ id: 'l1', xp: 40 }).amount).toBe(40);
     expect(adaptLoyaltyEntry({ points: '15' }).amount).toBe(15);
     expect(adaptLoyaltyEntry({ amount: 5 }).amount).toBe(5);
     expect(adaptLoyaltyEntry({ id: 'l2' }).kind).toBe('loyalty');
+    expect(adaptLoyaltyEntry({ id: 'l3', amount: 10, status: 'expired' }).status).toBe('expired');
+    expect(adaptLoyaltyEntry({ id: 'l4', amount: 10, date_created: '2026-05-01' }).date).toBe(
+      '2026-05-01',
+    );
   });
 
-  it('adaptTier drops rows missing code/name/min_xp and coerces min_xp', () => {
+  it('adaptTier derives the name from the code (BFF sends none) and coerces min_xp', () => {
+    expect(adaptTier({ code: 'silver', min_xp: 3000 })).toEqual({
+      code: 'silver',
+      name: 'Silver',
+      min_xp: 3000,
+    });
+    expect(adaptTier({ code: 'gold', min_xp: 10000, cashback_rate: 0.08 })).toEqual({
+      code: 'gold',
+      name: 'Gold',
+      min_xp: 10000,
+      cashback_rate: 0.08,
+    });
     expect(adaptTier({ code: 'g', name: 'Gold', min_xp: '300' })).toEqual({
       code: 'g',
       name: 'Gold',
       min_xp: 300,
     });
-    expect(adaptTier({ code: 'g', name: 'Gold' })).toBeNull();
+    expect(adaptTier({ code: 'g' })).toBeNull(); // no min_xp
     expect(adaptTier({ name: 'Gold', min_xp: 1 })).toBeNull();
     expect(adaptTier(null)).toBeNull();
   });

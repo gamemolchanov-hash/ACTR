@@ -85,9 +85,10 @@ export interface PromoValidationResult {
 
 /** Creator Club wallet preview (FBG-385) — output of `armToWalletValidation`. */
 export interface WalletValidationResult {
+  /** Storefront loyalty program; wallet UI is dormant unless 'cashback_wallet'. */
+  program: string;
   /** Current wallet balance (store currency, major units). */
   balance: number;
-  /** Amount the backend would actually debit for the requested amount + total. */
+  /** Server ceiling for this order (min(balance, wallet_cap × total)). */
   applicable: number;
-  currency?: string;
 }

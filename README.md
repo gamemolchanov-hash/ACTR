@@ -25,5 +25,6 @@ cd ~/work/puz/ACTR && npm install && npm run dev   # витрина на :3003
 
 ## Документация
 
-Полное ТЗ и трекер открытых вопросов — в autoCRM vault:
-`docs/modules/arm/ACTR/TZ.md` и `docs/modules/arm/ACTR/open-questions.md`.
+`docs/` — симлинк в Obsidian vault (`W/AutoCRM/ACTR`), в git не входит:
+[docs/TZ.md](docs/TZ.md) (полное ТЗ), [docs/open-questions.md](docs/open-questions.md),
+[docs/roadmap.md](docs/roadmap.md), [docs/GlitchTip.md](docs/GlitchTip.md).

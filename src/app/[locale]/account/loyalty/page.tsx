@@ -51,6 +51,7 @@ export default function LoyaltyPage() {
   const router = useRouter();
 
   const [tiers, setTiers] = useState<LoyaltyTier[]>([]);
+  const [program, setProgram] = useState<string | null>(null);
   const [entries, setEntries] = useState<LoyaltyLedgerEntry[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,9 +66,18 @@ export default function LoyaltyPage() {
     if (!customer) return;
     // Tier thresholds are public config; a failure just hides the progress bar.
     fetchLoyaltyConfig()
-      .then(setTiers)
+      .then((cfg) => {
+        setProgram(cfg.program);
+        setTiers(cfg.tiers);
+      })
       .catch(() => setTiers([]));
   }, [customer]);
+
+  // Dormant until the storefront runs cashback_wallet: the page must not exist
+  // for shoppers before the programme launches (FBG-384 review).
+  useEffect(() => {
+    if (program != null && program !== 'cashback_wallet') router.replace('/account');
+  }, [program, router]);
 
   useEffect(() => {
     if (!customer) return;
@@ -86,11 +96,17 @@ export default function LoyaltyPage() {
   }, [customer, page]);
 
   if (authLoading || !customer) return null;
+  if (program !== 'cashback_wallet') return null;
 
   const xpActive = loyalty?.xp_active ?? 0;
   const progress = tierProgress(xpActive, tiers, loyalty?.tier_code);
   const balance = loyalty?.wallet_balance ?? 0;
-  const expiring = loyalty?.xp_expiring_soon;
+  const rawExpiring = loyalty?.xp_expiring_soon;
+  // Real BFF shape: {amount, expires_at} — derive the day count client-side.
+  const expiringXp = rawExpiring ? Number(rawExpiring.amount) || 0 : 0;
+  const expiringDays = rawExpiring?.expires_at
+    ? Math.max(0, Math.ceil((Date.parse(rawExpiring.expires_at) - Date.now()) / 86_400_000))
+    : 0;
   const rawRate = loyalty?.cashback_rate ?? progress.current?.cashback_rate;
   // Rate is a fraction (0.05) per the vault spec; tolerate a percent (5) too.
   const cashbackPct =
@@ -202,10 +218,10 @@ export default function LoyaltyPage() {
                 </Box>
               )}
 
-              {expiring && expiring.xp > 0 && (
+              {expiringXp > 0 && (
                 <Chip
                   icon={<Whatshot sx={{ color: `${DEBIT} !important` }} />}
-                  label={t('expiringBadge', { xp: nfXp.format(expiring.xp), days: expiring.days })}
+                  label={t('expiringBadge', { xp: nfXp.format(expiringXp), days: expiringDays })}
                   sx={{
                     mt: 2,
                     bgcolor: 'transparent',
@@ -307,7 +323,13 @@ export default function LoyaltyPage() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={e.kind === 'wallet' ? t('kindWallet') : t('kindLoyalty')}
+                          label={
+                            e.kind === 'wallet'
+                              ? t('kindWallet')
+                              : e.status && e.status !== 'active'
+                                ? `${t('kindLoyalty')} · ${e.status === 'expired' ? t('statusExpired') : t('statusRevoked')}`
+                                : t('kindLoyalty')
+                          }
                           size="small"
                           sx={{
                             bgcolor: palette.primaryLight,

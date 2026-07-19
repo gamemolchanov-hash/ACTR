@@ -74,3 +74,14 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+## Documentation
+
+> `docs/` — симлинк в Obsidian vault (`W/AutoCRM/ACTR`), в git НЕ входит. Если диск W: не смонтирован — docs/ нечитаем.
+
+- [docs/TZ.md](docs/TZ.md) — полное ТЗ (включая §6 «Бэкенд-предпосылки»: рецепт заведения TRY-дистрибьютора/витрины в ARM)
+- [docs/open-questions.md](docs/open-questions.md) — деплой-трек открытых вопросов (Stripe в TR, перевозчик, e-fatura)
+- [docs/roadmap.md](docs/roadmap.md) — roadmap
+- [docs/GlitchTip.md](docs/GlitchTip.md) — error tracking
+
+Серверная сторона ARM (API, shipping, translations, multi-currency) — в autoCRM: `~/work/autoCRM/docs/modules/arm/`.

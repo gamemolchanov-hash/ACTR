@@ -53,6 +53,8 @@ export interface LoyaltyLedgerEntry {
   amount: number;
   /** Currency for wallet entries (store currency); undefined for loyalty XP. */
   currency?: string;
+  /** XP row status (loyalty rows only): active | expired | revoked. */
+  status?: string;
 }
 
 /** A page of merged ledger entries plus the paginator's page count. */
@@ -89,9 +91,11 @@ export function adaptTier(raw: unknown): LoyaltyTier | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   const code = r.code != null ? String(r.code) : '';
-  const name = r.name != null ? String(r.name) : '';
   const minXp = typeof r.min_xp === 'string' ? parseFloat(r.min_xp) : (r.min_xp as number);
-  if (!code || !name || !Number.isFinite(minXp)) return null;
+  if (!code || !Number.isFinite(minXp)) return null;
+  // BFF tiers carry no display name (only code/min_xp/cashback_rate per
+  // openapi.yaml LoyaltyProgramPublic) — derive a label from the code.
+  const name = r.name != null ? String(r.name) : code.charAt(0).toUpperCase() + code.slice(1);
   const tier: LoyaltyTier = { code, name, min_xp: minXp };
   if (r.cashback_rate != null) tier.cashback_rate = toNum(r.cashback_rate);
   return tier;
@@ -103,8 +107,10 @@ export function adaptWalletEntry(raw: unknown, idx = 0): LoyaltyLedgerEntry {
   return {
     id: r.id != null ? String(r.id) : `w-${idx}`,
     kind: 'wallet',
-    date: String(r.created_at ?? r.date ?? ''),
-    description: r.description != null ? String(r.description) : null,
+    // BFF sends Directus rows verbatim: the timestamp is `date_created` and the
+    // human label is `note` (openapi.yaml WalletLedgerEntry).
+    date: String(r.date_created ?? r.created_at ?? r.date ?? ''),
+    description: r.note != null ? String(r.note) : null,
     amount: toNum(r.amount),
     currency: r.currency != null ? String(r.currency) : undefined,
   };
@@ -114,13 +120,16 @@ export function adaptWalletEntry(raw: unknown, idx = 0): LoyaltyLedgerEntry {
 export function adaptLoyaltyEntry(raw: unknown, idx = 0): LoyaltyLedgerEntry {
   const r = (raw ?? {}) as Record<string, unknown>;
   // XP delta may be under `xp`, `points` or `amount` depending on the BFF build.
-  const xp = r.xp ?? r.points ?? r.amount;
+  const xp = r.amount ?? r.xp ?? r.points;
   return {
     id: r.id != null ? String(r.id) : `l-${idx}`,
     kind: 'loyalty',
-    date: String(r.created_at ?? r.date ?? ''),
-    description: r.description != null ? String(r.description) : null,
+    date: String(r.date_created ?? r.created_at ?? r.date ?? ''),
+    description: null,
     amount: toNum(xp),
+    // Lapsed/clawed-back grants must not render as live credits (XpLedgerEntry
+    // status: active | expired | revoked).
+    status: r.status != null ? String(r.status) : undefined,
   };
 }
 
@@ -173,14 +182,31 @@ export function tierProgress(
 // API calls (network — thin wrappers over the proxied ARM endpoints)
 // ---------------------------------------------------------------------------
 
-/** Fetch the configured Creator Club tiers from `/config` (defensive, never throws shape). */
-export async function fetchLoyaltyConfig(): Promise<LoyaltyTier[]> {
+/** Program + tiers from `/config` — the descriptor lives under `loyalty_program`. */
+export interface LoyaltyConfig {
+  /** 'cashback_wallet' | 'points_discount' | 'none' | '' (unknown). */
+  program: string;
+  tiers: LoyaltyTier[];
+}
+
+/**
+ * Fetch the Creator Club descriptor from `/config` (defensive, never throws on
+ * shape). The BFF key is `loyalty_program` (openapi.yaml LoyaltyProgramPublic);
+ * tiers are present only for cashback_wallet storefronts. Callers gate ALL
+ * Creator Club UI on `program === 'cashback_wallet'` — the program is dormant
+ * on the live storefront until the owner flips it.
+ */
+export async function fetchLoyaltyConfig(): Promise<LoyaltyConfig> {
   const { data } = await api.get(ENDPOINTS.config, { headers: currencyHeader() });
-  const loyalty = data?.data?.loyalty ?? data?.loyalty ?? {};
-  const rawTiers = Array.isArray(loyalty?.tiers) ? loyalty.tiers : [];
-  return rawTiers
-    .map(adaptTier)
-    .filter((t: LoyaltyTier | null): t is LoyaltyTier => t !== null);
+  const cfg = data?.data ?? data ?? {};
+  const descriptor = cfg?.loyalty_program ?? {};
+  const rawTiers = Array.isArray(descriptor?.tiers) ? descriptor.tiers : [];
+  return {
+    program: descriptor?.program != null ? String(descriptor.program) : '',
+    tiers: rawTiers
+      .map(adaptTier)
+      .filter((t: LoyaltyTier | null): t is LoyaltyTier => t !== null),
+  };
 }
 
 async function fetchHistory(

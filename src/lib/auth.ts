@@ -23,12 +23,13 @@ export interface AuthCustomer {
 // backward-compat alias for pages that import Customer
 export type Customer = AuthCustomer;
 
-/** XP that will expire soon (Creator Club burn badge — FBG-384). */
+/** XP that will expire soon (Creator Club burn badge — FBG-384).
+ *  Real BFF shape (openapi.yaml, readCashbackWalletSummary): amount + ISO date. */
 export interface XpExpiringSoon {
-  /** XP amount about to expire. */
-  xp: number;
-  /** Days until it expires. */
-  days: number;
+  /** XP amount about to expire (may arrive as a string). */
+  amount: number | string;
+  /** ISO timestamp when it expires. */
+  expires_at: string;
 }
 
 export interface LoyaltyData {

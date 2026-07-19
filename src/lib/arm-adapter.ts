@@ -117,9 +117,11 @@ function toNum(v: unknown): number {
  */
 export function armToWalletValidation(w: ArmWalletValidation): WalletValidationResult {
   return {
-    balance: toNum(w?.balance),
-    applicable: toNum(w?.applicable),
-    currency: w?.currency,
+    // Field names per BFF openapi.yaml /wallet/validate: program, wallet_balance,
+    // max_applicable (NOT balance/applicable — that shape never existed server-side).
+    program: w?.program != null ? String(w.program) : '',
+    balance: toNum(w?.wallet_balance),
+    applicable: toNum(w?.max_applicable),
   };
 }
 

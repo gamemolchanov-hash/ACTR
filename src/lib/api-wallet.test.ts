@@ -75,7 +75,16 @@ describe('createOrder — walletAmountToApply gating', () => {
 
 describe('validateWallet — Bearer-protected preview', () => {
   beforeEach(() => {
-    mockPost.mockResolvedValue({ data: { data: { balance: '500', applicable: '400', currency: 'TRY' } } });
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          program: 'cashback_wallet',
+          wallet_cap: 0.4,
+          wallet_balance: '500',
+          max_applicable: '400',
+        },
+      },
+    });
   });
 
   it('POSTs to /wallet/validate with Bearer + X-Currency headers', async () => {
@@ -89,6 +98,7 @@ describe('validateWallet — Bearer-protected preview', () => {
     expect(headers.Authorization).toBe('Bearer jwt-xyz');
     expect(headers['X-Currency']).toBe('TRY');
     // string amounts from the BFF are coerced to numbers by the adapter
+    expect(data.program).toBe('cashback_wallet');
     expect(data.balance).toBe(500);
     expect(data.applicable).toBe(400);
   });

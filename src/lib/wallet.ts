@@ -53,3 +53,22 @@ export function effectiveWalletAmount(opts: {
   if (!opts.loggedIn || opts.promoActive) return 0;
   return Number.isFinite(opts.applied) && opts.applied > 0 ? opts.applied : 0;
 }
+
+/**
+ * Known machine-readable checkout error codes (BFF StorefrontError.code) that
+ * have localized en/tr messages. Anything else falls back to the server text.
+ */
+const CHECKOUT_ERROR_CODES = new Set([
+  'wallet_promo_conflict',
+  'wallet_requires_auth',
+  'wallet_unavailable',
+  'token_revoked',
+  'account_deactivated',
+]);
+
+/** i18n key for a known checkout error code, or null → use the server text. */
+export function checkoutErrorKey(code: unknown): string | null {
+  return typeof code === 'string' && CHECKOUT_ERROR_CODES.has(code)
+    ? `checkout.errors.${code}`
+    : null;
+}

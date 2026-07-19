@@ -109,9 +109,12 @@ export type ArmPromoValidation =
  * Amounts are store-currency major units; numeric fields may arrive as strings.
  */
 export interface ArmWalletValidation {
-  balance: number | string;
-  applicable: number | string;
-  currency?: string;
+  /** Storefront loyalty program — the widget renders only for 'cashback_wallet'. */
+  program?: string;
+  /** Share of the order total the wallet may cover (e.g. 0.4). */
+  wallet_cap?: number | string;
+  wallet_balance: number | string;
+  max_applicable: number | string;
 }
 
 export interface ArmShippingRate {
