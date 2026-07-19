@@ -14,6 +14,7 @@ import type {
   ProductImage,
   ValidatedCartItem,
   PromoValidationResult,
+  WalletValidationResult,
 } from './domain-types';
 import type {
   ArmDistributorProduct,
@@ -21,6 +22,7 @@ import type {
   ArmCategory,
   ArmCartValidation,
   ArmPromoValidation,
+  ArmWalletValidation,
 } from './arm-types';
 
 function adaptImages(imgs?: ArmProductImage[]): ProductImage[] | undefined {
@@ -102,6 +104,25 @@ export function armToValidatedCart(v: ArmCartValidation): {
  *   { status: 'applied'; promo:{code,discount_type,discount_value,description}; discount_amount; free_shipping }
  *   | { status: 'invalid' | 'expired' | 'used_up' | 'not_yet_valid' | 'customer_limit' | 'min_order'; ... }
  */
+/** Coerce an ARM numeric field (may be string) to a finite number; else 0. */
+function toNum(v: unknown): number {
+  const n = typeof v === 'string' ? parseFloat(v) : (v as number);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Maps the ARM wallet preview to the vitrine's WalletValidationResult (FBG-385).
+ * Defensive numeric coercion (fields may be strings); missing fields → 0 so the
+ * widget never renders NaN.
+ */
+export function armToWalletValidation(w: ArmWalletValidation): WalletValidationResult {
+  return {
+    balance: toNum(w?.balance),
+    applicable: toNum(w?.applicable),
+    currency: w?.currency,
+  };
+}
+
 export function armToPromoResult(p: ArmPromoValidation): PromoValidationResult {
   if (p.status !== 'applied') {
     const errorMap: Record<ArmPromoValidation['status'], string> = {

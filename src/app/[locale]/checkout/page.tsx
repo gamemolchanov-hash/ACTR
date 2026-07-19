@@ -42,6 +42,8 @@ import { palette } from '@/lib/theme';
 import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
+import { effectiveWalletAmount } from '@/lib/wallet';
+import WalletWidget from '@/components/WalletWidget';
 import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
@@ -203,7 +205,11 @@ export default function CheckoutPage() {
   // Promo code (restored from sessionStorage, set by basket page)
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
+  const promoActive = !!(promoResult && promoResult.valid);
   const finalTotal = Math.max(0, subtotal - promoDiscount);
+
+  // Creator Club wallet (FBG-385) — logged-in only, XOR with promo.
+  const [walletApplied, setWalletApplied] = useState(0);
   // informational only — KDV portion of the KDV-inclusive subtotal (D-01/D-02)
   const kdvAmount = kdvFromBrutto(subtotal);
 
@@ -356,6 +362,16 @@ export default function CheckoutPage() {
   const shippingCost = selectedRate?.price ?? 0;
   const totalWithShipping = Math.max(0, finalTotal + shippingCost);
 
+  // Effective wallet debit (frontend XOR + auth backstop) and the visual amount
+  // to pay. `walletToApply` is 0 for guests or when a promo is active; the
+  // backend re-clamps and debits authoritatively (FBG-385).
+  const walletToApply = effectiveWalletAmount({
+    loggedIn: !!customer,
+    promoActive,
+    applied: walletApplied,
+  });
+  const payTotal = Math.max(0, totalWithShipping - walletToApply);
+
   const handleSubmit = async () => {
     if (submitting) return;
     // Consent gate (D-04/COMP-02, Pitfall 3 — gate the handler, not only the button)
@@ -395,6 +411,9 @@ export default function CheckoutPage() {
         },
         items,
         promoCode: promoResult?.valid ? promoResult.code : undefined,
+        // FBG-385: only a positive, XOR-clean amount; api.createOrder also gates
+        // on JWT so guests never send it.
+        walletAmountToApply: walletToApply > 0 ? walletToApply : undefined,
       });
 
       const origin = window.location.origin;
@@ -839,6 +858,16 @@ export default function CheckoutPage() {
             </RadioGroup>
           )}
 
+          {/* Creator Club wallet (FBG-385) — logged-in only; guests never see it */}
+          {customer && (
+            <WalletWidget
+              total={totalWithShipping}
+              applied={walletApplied}
+              onChange={setWalletApplied}
+              promoActive={promoActive}
+            />
+          )}
+
           {/* Compliance consent checkboxes (D-04/D-05/COMP-02) */}
           <FormControlLabel
             control={
@@ -1028,6 +1057,16 @@ export default function CheckoutPage() {
                         : '—'}
               </Typography>
             </Stack>
+            {walletToApply > 0 && (
+              <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                <Typography sx={{ color: '#2e7d32', ...text }}>
+                  {t('checkout.wallet.appliedLine')}:
+                </Typography>
+                <Typography sx={{ color: '#2e7d32', ...text }}>
+                  −{fmtMoney(walletToApply, currency, formatLocale)}
+                </Typography>
+              </Stack>
+            )}
           </Box>
 
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', mb: 2 }} />
@@ -1035,7 +1074,7 @@ export default function CheckoutPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
-              {fmtMoney(step < 2 ? finalTotal : totalWithShipping, currency, formatLocale)}
+              {fmtMoney(step < 2 ? finalTotal : payTotal, currency, formatLocale)}
             </Typography>
           </Stack>
         </>

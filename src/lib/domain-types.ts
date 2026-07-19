@@ -82,3 +82,12 @@ export interface PromoValidationResult {
   discount_amount?: number;
   description?: string | null;
 }
+
+/** Creator Club wallet preview (FBG-385) — output of `armToWalletValidation`. */
+export interface WalletValidationResult {
+  /** Current wallet balance (store currency, major units). */
+  balance: number;
+  /** Amount the backend would actually debit for the requested amount + total. */
+  applicable: number;
+  currency?: string;
+}

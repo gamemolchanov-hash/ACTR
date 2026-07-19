@@ -84,6 +84,7 @@ export const ENDPOINTS = {
   config: '/config',
   cartValidate: '/cart/validate',
   promoValidate: '/promo/validate',
+  walletValidate: '/wallet/validate',
   shippingRates: '/shipping/rates',
   orders: '/orders',
   order: (id: string) => `/orders/${id}`,

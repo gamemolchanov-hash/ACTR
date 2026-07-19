@@ -102,6 +102,18 @@ export type ArmPromoValidation =
   | { status: 'customer_limit'; limit: number }
   | { status: 'min_order'; minAmount: number };
 
+/**
+ * ARM Creator Club wallet preview (`POST /wallet/validate`, FBG-385).
+ * Returns the member's current balance and the amount the backend would actually
+ * debit for the requested amount + order total (already clamped by the 40% rule).
+ * Amounts are store-currency major units; numeric fields may arrive as strings.
+ */
+export interface ArmWalletValidation {
+  balance: number | string;
+  applicable: number | string;
+  currency?: string;
+}
+
 export interface ArmShippingRate {
   id: string;
   slug: 'economy' | 'standard' | 'express' | 'overnight';

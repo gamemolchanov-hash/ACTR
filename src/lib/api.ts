@@ -8,7 +8,13 @@ import {
   tenantHeader,
 } from './arm-contract';
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mock-data';
-import { armToProduct, armToCategory, armToValidatedCart, armToPromoResult } from './arm-adapter';
+import {
+  armToProduct,
+  armToCategory,
+  armToValidatedCart,
+  armToPromoResult,
+  armToWalletValidation,
+} from './arm-adapter';
 import { bearerHeader } from './auth';
 import type {
   ProductImage,
@@ -18,6 +24,7 @@ import type {
   ValidatedCartItem,
   PaginatedResponse,
   PromoValidationResult,
+  WalletValidationResult,
 } from './domain-types';
 import type {
   ArmDistributorProduct,
@@ -48,6 +55,7 @@ export type {
   ValidatedCartItem,
   PaginatedResponse,
   PromoValidationResult,
+  WalletValidationResult,
 };
 export { currencyHeader };
 
@@ -143,6 +151,27 @@ export async function validatePromo(
   return { data: armToPromoResult(data.data) };
 }
 
+// ---------- Creator Club wallet (FBG-385) ----------
+
+/**
+ * Preview how much of the Creator Club wallet can be applied to an order.
+ * ARM contract: POST /wallet/validate { amount, total } (Bearer-protected) →
+ * { balance, applicable }. `applicable` is already clamped by the 40% rule; the
+ * frontend clamps again for instant UX and the backend re-clamps on order create.
+ * Bearer is required — this is a logged-in-only endpoint; guests never call it.
+ */
+export async function validateWallet(
+  amount: number,
+  total: number,
+): Promise<{ data: WalletValidationResult }> {
+  const { data } = await api.post(
+    ENDPOINTS.walletValidate,
+    { amount, total },
+    { headers: { ...currencyHeader(), ...bearerHeader() } },
+  );
+  return { data: armToWalletValidation(data.data ?? data) };
+}
+
 /**
  * Validate cart items against ARM inventory.
  * ARM contract: POST /cart/validate { items:[{distributorProductId,quantity}] }
@@ -212,6 +241,12 @@ export interface CreateOrderPayload {
   comment?: string;
   /** Promo code to apply (camelCase per ARM OpenAPI). */
   promoCode?: string;
+  /**
+   * Creator Club wallet debit (FBG-385). Sent to ARM only for a logged-in
+   * customer (JWT present) and only when > 0 — see createOrder. Mutually
+   * exclusive with promoCode; the BFF enforces the XOR as the last defence.
+   */
+  walletAmountToApply?: number;
 }
 
 /**
@@ -220,16 +255,24 @@ export interface CreateOrderPayload {
  * Items are mapped to {distributorProductId,quantity} internally.
  */
 export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrderCreateResponse> {
-  const body = {
+  // D-06: bearerHeader() attaches Authorization for logged-in users; returns {} for guests
+  const auth = bearerHeader();
+  const hasJwt = 'Authorization' in auth;
+  const body: Record<string, unknown> = {
     customer: payload.customer,
     shipping: payload.shipping,
     items: payload.items.map(toArm),
     comment: payload.comment,
     promoCode: payload.promoCode,
   };
-  // D-06: bearerHeader() attaches Authorization for logged-in users; returns {} for guests
+  // FBG-385: the wallet debit is a logged-in-only action — attach
+  // walletAmountToApply only with a JWT and a positive amount. Guests carry no
+  // Creator Club wallet, so it must never appear in a guest order (regression).
+  if (hasJwt && typeof payload.walletAmountToApply === 'number' && payload.walletAmountToApply > 0) {
+    body.walletAmountToApply = payload.walletAmountToApply;
+  }
   const { data } = await api.post(ENDPOINTS.orders, body, {
-    headers: { ...currencyHeader(), ...bearerHeader() },
+    headers: { ...currencyHeader(), ...auth },
   });
   return data;
 }
