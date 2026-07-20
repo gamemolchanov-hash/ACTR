@@ -76,6 +76,10 @@ describe('Gizlilik v3 canonical document', () => {
     expect(GIZLILIK_MARKDOWN).toContain('GİZLİLİK VE ÇEREZ POLİTİKASI');
     // Turkish text is authoritative
     expect(GIZLILIK_MARKDOWN).toContain('Türkçe metin esas alınır');
+    // §7.2 callout: the "Şeffaflık İlkesi" heading and body must not be glued
+    // together (the Word soft break U+000B was lost on import).
+    expect(GIZLILIK_MARKDOWN).not.toContain('İlkesiYurt');
+    expect(GIZLILIK_MARKDOWN).toContain('Şeffaflık İlkesi Yurt');
   });
 
   it('renders the full document with readable tables and section headings', () => {

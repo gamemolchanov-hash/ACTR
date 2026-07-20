@@ -109,7 +109,7 @@ Fulfillment/3PL işletmesi ve taşıyıcı, Şirketin talimatı doğrultusunda y
 
 Kişisel veriler, yurt dışında bulunan bir bulut, analitik, reklam, iletişim veya teknik destek sağlayıcısına ancak KVKK’nın 9 uncu maddesindeki şartlardan birinin sağlanması halinde aktarılır. Bu kapsamda yurt dışında bulunan barındırma (hosting), içerik dağıtım ağı (CDN), e-posta altyapısı, bulut, analiz, reklam, güvenlik ve teknik destek hizmet sağlayıcılarından yararlanılabilir. Düzenli aktarım bakımından yeterlilik kararı veya uygun güvence mekanizması (örneğin Kurul tarafından ilan edilen standart sözleşme) tesis edilir. Standart sözleşme kullanılması halinde Kuruma yapılması gereken bildirim süresi ve usulü ayrıca yerine getirilir. Açık rıza, düzenli ve sistematik aktarımın otomatik ikamesi olarak kullanılmaz.
 
-| Şeffaflık İlkesiYurt dışına aktarım doğuran yeni bir sağlayıcı devreye alınmadan önce alıcı, ülke, veri kategorisi, aktarım amacı ve KVKK m.9 mekanizması tespit edilir; ilgili aydınlatma ve çerez envanteri güncellenir. |
+| Şeffaflık İlkesi Yurt dışına aktarım doğuran yeni bir sağlayıcı devreye alınmadan önce alıcı, ülke, veri kategorisi, aktarım amacı ve KVKK m.9 mekanizması tespit edilir; ilgili aydınlatma ve çerez envanteri güncellenir. |
 | :---- |
 
 # **8\. Ödeme, Faturalandırma, Fulfillment ve İade Süreçleri**
