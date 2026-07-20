@@ -43,8 +43,13 @@ import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
+import { proceedButtonDisabled, shippingErrorKey } from '@/lib/checkout';
 import WalletWidget from '@/components/WalletWidget';
-import type { ArmShippingRate, ArmPaymentSession } from '@/lib/arm-types';
+import type {
+  ArmShippingRate,
+  ArmShippingUnavailableReason,
+  ArmPaymentSession,
+} from '@/lib/arm-types';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 /* Stripe Embedded Checkout — client-side only */
@@ -198,7 +203,9 @@ export default function CheckoutPage() {
 
   // ARM shipping rates
   const [shippingRates, setShippingRates] = useState<ArmShippingRate[]>([]);
-  const [shippingUnavailable, setShippingUnavailable] = useState(false);
+  // Honest reason ARM (or the client) couldn't price the route, null when rates
+  // are available (FBG-393). Replaces the old boolean so the alert can explain why.
+  const [shippingError, setShippingError] = useState<ArmShippingUnavailableReason | null>(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [selectedRateId, setSelectedRateId] = useState<string>('');
 
@@ -305,22 +312,30 @@ export default function CheckoutPage() {
     let cancelled = false;
     setShippingLoading(true);
     setShippingRates([]);
-    setShippingUnavailable(false);
+    setShippingError(null);
+    // Reset the selection too: the address changed, so any previously chosen rate
+    // is stale. Without this the auto-select below never fires (its guard sees a
+    // non-empty id) and the Proceed button stays disabled (FBG-393).
+    setSelectedRateId('');
     fetchShippingRates({ country: form.country, postalCode: form.zip, items })
       .then((res) => {
         if (cancelled) return;
-        if (!res.fedex_configured || !res.rates?.length) {
-          setShippingUnavailable(true);
-        } else {
+        if (res.rates?.length) {
           setShippingRates(res.rates);
-          // Auto-select first available rate
-          if (res.rates.length > 0 && !selectedRateId) {
-            setSelectedRateId(res.rates[0].id);
-          }
+          // Fresh fetch → always auto-select the first rate (the selection was
+          // just cleared above, so there is nothing to preserve).
+          setSelectedRateId(res.rates[0].id);
+        } else {
+          // No rates: surface ARM's honest reason, falling back to the config /
+          // generic failure so the copy is never a false "temporary" promise.
+          setShippingError(
+            res.error ??
+              (res.fedex_configured === false ? 'not_configured' : 'rate_request_failed'),
+          );
         }
       })
       .catch(() => {
-        if (!cancelled) setShippingUnavailable(true);
+        if (!cancelled) setShippingError('network');
       })
       .finally(() => {
         if (!cancelled) setShippingLoading(false);
@@ -379,6 +394,10 @@ export default function CheckoutPage() {
       setError(t('checkout.consent.required'));
       return;
     }
+    // Shipping gate — mirror of the ARM server guard that rejects a zero shipping
+    // cost (FBG-393). The button is already disabled without a selected rate; this
+    // is defence-in-depth so the handler is never the weaker check.
+    if (!selectedRateId) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -817,10 +836,9 @@ export default function CheckoutPage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress sx={{ color: c.main }} size={28} />
             </Box>
-          ) : shippingUnavailable || shippingRates.length === 0 ? (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Shipping rates temporarily unavailable. You can still place your order — we will
-              contact you to confirm delivery.
+          ) : shippingError || shippingRates.length === 0 ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {t(shippingErrorKey(shippingError), { zip: form.zip })}
             </Alert>
           ) : (
             <RadioGroup
@@ -921,7 +939,12 @@ export default function CheckoutPage() {
           <Button
             variant="contained"
             fullWidth
-            disabled={submitting || !agreedKvkk || !agreedMesafeli}
+            disabled={proceedButtonDisabled({
+              submitting,
+              agreedKvkk,
+              agreedMesafeli,
+              selectedRateId,
+            })}
             onClick={handleSubmit}
             sx={btnSx}
           >
@@ -931,6 +954,15 @@ export default function CheckoutPage() {
               'Proceed to Payment'
             )}
           </Button>
+
+          {/* Nudge to pick a rate — only when there is something to choose from.
+              With an empty list the alert above already explains why, so this
+              hint would contradict it (FBG-393). */}
+          {shippingRates.length > 0 && !selectedRateId && (
+            <Typography sx={{ ...info, color: c['40'], mt: 1, textAlign: 'center' }}>
+              {t('checkout.shipping.selectPrompt')}
+            </Typography>
+          )}
         </>
       )}
     </>
@@ -1056,8 +1088,8 @@ export default function CheckoutPage() {
                       ? selectedRate.is_free
                         ? 'Free'
                         : fmtMoney(selectedRate.price, currency, formatLocale)
-                      : shippingUnavailable
-                        ? 'TBD'
+                      : shippingError
+                        ? t('checkout.shipping.tbd')
                         : '—'}
               </Typography>
             </Stack>

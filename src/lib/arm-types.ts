@@ -131,9 +131,23 @@ export interface ArmShippingRate {
   live_rate?: boolean;
 }
 
+/**
+ * Reason ARM could not price the route (FBG-393). Present when `rates` is empty;
+ * absent/null when rates returned normally. `not_configured`/`network` may also
+ * be synthesized client-side (`fedex_configured:false` / request failure).
+ */
+export type ArmShippingUnavailableReason =
+  | 'invalid_postal_code'
+  | 'unsupported_destination'
+  | 'rate_request_failed'
+  | 'not_configured'
+  | 'network';
+
 export interface ArmShippingRatesResponse {
   fedex_configured: boolean;
   rates: ArmShippingRate[];
+  /** Honest failure reason when `rates` is empty; drives the checkout copy. */
+  error?: ArmShippingUnavailableReason | null;
 }
 
 export interface ArmOrderCreateResponse {
