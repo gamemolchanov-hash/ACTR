@@ -5,6 +5,13 @@ import { palette } from '@/lib/palette';
 import { getTranslations } from 'next-intl/server';
 import { LEGAL_SLUGS, SECTION_COUNT } from '../legal-config';
 import type { LegalSlug } from '../legal-config';
+import LegalMarkdown from '@/components/LegalMarkdown';
+import { GIZLILIK_MARKDOWN } from '../gizlilik-content';
+
+/** Slugs whose body is a full Markdown document instead of s1..sN sections. */
+const MARKDOWN_DOCS: Partial<Record<LegalSlug, string>> = {
+  gizlilik: GIZLILIK_MARKDOWN,
+};
 
 export function generateStaticParams() {
   return LEGAL_SLUGS.map((slug) => ({ slug }));
@@ -16,7 +23,7 @@ interface Props {
 }
 
 export default async function LegalPage({ params }: Props) {
-  const { slug: rawSlug } = await params;
+  const { slug: rawSlug, locale } = await params;
   if (!LEGAL_SLUGS.includes(rawSlug as LegalSlug)) {
     notFound();
   }
@@ -25,6 +32,7 @@ export default async function LegalPage({ params }: Props) {
   const nsKey = slug.replace(/-/g, '_');
   const t = await getTranslations(`legal.${nsKey}` as any);
 
+  const markdown = MARKDOWN_DOCS[slug];
   const sectionCount = SECTION_COUNT[slug];
   const sections = Array.from({ length: sectionCount }, (_, i) => i + 1);
 
@@ -67,49 +75,81 @@ export default async function LegalPage({ params }: Props) {
             p: { xs: 3, md: 5 },
           }}
         >
-          {/* Intro */}
-          <Typography
-            sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-              fontSize: 18,
-              fontWeight: 400,
-              lineHeight: '24px',
-              color: palette.primary,
-              mb: 4,
-            }}
-          >
-            {t('intro')}
-          </Typography>
-
-          {/* Sections */}
-          {sections.map((n) => (
-            <Box key={n} sx={{ mb: 3 }}>
+          {markdown ? (
+            <>
+              {/* Non-TR locales: the canonical legal text stays in Turkish. */}
+              {locale !== 'tr' && (
+                <Box
+                  sx={{
+                    bgcolor: palette.white,
+                    border: `1px solid ${palette.primaryLight}`,
+                    borderRadius: '12px',
+                    p: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                      fontSize: 15,
+                      fontWeight: 400,
+                      lineHeight: '22px',
+                      color: palette.primary,
+                    }}
+                  >
+                    {t('enNotice')}
+                  </Typography>
+                </Box>
+              )}
+              <LegalMarkdown source={markdown} />
+            </>
+          ) : (
+            <>
+              {/* Intro */}
               <Typography
                 sx={{
                   fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-                  fontSize: 20,
-                  fontWeight: 450,
-                  lineHeight: '26px',
-                  color: palette.primary,
-                  textTransform: 'uppercase',
-                  mb: 1,
-                }}
-              >
-                {t(`s${n}Title` as Parameters<typeof t>[0])}
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: 400,
-                  lineHeight: '22px',
+                  lineHeight: '24px',
                   color: palette.primary,
+                  mb: 4,
                 }}
               >
-                {t(`s${n}Body` as Parameters<typeof t>[0])}
+                {t('intro')}
               </Typography>
-            </Box>
-          ))}
+
+              {/* Sections */}
+              {sections.map((n) => (
+                <Box key={n} sx={{ mb: 3 }}>
+                  <Typography
+                    sx={{
+                      fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                      fontSize: 20,
+                      fontWeight: 450,
+                      lineHeight: '26px',
+                      color: palette.primary,
+                      textTransform: 'uppercase',
+                      mb: 1,
+                    }}
+                  >
+                    {t(`s${n}Title` as Parameters<typeof t>[0])}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                      fontSize: 16,
+                      fontWeight: 400,
+                      lineHeight: '22px',
+                      color: palette.primary,
+                    }}
+                  >
+                    {t(`s${n}Body` as Parameters<typeof t>[0])}
+                  </Typography>
+                </Box>
+              ))}
+            </>
+          )}
         </Box>
       </Box>
     </Box>
