@@ -7,7 +7,7 @@
  * (en-US/tr-TR). Existing ?lang param is never overwritten.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Stub global fetch BEFORE importing the route so the module picks it up.
@@ -174,5 +174,91 @@ describe('ARM storefront proxy — client IP forwarding (FBG-385, narrowed by FB
     const h = init.headers as Record<string, string>;
     expect(h['CF-Connecting-IP']).toBeUndefined();
     expect(h['X-Forwarded-For']).toBeUndefined();
+  });
+});
+
+describe('ARM storefront proxy — per-visitor rate-limit headers (FBG-390)', () => {
+  // The BFF trusts a visitor IP only when it arrives with BOTH the shared proxy
+  // secret AND the client-IP header from our server-side proxy. The IP is taken
+  // from cf-connecting-ip ONLY (set by the american-creator.tr CF zone; a client
+  // cannot spoof it). An inbound X-Storefront-Client-IP is ignored. cf-connecting-ip
+  // itself is still never forwarded (FBG-388 regression).
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('(а) sends X-Storefront-Client-IP + X-Storefront-Proxy-Secret when secret is set and cf-connecting-ip is present', async () => {
+    vi.stubEnv('STOREFRONT_PROXY_SECRET', 'test-proxy-secret');
+    const req = new NextRequest('http://localhost:3000/api/storefront/auth/register', {
+      method: 'POST',
+      headers: { 'cf-connecting-ip': '1.2.3.4', 'content-type': 'application/json' },
+      body: '{}',
+    });
+    await GET(req, makeCtx(['auth', 'register']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    expect(h['X-Storefront-Client-IP']).toBe('1.2.3.4');
+    expect(h['X-Storefront-Proxy-Secret']).toBe('test-proxy-secret');
+  });
+
+  it('(б) ignores an inbound client-supplied X-Storefront-Client-IP — never passthrough', async () => {
+    vi.stubEnv('STOREFRONT_PROXY_SECRET', 'test-proxy-secret');
+    // Attacker sends their own X-Storefront-Client-IP but no cf-connecting-ip.
+    const req = new NextRequest('http://localhost:3000/api/storefront/products', {
+      headers: { 'x-storefront-client-ip': '9.9.9.9' },
+    });
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    // No cf-connecting-ip → nothing to trust; the forged value must not leak through.
+    expect(h['X-Storefront-Client-IP']).toBeUndefined();
+    expect(h['X-Storefront-Proxy-Secret']).toBeUndefined();
+    expect(Object.values(h)).not.toContain('9.9.9.9');
+  });
+
+  it('(б′) prefers the CF-derived IP over a forged inbound X-Storefront-Client-IP', async () => {
+    vi.stubEnv('STOREFRONT_PROXY_SECRET', 'test-proxy-secret');
+    const req = new NextRequest('http://localhost:3000/api/storefront/products', {
+      headers: { 'cf-connecting-ip': '1.2.3.4', 'x-storefront-client-ip': '9.9.9.9' },
+    });
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    expect(h['X-Storefront-Client-IP']).toBe('1.2.3.4');
+  });
+
+  it('(в) sends neither header when the proxy secret is not configured', async () => {
+    // No stubEnv → STOREFRONT_PROXY_SECRET is unset (local dev / secret absent).
+    const req = new NextRequest('http://localhost:3000/api/storefront/products', {
+      headers: { 'cf-connecting-ip': '1.2.3.4' },
+    });
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    expect(h['X-Storefront-Client-IP']).toBeUndefined();
+    expect(h['X-Storefront-Proxy-Secret']).toBeUndefined();
+  });
+
+  it('does not send X-Storefront-Proxy-Secret alone when cf-connecting-ip is absent (local dev)', async () => {
+    vi.stubEnv('STOREFRONT_PROXY_SECRET', 'test-proxy-secret');
+    const req = makeReq('products');
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    expect(h['X-Storefront-Client-IP']).toBeUndefined();
+    expect(h['X-Storefront-Proxy-Secret']).toBeUndefined();
+  });
+
+  it('(г) never forwards cf-connecting-ip upstream, even while emitting the FBG-390 headers', async () => {
+    vi.stubEnv('STOREFRONT_PROXY_SECRET', 'test-proxy-secret');
+    const req = new NextRequest('http://localhost:3000/api/storefront/products', {
+      headers: { 'cf-connecting-ip': '1.2.3.4' },
+    });
+    await GET(req, makeCtx(['products']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    const h = init.headers as Record<string, string>;
+    expect(Object.keys(h).map((k) => k.toLowerCase())).not.toContain('cf-connecting-ip');
+    // The visitor IP still reaches the BFF via the dedicated header, not cf-*.
+    expect(h['X-Storefront-Client-IP']).toBe('1.2.3.4');
   });
 });

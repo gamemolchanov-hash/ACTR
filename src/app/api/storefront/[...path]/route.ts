@@ -69,6 +69,23 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
     headers['X-Forwarded-For'] = xff || clientIp;
   }
 
+  // Per-visitor rate-limit (FBG-390). A valid X-Storefront-Key alone is NOT a
+  // proof the request came from our server-side proxy — sibling FBG storefronts
+  // ship the key in the browser bundle, so the BFF (FBG-389 + 586fe2b) trusts a
+  // visitor IP only when it arrives with BOTH a shared proxy secret AND the
+  // client-IP header. We derive the IP from cf-connecting-ip ONLY — the
+  // american-creator.tr CF zone sets it, a client cannot spoof it, and CF
+  // rejects foreign cf-* headers. An inbound X-Storefront-Client-IP is ignored
+  // (overwrite, not passthrough: `headers` is built by hand, never from req).
+  // The two headers travel as a pair or not at all; with no secret the limiter
+  // just falls back to the egress IP. cf-connecting-ip itself is still never
+  // forwarded (FBG-388: CF rejects it at the edge with 403 "error code: 1000").
+  const proxySecret = process.env.STOREFRONT_PROXY_SECRET || '';
+  if (proxySecret && cfIp) {
+    headers['X-Storefront-Client-IP'] = cfIp;
+    headers['X-Storefront-Proxy-Secret'] = proxySecret;
+  }
+
   const init: RequestInit = { method: req.method, headers };
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     init.body = await req.text();
