@@ -8,6 +8,7 @@
     "start": "next start -p 3003",
     "lint": "next lint",
     "test": "vitest run",
+    "diff-cover": "node tools/diff-cover.mjs",
     "messages:pull": "node scripts/messages-pull.mjs"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.20",
     "jsdom": "^29.1.1",

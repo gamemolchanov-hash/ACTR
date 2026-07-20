@@ -10,6 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    // src app tests + the diff-cover gate's pure-function unit tests (tools/diff-cover.test.mjs)
+    include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.mjs'],
   },
 });
