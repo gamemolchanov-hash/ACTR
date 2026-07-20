@@ -43,7 +43,7 @@ import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
-import { proceedButtonDisabled, shippingErrorKey } from '@/lib/checkout';
+import { proceedButtonDisabled, shippingErrorKey, shippingPanelState } from '@/lib/checkout';
 import WalletWidget from '@/components/WalletWidget';
 import type {
   ArmShippingRate,
@@ -205,7 +205,10 @@ export default function CheckoutPage() {
   const [shippingRates, setShippingRates] = useState<ArmShippingRate[]>([]);
   // Honest reason ARM (or the client) couldn't price the route, null when rates
   // are available (FBG-393). Replaces the old boolean so the alert can explain why.
-  const [shippingError, setShippingError] = useState<ArmShippingUnavailableReason | null>(null);
+  // `'unknown'` is a client sentinel: no rates, cause not given → generic copy.
+  const [shippingError, setShippingError] = useState<
+    ArmShippingUnavailableReason | 'unknown' | null
+  >(null);
   const [shippingLoading, setShippingLoading] = useState(false);
   const [selectedRateId, setSelectedRateId] = useState<string>('');
 
@@ -326,11 +329,12 @@ export default function CheckoutPage() {
           // just cleared above, so there is nothing to preserve).
           setSelectedRateId(res.rates[0].id);
         } else {
-          // No rates: surface ARM's honest reason, falling back to the config /
-          // generic failure so the copy is never a false "temporary" promise.
+          // No rates. Prefer ARM's explicit reason. Otherwise `not_configured`
+          // only when FedEx is explicitly off; a configured-but-empty result is
+          // NOSERVICE / missing distributor tariffs (FBG-392), not a transient
+          // glitch — so use the generic honest copy, never a false "try again".
           setShippingError(
-            res.error ??
-              (res.fedex_configured === false ? 'not_configured' : 'rate_request_failed'),
+            res.error ?? (res.fedex_configured === false ? 'not_configured' : 'unknown'),
           );
         }
       })
@@ -376,6 +380,14 @@ export default function CheckoutPage() {
   const selectedRate = shippingRates.find((r) => r.id === selectedRateId) || null;
   const shippingCost = selectedRate?.price ?? 0;
   const totalWithShipping = Math.max(0, finalTotal + shippingCost);
+
+  // Which step-2 shipping block to show: spinner (loading / pre-fetch), the
+  // honest failure alert, or the rate list (FBG-393 review — pending ≠ failure).
+  const shippingPanel = shippingPanelState({
+    loading: shippingLoading,
+    hasError: shippingError !== null,
+    ratesCount: shippingRates.length,
+  });
 
   // Effective wallet debit (frontend XOR + auth backstop) and the visual amount
   // to pay. `walletToApply` is 0 for guests or when a promo is active; the
@@ -832,11 +844,11 @@ export default function CheckoutPage() {
       ) : (
         <>
           {/* Shipping rates */}
-          {shippingLoading ? (
+          {shippingPanel === 'pending' ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress sx={{ color: c.main }} size={28} />
             </Box>
-          ) : shippingError || shippingRates.length === 0 ? (
+          ) : shippingPanel === 'error' ? (
             <Alert severity="warning" sx={{ mb: 2 }}>
               {t(shippingErrorKey(shippingError), { zip: form.zip })}
             </Alert>
@@ -1110,7 +1122,9 @@ export default function CheckoutPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
-              {fmtMoney(step < 2 ? finalTotal : payTotal, currency, formatLocale)}
+              {step >= 2 && !selectedRate
+                ? t('checkout.shipping.tbd')
+                : fmtMoney(step < 2 ? finalTotal : payTotal, currency, formatLocale)}
             </Typography>
           </Stack>
         </>

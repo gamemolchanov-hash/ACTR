@@ -4,11 +4,14 @@
  * drifting out of sync with the button's real disabled condition.
  */
 
+import type { ArmShippingUnavailableReason } from './arm-types';
+
 /**
- * Reasons ARM (or the client, for network/config failures) could not price a
- * route. ARM sends the first three in the shipping response `error` field; the
- * storefront synthesizes `not_configured` (`fedex_configured:false`) and
- * `network` (request threw). Each maps to an honest, reason-specific message.
+ * Runtime list of the shipping-unavailable reasons. ARM sends the first three in
+ * the shipping response `error` field; the storefront synthesizes `not_configured`
+ * (`fedex_configured:false`) and `network` (request threw). Each maps to an honest,
+ * reason-specific message. `satisfies` keeps this list in lockstep with the ARM
+ * union (single source of truth), so the two can't silently drift apart.
  */
 export const SHIPPING_UNAVAILABLE_REASONS = [
   'invalid_postal_code',
@@ -16,9 +19,10 @@ export const SHIPPING_UNAVAILABLE_REASONS = [
   'rate_request_failed',
   'not_configured',
   'network',
-] as const;
+] as const satisfies readonly ArmShippingUnavailableReason[];
 
-export type ShippingUnavailableReason = (typeof SHIPPING_UNAVAILABLE_REASONS)[number];
+/** Alias of the ARM union — the type itself lives in arm-types (no duplicate). */
+export type ShippingUnavailableReason = ArmShippingUnavailableReason;
 
 const REASON_SET = new Set<string>(SHIPPING_UNAVAILABLE_REASONS);
 
@@ -31,6 +35,25 @@ export function shippingErrorKey(reason: unknown): string {
   return typeof reason === 'string' && REASON_SET.has(reason)
     ? `checkout.shipping.${reason}`
     : 'checkout.shipping.unavailable_generic';
+}
+
+export type ShippingPanelState = 'pending' | 'error' | 'rates';
+
+/**
+ * Which block the step-2 shipping panel renders. The pre-fetch window (no rates
+ * yet AND no error — first paint of step 2 before the effect fires) and an
+ * in-flight request both resolve to `'pending'` (spinner); only a *resolved*
+ * failure shows the alert. This stops entering step 2 from flashing a false
+ * "unavailable" alert before any request has run (FBG-393 review).
+ */
+export function shippingPanelState(opts: {
+  loading: boolean;
+  hasError: boolean;
+  ratesCount: number;
+}): ShippingPanelState {
+  if (opts.loading || (!opts.hasError && opts.ratesCount === 0)) return 'pending';
+  if (opts.hasError) return 'error';
+  return 'rates';
 }
 
 /**
