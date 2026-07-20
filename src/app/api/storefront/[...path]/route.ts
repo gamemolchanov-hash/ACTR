@@ -50,18 +50,23 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   const contentType = req.headers.get('content-type');
   if (contentType) headers['Content-Type'] = contentType;
 
-  // FBG-385 (owner decision): forward the real client IP so BFF rate-limits
-  // bucket per end-user, not per storefront egress IP. This proxy previously
-  // dropped these headers, making every request look like one IP to the BFF.
-  // In prod Cloudflare→Caddy already populate them with the visitor's IP; we
-  // pass them through and cross-fill so the BFF sees the client on whichever
-  // header its limiter reads. We never fabricate an IP when both are absent.
+  // Client IP for the BFF rate-limiter (FBG-385, narrowed by FBG-388).
+  //
+  // NEVER send CF-Connecting-IP upstream: it is a Cloudflare-reserved header,
+  // and the BFF lives behind the forza-brava.com CF zone — an inbound request
+  // carrying it is rejected at the edge with 403 "error code: 1000", for every
+  // method. FBG-385 sent it and killed the whole client-side API (register,
+  // login, cart) until FBG-388; the SSR path (server-api.ts) never sent it,
+  // which is why the smoke test stayed green.
+  //
+  // X-Forwarded-For is safe (CF appends its own hop) and is passed through so
+  // the limiter still sees the visitor on one of its buckets. We never
+  // fabricate an IP when the header is absent.
   const cfIp = req.headers.get('cf-connecting-ip');
   const xff = req.headers.get('x-forwarded-for');
-  const clientIp = cfIp || (xff ? xff.split(',')[0].trim() : '');
+  const clientIp = xff ? xff.split(',')[0].trim() : cfIp || '';
   if (clientIp) {
     headers['X-Forwarded-For'] = xff || clientIp;
-    headers['CF-Connecting-IP'] = cfIp || clientIp;
   }
 
   const init: RequestInit = { method: req.method, headers };

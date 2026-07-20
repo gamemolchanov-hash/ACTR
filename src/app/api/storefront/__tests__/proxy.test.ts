@@ -129,38 +129,42 @@ describe('ARM storefront proxy — X-Currency forwarding (D-07 regression guard)
   });
 });
 
-describe('ARM storefront proxy — client IP forwarding (FBG-385)', () => {
-  it('forwards both CF-Connecting-IP and X-Forwarded-For when both are present', async () => {
+describe('ARM storefront proxy — client IP forwarding (FBG-385, narrowed by FBG-388)', () => {
+  // CF-Connecting-IP is Cloudflare-reserved: an inbound request carrying it into
+  // the forza-brava.com zone is rejected at the edge with 403 "error code: 1000"
+  // (any method). Sending it took down the entire client-side API in prod.
+  it('NEVER forwards CF-Connecting-IP upstream, even when the visitor request has one', async () => {
     const req = new NextRequest('http://localhost:3000/api/storefront/products', {
       headers: { 'cf-connecting-ip': '203.0.113.7', 'x-forwarded-for': '203.0.113.7, 10.0.0.1' },
     });
     await GET(req, makeCtx(['products']));
     const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
     const h = init.headers as Record<string, string>;
-    expect(h['CF-Connecting-IP']).toBe('203.0.113.7');
+    expect(h['CF-Connecting-IP']).toBeUndefined();
+    expect(Object.keys(h).map((k) => k.toLowerCase())).not.toContain('cf-connecting-ip');
     expect(h['X-Forwarded-For']).toBe('203.0.113.7, 10.0.0.1');
   });
 
-  it('cross-fills CF-Connecting-IP from the first X-Forwarded-For hop', async () => {
+  it('forwards X-Forwarded-For unchanged (CF appends its own hop — safe)', async () => {
     const req = new NextRequest('http://localhost:3000/api/storefront/products', {
       headers: { 'x-forwarded-for': '198.51.100.9, 10.0.0.1' },
     });
     await GET(req, makeCtx(['products']));
     const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
     const h = init.headers as Record<string, string>;
-    expect(h['CF-Connecting-IP']).toBe('198.51.100.9');
     expect(h['X-Forwarded-For']).toBe('198.51.100.9, 10.0.0.1');
+    expect(h['CF-Connecting-IP']).toBeUndefined();
   });
 
-  it('cross-fills X-Forwarded-For from CF-Connecting-IP when XFF is absent', async () => {
+  it('fills X-Forwarded-For from the inbound CF-Connecting-IP when XFF is absent', async () => {
     const req = new NextRequest('http://localhost:3000/api/storefront/products', {
       headers: { 'cf-connecting-ip': '192.0.2.44' },
     });
     await GET(req, makeCtx(['products']));
     const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
     const h = init.headers as Record<string, string>;
-    expect(h['CF-Connecting-IP']).toBe('192.0.2.44');
     expect(h['X-Forwarded-For']).toBe('192.0.2.44');
+    expect(h['CF-Connecting-IP']).toBeUndefined();
   });
 
   it('never fabricates an IP when neither header is present', async () => {
