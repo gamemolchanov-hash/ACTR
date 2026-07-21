@@ -13,6 +13,7 @@ import { render, screen, within, cleanup } from '@testing-library/react';
 afterEach(cleanup);
 import LegalMarkdown, { parseMarkdown } from '../LegalMarkdown';
 import { GIZLILIK_MARKDOWN } from '@/app/[locale]/legal/gizlilik-content';
+import { KARGO_TESLIMAT_MARKDOWN } from '@/app/[locale]/legal/kargo-teslimat-content';
 
 describe('parseMarkdown', () => {
   it('classifies headings, tables, lists and paragraphs', () => {
@@ -57,6 +58,16 @@ describe('LegalMarkdown rendering', () => {
     expect(container.textContent).not.toContain('1\\.');
   });
 
+  it('renders <br> as a hard line break inside a table cell (FBG-396)', () => {
+    const { container } = render(
+      <LegalMarkdown source={['| K | V |', '| --- | --- |', '| Adres | A<br>B |'].join('\n')} />,
+    );
+    const cell = container.querySelector('tbody td:last-child');
+    expect(cell?.querySelector('br')).not.toBeNull();
+    // no raw <br> markup leaks into the rendered text
+    expect(container.textContent).not.toContain('<br>');
+  });
+
   it('renders a GFM table with header and body cells', () => {
     const { container } = render(
       <LegalMarkdown source={['| K | V |', '| --- | --- |', '| MERSİS No | 0560146611100001 |'].join('\n')} />,
@@ -91,5 +102,38 @@ describe('Gizlilik v3 canonical document', () => {
     expect(doc.querySelectorAll('table').length).toBeGreaterThanOrEqual(6);
     expect(doc.textContent).toContain('Amaç ve Kapsam');
     expect(doc.textContent).toContain('Hukuki Dayanaklar');
+  });
+});
+
+describe('Kargo ve Teslimat v2 canonical document (FBG-396)', () => {
+  it('contains the acceptance-critical identifiers verbatim', () => {
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('KK-TK-KTP-2026-V2');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('0560146611100001');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('6311761487');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('KARGO VE TESLİMAT POLİTİKASI');
+    // All 19 sections + the legal-basis appendix must be present.
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('19\\. Taraflar Arası Sorumluluk Matrisi');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('Hukuki Dayanaklar');
+    // Turkish text is authoritative.
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('Türkçe metin esas alınır');
+    // §2 requisites must be un-glued (the docx→md export concatenated them).
+    expect(KARGO_TESLIMAT_MARKDOWN).not.toContain('ŞİRKETİMERSİS');
+    expect(KARGO_TESLIMAT_MARKDOWN).not.toContain('ŞİRKETİVKN');
+    expect(KARGO_TESLIMAT_MARKDOWN).not.toContain('DairesiAdres');
+  });
+
+  it('renders the full document with readable, un-glued tables', () => {
+    render(<LegalMarkdown source={KARGO_TESLIMAT_MARKDOWN} />);
+    const doc = document.body;
+    expect(screen.getByText('KK-TK-KTP-2026-V2')).toBeTruthy();
+    // §2 (parties) + §19 (matrix) + the header and callout tables.
+    expect(doc.querySelectorAll('table').length).toBeGreaterThanOrEqual(4);
+    // requisite fields are split onto separate lines via <br> (a <br> adds no
+    // text, so this shows in the element tree rather than in textContent).
+    const saticiCell = Array.from(doc.querySelectorAll('td')).find((td) =>
+      td.innerHTML.includes('ŞİRKETİ<br'),
+    );
+    expect(saticiCell).toBeTruthy();
+    expect(doc.querySelectorAll('td br').length).toBeGreaterThan(0);
   });
 });

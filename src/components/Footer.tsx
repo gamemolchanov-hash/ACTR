@@ -69,6 +69,7 @@ export function Footer() {
     { label: t('legal.iade.navLabel'), href: '/legal/iade' },
     { label: t('legal.gizlilik.navLabel'), href: '/legal/gizlilik' },
     { label: t('legal.kullanim_kosullari.navLabel'), href: '/legal/kullanim-kosullari' },
+    { label: t('legal.kargo_teslimat.navLabel'), href: '/legal/kargo-teslimat' },
   ];
 
   const ALL_NAV = [...NAV_COL1, ...NAV_COL2, ...NAV_COL_LEGAL];

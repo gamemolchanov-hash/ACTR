@@ -11,11 +11,13 @@ import { palette } from '@/lib/palette';
  *   - unordered lists (`* ` / `- `)
  *   - paragraphs
  *   - inline `**bold**`, `*italic*` and backslash escapes (`\.`, `\+`, …)
+ *   - hard line breaks (`<br>`) — used to un-glue multi-field table cells (FBG-396)
  *
  * We keep our own parser instead of pulling react-markdown + remark-gfm into the
  * storefront bundle: the input is a small, fixed set of static documents, the
  * page is a Server Component, and the grammar we need is tiny. All content is
- * treated as plain text (no raw HTML is parsed), so there is no XSS surface.
+ * treated as plain text (the only recognised HTML token is `<br>`, which maps to
+ * a void `<br/>` element — no attributes, no children), so there is no XSS surface.
  */
 
 const FONT = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
@@ -107,8 +109,8 @@ export function parseMarkdown(source: string): Block[] {
   return blocks;
 }
 
-// `\x` (escape) | `**bold**` | `*italic*`
-const INLINE_SOURCE = '\\\\([^A-Za-z0-9\\s])|\\*\\*([\\s\\S]+?)\\*\\*|\\*([\\s\\S]+?)\\*';
+// `\x` (escape) | `**bold**` | `*italic*` | `<br>` (hard line break)
+const INLINE_SOURCE = '\\\\([^A-Za-z0-9\\s])|\\*\\*([\\s\\S]+?)\\*\\*|\\*([\\s\\S]+?)\\*|(<br\\s*/?>)';
 
 /**
  * Render inline `**bold**`, `*italic*` and backslash escapes to React nodes.
@@ -131,6 +133,8 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       );
     } else if (m[3] !== undefined) {
       nodes.push(<em key={`${keyPrefix}-i${k}`}>{renderInline(m[3], `${keyPrefix}-i${k}`)}</em>);
+    } else if (m[4] !== undefined) {
+      nodes.push(<br key={`${keyPrefix}-br${k}`} />);
     }
     last = re.lastIndex;
     k += 1;
