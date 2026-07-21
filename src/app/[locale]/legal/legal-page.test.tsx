@@ -44,6 +44,7 @@ const EXPECTED_SLUGS = [
   'kullanim-kosullari',
   'kargo-teslimat',
   'ticari-elektronik-ileti',
+  'uyelik-sozlesmesi',
 ] as const;
 
 describe('LegalPage exports', () => {
@@ -76,6 +77,7 @@ describe('LegalPage exports', () => {
       ['kullanim-kosullari', 'kullanim_kosullari'],
       ['kargo-teslimat', 'kargo_teslimat'],
       ['ticari-elektronik-ileti', 'ticari_elektronik_ileti'],
+      ['uyelik-sozlesmesi', 'uyelik_sozlesmesi'],
     ];
     for (const [slug, expected] of conversions) {
       expect(slug.replace(/-/g, '_')).toBe(expected);
@@ -104,6 +106,7 @@ describe('Legal i18n key parity (EN + TR)', () => {
     expect(enMessages).toHaveProperty('legal.kullanim_kosullari.title');
     expect(enMessages).toHaveProperty('legal.kargo_teslimat.title');
     expect(enMessages).toHaveProperty('legal.ticari_elektronik_ileti.title');
+    expect(enMessages).toHaveProperty('legal.uyelik_sozlesmesi.title');
   });
 
   it('all pages have title keys in TR', () => {
@@ -114,6 +117,7 @@ describe('Legal i18n key parity (EN + TR)', () => {
     expect(trMessages).toHaveProperty('legal.kullanim_kosullari.title');
     expect(trMessages).toHaveProperty('legal.kargo_teslimat.title');
     expect(trMessages).toHaveProperty('legal.ticari_elektronik_ileti.title');
+    expect(trMessages).toHaveProperty('legal.uyelik_sozlesmesi.title');
   });
 
   it('no key contains a hyphen (Pitfall 4)', () => {

@@ -71,6 +71,7 @@ export function Footer() {
     { label: t('legal.kullanim_kosullari.navLabel'), href: '/legal/kullanim-kosullari' },
     { label: t('legal.kargo_teslimat.navLabel'), href: '/legal/kargo-teslimat' },
     { label: t('legal.ticari_elektronik_ileti.navLabel'), href: '/legal/ticari-elektronik-ileti' },
+    { label: t('legal.uyelik_sozlesmesi.navLabel'), href: '/legal/uyelik-sozlesmesi' },
   ];
 
   const ALL_NAV = [...NAV_COL1, ...NAV_COL2, ...NAV_COL_LEGAL];
