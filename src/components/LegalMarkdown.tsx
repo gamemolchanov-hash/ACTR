@@ -121,8 +121,13 @@ const INLINE_SOURCE =
  * A site-relative path must start with a single `/`: `//host` (protocol-relative)
  * and `/\host` (browsers normalise `\` to `/`) both resolve to an external
  * origin, so they are rejected along with every non-`https:` scheme.
+ *
+ * ASCII tab/CR/LF are stripped first: the WHATWG URL parser removes them from
+ * anywhere in an href before resolving the scheme/host, so `/\t/evil.com` would
+ * otherwise slip past the `//` guard yet resolve to a protocol-relative URL.
  */
-function isSafeHref(href: string): boolean {
+export function isSafeHref(rawHref: string): boolean {
+  const href = rawHref.replace(/[\t\n\r]/g, '');
   if (/^https:\/\//i.test(href)) return true;
   return href.startsWith('/') && !/^\/[/\\]/.test(href);
 }

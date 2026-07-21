@@ -11,7 +11,7 @@ import { render, screen, within, cleanup } from '@testing-library/react';
 // This config does not set test.globals, so @testing-library's auto-cleanup is
 // not registered; unmount between cases so global screen/body queries stay unique.
 afterEach(cleanup);
-import LegalMarkdown, { parseMarkdown } from '../LegalMarkdown';
+import LegalMarkdown, { parseMarkdown, isSafeHref } from '../LegalMarkdown';
 import { GIZLILIK_MARKDOWN } from '@/app/[locale]/legal/gizlilik-content';
 import { KARGO_TESLIMAT_MARKDOWN } from '@/app/[locale]/legal/kargo-teslimat-content';
 import { IADE_MARKDOWN } from '@/app/[locale]/legal/iade-content';
@@ -125,10 +125,43 @@ describe('LegalMarkdown rendering', () => {
     expect(container.textContent).toContain('[b](/\\evil.example.com/x)');
   });
 
+  it('rejects a tab-masked protocol-relative href end-to-end (FBG-399)', () => {
+    // A tab survives line parsing (unlike CR/LF), so it can reach the inline
+    // link parser inside an href; it must not produce an anchor.
+    const { container } = render(<LegalMarkdown source={'[a](/\t/evil.example.com)'} />);
+    expect(container.querySelector('a')).toBeNull();
+  });
+
   it('leaves a bracket run that is not a link as plain text', () => {
     const { container } = render(<LegalMarkdown source={'[just brackets] no link here'} />);
     expect(container.querySelector('a')).toBeNull();
     expect(container.textContent).toBe('[just brackets] no link here');
+  });
+});
+
+describe('isSafeHref (link href guard, FBG-399)', () => {
+  it('accepts https:// URLs and single-slash site-relative paths', () => {
+    expect(isSafeHref('https://american-creator.tr/')).toBe(true);
+    expect(isSafeHref('/legal/cayma-bildirim-formu.pdf')).toBe(true);
+    expect(isSafeHref('/legal/kvkk')).toBe(true);
+  });
+
+  it('rejects non-https schemes', () => {
+    expect(isSafeHref('javascript:alert(1)')).toBe(false);
+    expect(isSafeHref('data:text/html,hi')).toBe(false);
+    expect(isSafeHref('http://insecure.example.com')).toBe(false);
+    expect(isSafeHref('mailto:info@american-creator.tr')).toBe(false);
+  });
+
+  it('rejects protocol-relative paths, including backslash and tab/CR/LF masks', () => {
+    expect(isSafeHref('//evil.example.com')).toBe(false);
+    expect(isSafeHref('/\\evil.example.com')).toBe(false);
+    // WHATWG URL parsing strips tab/CR/LF anywhere before resolving the host,
+    // so these all collapse to `//evil.example.com` in the browser.
+    expect(isSafeHref('/\t/evil.example.com')).toBe(false);
+    expect(isSafeHref('/\n/evil.example.com')).toBe(false);
+    expect(isSafeHref('/\r/evil.example.com')).toBe(false);
+    expect(isSafeHref('/\t\\evil.example.com')).toBe(false);
   });
 });
 
