@@ -32,6 +32,7 @@ export default async function NotFound() {
       <p style={{ margin: '0 0 24px', color: '#666', fontSize: '14px' }}>
         {t('notFoundDesc')}
       </p>
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- intentional plain <a>: a full reload to "/" keeps this 404 a non-hydrated Server Component (see file docstring), so next/link is deliberately not used here. */}
       <a
         href="/"
         style={{
