@@ -23,6 +23,24 @@ cd ~/work/puz/ACTR && npm install && npm run dev   # витрина на :3003
 
 `cp .env.example .env.local` и заполнить (см. комментарии в `.env.example`).
 
+## Запуск standalone-сборки локально (SENTRY_DISABLED=1)
+
+Собранный прод-артефакт (`npm run build` → `.next/standalone/server.js`) содержит
+забейканный GlitchTip DSN и включает Sentry по `NODE_ENV === 'production'`. Поэтому
+**любой ручной прогон артефакта вне прод-докера** (отладка в песочнице конвейера на SRV199)
+без гейта шлёт события в прод-проект GlitchTip `ACTR` с `environment=production` — заводятся
+ложные urgent-задачи (инцидент FBG-403/FBG-404). Запускай артефакт **только** с рантайм-гейтом
+(FBG-406):
+
+```bash
+SENTRY_DISABLED=1 PORT=3103 node .next/standalone/server.js
+```
+
+`SENTRY_DISABLED` / `SENTRY_ENVIRONMENT` — **не** `NEXT_PUBLIC_*`: server/edge конфиги
+грузятся в рантайме через `src/instrumentation.ts`, поэтому гейт снимается без пересборки.
+Для осознанной отладки **с** телеметрией задай `SENTRY_ENVIRONMENT=sandbox` — так события
+отделимы от прод-трафика.
+
 ## Документация
 
 `docs/` — симлинк в Obsidian vault (`W/AutoCRM/ACTR`), в git не входит:
