@@ -116,9 +116,15 @@ export function parseMarkdown(source: string): Block[] {
 const INLINE_SOURCE =
   '\\\\([^A-Za-z0-9\\s])|\\*\\*([\\s\\S]+?)\\*\\*|\\*([\\s\\S]+?)\\*|(<br\\s*/?>)|\\[([^\\]]+)\\]\\(([^)]+)\\)';
 
-/** A link href is safe only if it is a site-relative path or an `https://` URL. */
+/**
+ * A link href is safe only if it is an `https://` URL or a site-relative path.
+ * A site-relative path must start with a single `/`: `//host` (protocol-relative)
+ * and `/\host` (browsers normalise `\` to `/`) both resolve to an external
+ * origin, so they are rejected along with every non-`https:` scheme.
+ */
 function isSafeHref(href: string): boolean {
-  return href.startsWith('/') || /^https:\/\//i.test(href);
+  if (/^https:\/\//i.test(href)) return true;
+  return href.startsWith('/') && !/^\/[/\\]/.test(href);
 }
 
 /**

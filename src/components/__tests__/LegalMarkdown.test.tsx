@@ -114,6 +114,17 @@ describe('LegalMarkdown rendering', () => {
     expect(container.textContent).toContain('[y](data:text/html,hi)');
   });
 
+  it('rejects protocol-relative hrefs that resolve to an external origin (FBG-399)', () => {
+    // `//host` and `/\host` both resolve to an external site in the browser,
+    // so a single-leading-slash check alone must not treat them as safe.
+    const { container } = render(
+      <LegalMarkdown source={'[a](//evil.example.com/x) [b](/\\evil.example.com/x)'} />,
+    );
+    expect(container.querySelector('a')).toBeNull();
+    expect(container.textContent).toContain('[a](//evil.example.com/x)');
+    expect(container.textContent).toContain('[b](/\\evil.example.com/x)');
+  });
+
   it('leaves a bracket run that is not a link as plain text', () => {
     const { container } = render(<LegalMarkdown source={'[just brackets] no link here'} />);
     expect(container.querySelector('a')).toBeNull();
