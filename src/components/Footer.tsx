@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
 
 const SOCIALS = [
-  { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/905000000000', label: 'WhatsApp' },
+  { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/905386089604', label: 'WhatsApp' },
   { icon: '/icons/soc-instagram.png', href: 'https://www.instagram.com/', label: 'Instagram' },
 ];
 
@@ -154,7 +154,7 @@ export function Footer() {
           {/* Phone */}
           <Box>
             <Typography sx={{ fontSize: 20, fontWeight: 500, color: palette.footerText }}>
-              +90 500 000 00 00
+              +90 538 608 96 04
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
               {t('common.workingHours')}
@@ -198,7 +198,7 @@ export function Footer() {
           {/* Phone */}
           <Box>
             <Typography sx={{ fontSize: 18, fontWeight: 500, color: palette.footerText }}>
-              +90 500 000 00 00
+              +90 538 608 96 04
             </Typography>
             <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
               {t('common.workingHours')}

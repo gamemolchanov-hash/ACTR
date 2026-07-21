@@ -77,7 +77,7 @@ export default function ContactsPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: { xs: 2.5, md: 2 }, mt: 1.5 }}>
         <Typography
           component="a"
-          href="mailto:info@example.com.tr"
+          href="mailto:info@american-creator.tr"
           sx={{
             fontFamily: fontMain,
             fontWeight: 400,
@@ -89,11 +89,11 @@ export default function ContactsPage() {
             mb: 0.5,
           }}
         >
-          info@example.com.tr
+          info@american-creator.tr
         </Typography>
         <Typography
           component="a"
-          href="tel:+905000000000"
+          href="tel:+905386089604"
           sx={{
             fontFamily: fontMain,
             fontWeight: 400,
@@ -104,7 +104,7 @@ export default function ContactsPage() {
             display: 'block',
           }}
         >
-          +90 500 000 00 00
+          +90 538 608 96 04
         </Typography>
       </Box>
 
