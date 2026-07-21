@@ -12,12 +12,15 @@ import { palette } from '@/lib/palette';
  *   - paragraphs
  *   - inline `**bold**`, `*italic*` and backslash escapes (`\.`, `\+`, …)
  *   - hard line breaks (`<br>`) — used to un-glue multi-field table cells (FBG-396)
+ *   - inline links `[text](href)` — only site-relative (`/…`) or `https://`
+ *     targets become an <a>; any other scheme (javascript:, data:, …) is left
+ *     as literal text, so no unsafe URL ever reaches an href (FBG-399)
  *
  * We keep our own parser instead of pulling react-markdown + remark-gfm into the
  * storefront bundle: the input is a small, fixed set of static documents, the
- * page is a Server Component, and the grammar we need is tiny. All content is
- * treated as plain text (the only recognised HTML token is `<br>`, which maps to
- * a void `<br/>` element — no attributes, no children), so there is no XSS surface.
+ * page is a Server Component, and the grammar we need is tiny. The only HTML
+ * token recognised is `<br>` (a void element, no attributes); everything else is
+ * plain text or a scheme-filtered link, so there is no XSS surface.
  */
 
 const FONT = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
@@ -109,13 +112,20 @@ export function parseMarkdown(source: string): Block[] {
   return blocks;
 }
 
-// `\x` (escape) | `**bold**` | `*italic*` | `<br>` (hard line break)
-const INLINE_SOURCE = '\\\\([^A-Za-z0-9\\s])|\\*\\*([\\s\\S]+?)\\*\\*|\\*([\\s\\S]+?)\\*|(<br\\s*/?>)';
+// `\x` (escape) | `**bold**` | `*italic*` | `<br>` (hard line break) | `[text](href)` (link)
+const INLINE_SOURCE =
+  '\\\\([^A-Za-z0-9\\s])|\\*\\*([\\s\\S]+?)\\*\\*|\\*([\\s\\S]+?)\\*|(<br\\s*/?>)|\\[([^\\]]+)\\]\\(([^)]+)\\)';
+
+/** A link href is safe only if it is a site-relative path or an `https://` URL. */
+function isSafeHref(href: string): boolean {
+  return href.startsWith('/') || /^https:\/\//i.test(href);
+}
 
 /**
- * Render inline `**bold**`, `*italic*` and backslash escapes to React nodes.
- * A fresh RegExp is created per call: the function recurses into bold/italic
- * content, so a shared stateful (global) regex would corrupt `lastIndex`.
+ * Render inline `**bold**`, `*italic*`, `[text](href)` links and backslash
+ * escapes to React nodes. A fresh RegExp is created per call: the function
+ * recurses into bold/italic/link content, so a shared stateful (global) regex
+ * would corrupt `lastIndex`.
  */
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const re = new RegExp(INLINE_SOURCE, 'g');
@@ -135,6 +145,26 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(<em key={`${keyPrefix}-i${k}`}>{renderInline(m[3], `${keyPrefix}-i${k}`)}</em>);
     } else if (m[4] !== undefined) {
       nodes.push(<br key={`${keyPrefix}-br${k}`} />);
+    } else if (m[5] !== undefined) {
+      const label = m[5];
+      const href = m[6];
+      if (isSafeHref(href)) {
+        // External URLs and downloadable files (e.g. PDFs) open in a new tab.
+        const external = /^https:\/\//i.test(href) || /\.pdf(?:[?#]|$)/i.test(href);
+        nodes.push(
+          <a
+            key={`${keyPrefix}-a${k}`}
+            href={href}
+            {...(external ? { target: '_blank', rel: 'noopener' } : {})}
+            style={{ color: palette.primary, textDecoration: 'underline' }}
+          >
+            {renderInline(label, `${keyPrefix}-a${k}`)}
+          </a>,
+        );
+      } else {
+        // Unsafe scheme (javascript:, data:, …) → keep the literal markdown text.
+        nodes.push(m[0]);
+      }
     }
     last = re.lastIndex;
     k += 1;
