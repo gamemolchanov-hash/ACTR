@@ -9,12 +9,14 @@ import LegalMarkdown from '@/components/LegalMarkdown';
 import { GIZLILIK_MARKDOWN } from '../gizlilik-content';
 import { KARGO_TESLIMAT_MARKDOWN } from '../kargo-teslimat-content';
 import { IADE_MARKDOWN } from '../iade-content';
+import { TICARI_ELEKTRONIK_ILETI_MARKDOWN } from '../ticari-elektronik-ileti-content';
 
 /** Slugs whose body is a full Markdown document instead of s1..sN sections. */
 const MARKDOWN_DOCS: Partial<Record<LegalSlug, string>> = {
   gizlilik: GIZLILIK_MARKDOWN,
   'kargo-teslimat': KARGO_TESLIMAT_MARKDOWN,
   iade: IADE_MARKDOWN,
+  'ticari-elektronik-ileti': TICARI_ELEKTRONIK_ILETI_MARKDOWN,
 };
 
 export function generateStaticParams() {
