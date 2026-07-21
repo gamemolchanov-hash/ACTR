@@ -1,12 +1,18 @@
 import * as Sentry from '@sentry/nextjs';
+import { makeSentryInitOptions } from './src/lib/sentryInitOptions';
 import { makeStorefrontBeforeSend } from './src/lib/sentryBeforeSend';
 import { installChunkErrorRecovery } from './src/lib/chunkReload';
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_STOREFRONT_SENTRY_DSN,
-
-  // Only enable in production
-  enabled: process.env.NODE_ENV === 'production' && !!process.env.NEXT_PUBLIC_STOREFRONT_SENTRY_DSN,
+  // FBG-406: env-гейт (dsn/enabled/environment) вынесен в тестируемую фабрику.
+  // ВНИМАНИЕ: в браузере не-NEXT_PUBLIC_ SENTRY_DISABLED недоступен → клиентский гейт снять
+  // в рантайме нельзя (известное ограничение Next); профилактика шума нацелена на server/edge.
+  ...makeSentryInitOptions({
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_STOREFRONT_SENTRY_DSN: process.env.NEXT_PUBLIC_STOREFRONT_SENTRY_DSN,
+    SENTRY_DISABLED: process.env.SENTRY_DISABLED,
+    SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
+  }),
 
   tracesSampleRate: 0.1,
 
