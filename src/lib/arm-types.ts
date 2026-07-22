@@ -103,15 +103,16 @@ export type ArmPromoValidation =
   | { status: 'min_order'; minAmount: number };
 
 /**
- * ARM Creator Club wallet preview (`POST /wallet/validate`, FBG-385).
- * Returns the member's current balance and the amount the backend would actually
- * debit for the requested amount + order total (already clamped by the 40% rule).
- * Amounts are store-currency major units; numeric fields may arrive as strings.
+ * ARM Creator Club wallet preview (`POST /wallet/validate { total }`, FBG-385).
+ * Returns the loyalty program, the live spend cap, the member's balance and the
+ * amount the backend would debit for this order total
+ * (`max_applicable = min(wallet_balance, total × wallet_cap)`). Amounts are
+ * store-currency major units; numeric fields may arrive as strings.
  */
 export interface ArmWalletValidation {
   /** Storefront loyalty program — the widget renders only for 'cashback_wallet'. */
   program?: string;
-  /** Share of the order total the wallet may cover (e.g. 0.4). */
+  /** Share of the order total the wallet may cover, ∈ [0,1] (0 = no spend; e.g. 0.4). */
   wallet_cap?: number | string;
   wallet_balance: number | string;
   max_applicable: number | string;

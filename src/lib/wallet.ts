@@ -21,9 +21,13 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/** Sanitize a server cap into a usable ratio; non-finite/non-positive → default. */
+/**
+ * Sanitize a server cap into a usable ratio. A finite `cap >= 0` is honoured —
+ * `0` is a meaningful "no spend" config (ceiling collapses to 0), NOT a missing
+ * value. Only a negative / non-finite cap falls back to WALLET_DEFAULT_RATIO.
+ */
 function safeCap(cap: number): number {
-  return Number.isFinite(cap) && cap > 0 ? cap : WALLET_DEFAULT_RATIO;
+  return Number.isFinite(cap) && cap >= 0 ? cap : WALLET_DEFAULT_RATIO;
 }
 
 /**

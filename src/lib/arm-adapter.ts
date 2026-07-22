@@ -112,6 +112,17 @@ function toNum(v: unknown): number {
 }
 
 /**
+ * Coerce the ARM `wallet_cap` (share of total, may be string) to a ratio.
+ * A finite value >= 0 is honoured verbatim — `0` is a meaningful "no spend"
+ * loyalty config, NOT the same as a missing field. Only an absent / non-numeric /
+ * negative value falls back to WALLET_DEFAULT_RATIO (older BFF that omits the field).
+ */
+function toCap(v: unknown): number {
+  const n = typeof v === 'string' ? parseFloat(v) : (v as number);
+  return Number.isFinite(n) && n >= 0 ? n : WALLET_DEFAULT_RATIO;
+}
+
+/**
  * Maps the ARM wallet preview to the vitrine's WalletValidationResult (FBG-385).
  * Defensive numeric coercion (fields may be strings); missing fields → 0 so the
  * widget never renders NaN.
@@ -120,12 +131,12 @@ export function armToWalletValidation(w: ArmWalletValidation): WalletValidationR
   return {
     // Field names per BFF openapi.yaml /wallet/validate: program, wallet_balance,
     // max_applicable, wallet_cap (NOT balance/applicable — that shape never existed
-    // server-side). Cap is the live loyalty-config ratio; if an older BFF omits it,
-    // fall back to WALLET_DEFAULT_RATIO so the slider still bounds sensibly.
+    // server-side). Cap is the live loyalty-config ratio ∈ [0,1]; `0` ("no spend")
+    // is honoured, only a missing field falls back to WALLET_DEFAULT_RATIO (see toCap).
     program: w?.program != null ? String(w.program) : '',
     balance: toNum(w?.wallet_balance),
     applicable: toNum(w?.max_applicable),
-    cap: toNum(w?.wallet_cap) || WALLET_DEFAULT_RATIO,
+    cap: toCap(w?.wallet_cap),
   };
 }
 

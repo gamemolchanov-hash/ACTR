@@ -140,4 +140,22 @@ describe('validateWallet — Bearer-protected preview', () => {
     const { data } = await validateWallet(1000);
     expect(data.cap).toBe(0.4);
   });
+
+  it('keeps a meaningful zero wallet_cap as 0 (no-spend config, not the 0.4 default)', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          program: 'cashback_wallet',
+          wallet_cap: 0,
+          wallet_balance: '1000',
+          max_applicable: '0',
+        },
+      },
+    });
+    localStorage.setItem('arm_token', 'jwt-xyz');
+    const { validateWallet } = await import('./api');
+    const { data } = await validateWallet(1000);
+    expect(data.cap).toBe(0);
+    expect(data.applicable).toBe(0);
+  });
 });

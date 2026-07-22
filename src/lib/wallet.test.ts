@@ -63,8 +63,12 @@ describe('walletCeiling — honours the server cap', () => {
     expect(walletCeiling(250, 1000, 0.5)).toBe(250);
   });
 
-  it('falls back to the default cap for a non-positive or non-finite cap', () => {
-    expect(walletCeiling(900, 1000, 0)).toBe(400);
+  it('honours a meaningful zero cap (no-spend config) — ceiling is 0, not the default', () => {
+    // wallet_cap:0 is a valid BFF config; it must NOT be treated as "missing" → 40%.
+    expect(walletCeiling(900, 1000, 0)).toBe(0);
+  });
+
+  it('falls back to the default cap only for a negative or non-finite cap', () => {
     expect(walletCeiling(900, 1000, -0.3)).toBe(400);
     expect(walletCeiling(900, 1000, Number.NaN)).toBe(400);
   });
@@ -100,6 +104,10 @@ describe('clampWalletAmount — [0, ceiling]', () => {
   it('allows more than the default when the server cap is higher (50%)', () => {
     // 50% of 1000 = 500 — a request of 450 passes through
     expect(clampWalletAmount(450, 900, 1000, 0.5)).toBe(450);
+  });
+
+  it('clamps everything to 0 for a no-spend cap (wallet_cap:0), not the default', () => {
+    expect(clampWalletAmount(400, 900, 1000, 0)).toBe(0);
   });
 });
 

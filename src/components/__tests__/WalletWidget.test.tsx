@@ -83,6 +83,16 @@ describe('WalletWidget — server cap drives the slider/input', () => {
     expect(onChange).toHaveBeenLastCalledWith(450);
   });
 
+  it('shows no slider for a no-spend server cap (wallet_cap:0), not a 40% slider', async () => {
+    mockPreview({ cap: 0, applicable: 0, balance: 1000 });
+    render(<WalletWidget total={1000} applied={0} onChange={vi.fn()} promoActive={false} />);
+
+    // Widget still renders (balance > 0), but the ceiling is 0 → empty branch,
+    // never a slider capped at the 40% default.
+    await screen.findByText('checkout.wallet.empty');
+    expect(screen.queryByRole('slider')).toBeNull();
+  });
+
   it('sends { total } (no requested amount) to the preview endpoint', async () => {
     mockPreview({ cap: 0.4, applicable: 400 });
     render(<WalletWidget total={1000} applied={0} onChange={vi.fn()} promoActive={false} />);
