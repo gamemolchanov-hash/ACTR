@@ -7,45 +7,21 @@ import Autoplay from 'embla-carousel-autoplay';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-
-interface HeroSlide {
-  id: string;
-  desktopImage: string;
-  mobileImage: string;
-  title: string;
-  subtitle: string;
-  ctaText: string;
-  ctaHref: string;
-  card?: {
-    title: string;
-    description: string;
-    ctaText: string;
-    ctaHref: string;
-  };
-}
+import { buildHeroSlides } from '@/lib/hero-slides';
 
 export function HeroBanner() {
   const t = useTranslations();
 
-  const HERO_SLIDES: HeroSlide[] = Array.from({ length: 5 }, (_, i) => ({
-    id: `slide-${i + 1}`,
-    desktopImage: '/hero/hero-desktop.png',
-    mobileImage: '/hero/hero-mobile.png',
-    title: 'AMERICAN CREATOR',
-    subtitle: t('hero.subtitle'),
-    ctaText: t('hero.cta'),
-    ctaHref: '/catalog',
-    card: {
-      title: 'FRAMEWORK GEL & ACRYLATE GEL',
-      description: t('hero.cardDescription'),
-      ctaText: t('hero.cardCta'),
-      ctaHref: '/catalog',
-    },
-  }));
+  const HERO_SLIDES = buildHeroSlides(t);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
-    Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true }),
-  ]);
+  // Carousel behaviour (loop, autoplay, dots) only makes sense with 2+ slides.
+  // A single banner is static: no embla loop/autoplay and no pagination dots.
+  const isCarousel = HERO_SLIDES.length > 1;
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: isCarousel },
+    isCarousel ? [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })] : [],
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const onSelect = useCallback(() => {
@@ -208,33 +184,36 @@ export function HeroBanner() {
         </Box>
       </Box>
 
-      {/* Pagination dots */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 1,
-          py: 2.5,
-        }}
-      >
-        {HERO_SLIDES.map((_, i) => (
-          <Box
-            key={i}
-            onClick={() => scrollTo(i)}
-            sx={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              bgcolor: i === selectedIndex ? palette.primary : palette.primaryLight,
-              cursor: 'pointer',
-              transition: 'background-color 0.3s',
-              '&:hover': {
-                bgcolor: i === selectedIndex ? palette.primary : '#b0bce0',
-              },
-            }}
-          />
-        ))}
-      </Box>
+      {/* Pagination dots — only for a real (multi-slide) carousel */}
+      {isCarousel && (
+        <Box
+          data-testid="hero-pagination"
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 1,
+            py: 2.5,
+          }}
+        >
+          {HERO_SLIDES.map((_, i) => (
+            <Box
+              key={i}
+              onClick={() => scrollTo(i)}
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                bgcolor: i === selectedIndex ? palette.primary : palette.primaryLight,
+                cursor: 'pointer',
+                transition: 'background-color 0.3s',
+                '&:hover': {
+                  bgcolor: i === selectedIndex ? palette.primary : '#b0bce0',
+                },
+              }}
+            />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 }
