@@ -403,13 +403,14 @@ export function Header() {
         sx={{
           display: { xs: 'flex', sm: 'none' },
           alignItems: 'center',
-          px: 2,
+          px: 1.5,
           height: 56,
-          gap: 1.5,
+          gap: 0.75,
         }}
       >
         <Link href="/" style={{ flexShrink: 0 }}>
-          <img src="/logo.png" alt="American Creator" style={{ height: 36, width: 'auto' }} />
+          {/* Smaller mark on xs so logo + name + EN/TR + cart + burger fit 320px (FBG-429) */}
+          <img src="/logo.png" alt="American Creator" style={{ height: 24, width: 'auto' }} />
         </Link>
         <Box sx={{ flex: 1 }} />
         {!!customer ? (
@@ -441,7 +442,10 @@ export function Header() {
               fontSize: 14,
               color: palette.primary,
               whiteSpace: 'nowrap',
-              flexShrink: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+              flexShrink: 1,
             }}
           >
             {t('common.signIn')}
@@ -456,7 +460,7 @@ export function Header() {
               component="button"
               onClick={() => switchLocale(lng)}
               sx={{
-                px: 0.75,
+                px: 0.5,
                 py: 0.25,
                 border: `1px solid ${locale === lng ? palette.primary : palette.bgLight}`,
                 borderRadius: '4px',
@@ -493,13 +497,13 @@ export function Header() {
             <img src="/icons/cart.svg" alt={t('common.cart')} style={{ width: 28, height: 26 }} />
           </Badge>
         </Link>
-        <IconButton onClick={() => setMenuOpen(true)} sx={{ p: 0.5, flexShrink: 0 }}>
+        <IconButton onClick={() => setMenuOpen(true)} sx={{ p: 0.25, flexShrink: 0 }}>
           <MenuIcon sx={{ fontSize: 24, color: palette.primary }} />
         </IconButton>
       </Box>
 
       {/* Mobile row 2: search bar */}
-      <Box sx={{ display: { xs: 'block', sm: 'none' }, px: 2, pb: 1 }}>
+      <Box sx={{ display: { xs: 'block', sm: 'none' }, px: 1.5, pb: 1 }}>
         <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
           <Box sx={{ position: 'relative' }}>
             <Box

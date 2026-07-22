@@ -111,6 +111,21 @@ describe('Header — mobile language switcher & Drawer sign out (FBG-429)', () =
     expect(authState.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it('mobile logo is compacted so the xs row fits 320px; desktop logo untouched', () => {
+    render(<Header />);
+    const logos = screen.getAllByAltText('American Creator');
+
+    // Mobile mark (width:auto) must stay small — regressing this re-clips cart/burger.
+    const mobileLogo = logos.find((el) => (el as HTMLElement).style.width === 'auto');
+    expect(mobileLogo).toBeTruthy();
+    expect((mobileLogo as HTMLElement).style.height).toBe('24px');
+
+    // Desktop logo (sm+) is not part of this change.
+    const desktopLogo = logos.find((el) => (el as HTMLElement).style.width === '240px');
+    expect(desktopLogo).toBeTruthy();
+    expect((desktopLogo as HTMLElement).style.height).toBe('57px');
+  });
+
   it('logged out: no Sign Out and no Orders anywhere, Sign In is offered', () => {
     render(<Header />);
     openDrawer();
