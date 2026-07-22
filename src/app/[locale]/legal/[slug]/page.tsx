@@ -99,7 +99,7 @@ export default async function LegalPage({ params }: Props) {
                   <Typography
                     sx={{
                       fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: 400,
                       lineHeight: '22px',
                       color: palette.primary,

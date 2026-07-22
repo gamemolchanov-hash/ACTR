@@ -192,7 +192,7 @@ const tableWrapperSx = {
     width: '100%',
     minWidth: 480,
     fontFamily: FONT,
-    fontSize: 14,
+    fontSize: 16,
   },
   '& th, & td': {
     border: `1px solid ${palette.primaryLight}`,
@@ -234,7 +234,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
           key={key}
           sx={{
             fontFamily: FONT,
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 400,
             lineHeight: '22px',
             color: palette.primary,
@@ -253,7 +253,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
               component="li"
               sx={{
                 fontFamily: FONT,
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 400,
                 lineHeight: '22px',
                 color: palette.primary,
