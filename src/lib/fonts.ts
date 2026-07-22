@@ -67,10 +67,19 @@ const futuraFallback =
  * this tiny family maps ONLY the lira codepoint to a clean sans-serif and sits FIRST in every price
  * stack (`LiraFix, "Futura PT", …`). Per-glyph fallback then uses Arial's ₺ and Futura PT for
  * every other character — same-family composition does not win over the Futura face, so LiraFix must lead.
+ *
+ * FBG-424: the local()-only src did NOT resolve on iOS / in-app browsers (WKWebView) — WebKit
+ * matches local() by PostScript name (`ArialMT`/`HelveticaNeue`, not `Arial`/`Helvetica Neue`) and
+ * restricts local() lookups for privacy — so LiraFix fell through to Futura PT and iPhone/Telegram
+ * users saw prices as "₽" (looks like rubles — critical on a TR storefront). Fix: lead `src` with a
+ * self-hosted 1-glyph subset (`/fonts/lira-subset.woff2`, U+20BA only, from Inter/OFL — see
+ * public/fonts/LICENSE-lira-subset.txt) so ₺ renders everywhere; the local() names stay as fallback.
+ * `unicode-range:U+20BA` is unchanged, so this face is still fetched only when a ₺ is on the page.
  */
 const liraFix =
-  `@font-face{font-family:"LiraFix";src:local("Arial"),local("Liberation Sans"),` +
-  `local("Helvetica Neue"),local("Tahoma"),local("Verdana");unicode-range:U+20BA;font-display:swap;}`;
+  `@font-face{font-family:"LiraFix";src:url("/fonts/lira-subset.woff2") format("woff2"),` +
+  `local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Tahoma"),local("Verdana");` +
+  `unicode-range:U+20BA;font-display:swap;}`;
 
 /** Static, developer-authored CSS (no external/user input) — safe to inline as-is. */
 export const FONT_FACE_CSS = futuraFaces + futuraFallback + liraFix;

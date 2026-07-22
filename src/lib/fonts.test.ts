@@ -23,14 +23,19 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
     }
   });
 
-  it('references only local woff files that actually exist in /public', () => {
+  it('references only local font files that actually exist in /public', () => {
     const urls = [...FONT_FACE_CSS.matchAll(/url\("([^"]+)"\)/g)].map((m) => m[1]);
     expect(urls.length).toBeGreaterThanOrEqual(6);
     for (const url of urls) {
+      // Every src url is self-hosted under /fonts/ (no external host) and on disk.
       expect(url.startsWith('/fonts/')).toBe(true);
-      expect(url.endsWith('.woff')).toBe(true);
+      expect(url.endsWith('.woff') || url.endsWith('.woff2')).toBe(true);
       expect(existsSync(resolve(PUBLIC, `.${url}`))).toBe(true);
     }
+    // The six Futura PT weight faces stay plain .woff; only the LiraFix ₺ subset is .woff2.
+    const woff2 = urls.filter((u) => u.endsWith('.woff2'));
+    expect(woff2).toEqual(['/fonts/lira-subset.woff2']);
+    expect(urls.filter((u) => u.endsWith('.woff')).length).toBeGreaterThanOrEqual(6);
   });
 
   it('pulls in no third-party font host (cdnfonts / googleapis)', () => {
@@ -71,6 +76,23 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
   it('keeps the LiraFix ₺ family scoped to U+20BA and first-in-stack', () => {
     expect(FONT_FACE_CSS).toContain('font-family:"LiraFix"');
     expect(FONT_FACE_CSS).toContain('unicode-range:U+20BA');
+  });
+
+  // FBG-424: local()-only src did not resolve on iOS/WKWebView, so ₺ fell back to
+  // Futura PT's ruble-like glyph. LiraFix now leads with a self-hosted 1-glyph subset,
+  // with the local() names kept as fallback for environments that still match them.
+  it('leads LiraFix src with the self-hosted ₺ subset, local() kept as fallback', () => {
+    const face = FONT_FACE_CSS.match(/@font-face\{font-family:"LiraFix";([^}]*)\}/);
+    expect(face).not.toBeNull();
+    const src = face![1];
+    // Self-hosted subset comes first (wins over the Futura face on iOS).
+    expect(src).toMatch(/src:url\("\/fonts\/lira-subset\.woff2"\) format\("woff2"\),/);
+    expect(src.indexOf('url("/fonts/lira-subset.woff2")')).toBeLessThan(src.indexOf('local('));
+    // local() names preserved as fallback.
+    for (const name of ['Arial', 'Liberation Sans', 'Helvetica Neue', 'Tahoma', 'Verdana']) {
+      expect(src).toContain(`local("${name}")`);
+    }
+    expect(existsSync(resolve(PUBLIC, './fonts/lira-subset.woff2'))).toBe(true);
   });
 });
 
