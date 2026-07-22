@@ -22,10 +22,10 @@
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "@tanstack/react-query": "^5.62.16",
-    "axios": "^1.7.9",
+    "axios": "^1.18.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "isomorphic-dompurify": "^3.15.0",
+    "isomorphic-dompurify": "^3.19.0",
     "next": "15.5.20",
     "next-intl": "^4.13.0",
     "react": "^19.0.0",
@@ -45,5 +45,9 @@
     "typescript": "^5",
     "vite": "^8.0.16",
     "vitest": "^4.1.8"
+  },
+  "//": "overrides.sharp: pins sharp to ^0.35.0, above next's optional ^0.34.3 (a caret range that will not admit 0.35), to close GHSA-f88m-g3jw-g9cj — inherited libvips CVE-2026-33327/33328/35590/35591. undici (CVE-2026-12151), fast-uri (CVE-2026-13676/16221), form-data (CVE-2026-12143) and brace-expansion (GHSA-3jxr-9vmj-r5cp) are fixed within their existing parent ranges via npm update, so they need no override.",
+  "overrides": {
+    "sharp": "^0.35.0"
   }
 }
