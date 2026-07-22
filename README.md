@@ -58,3 +58,7 @@ SENTRY_DISABLED=1 PORT=3103 node .next/standalone/server.js
 `docs/` — симлинк в Obsidian vault (`W/AutoCRM/ACTR`), в git не входит:
 [docs/TZ.md](docs/TZ.md) (полное ТЗ), [docs/open-questions.md](docs/open-questions.md),
 [docs/roadmap.md](docs/roadmap.md), [docs/GlitchTip.md](docs/GlitchTip.md).
+
+---
+
+_Репозиторий обслуживается автономным конвейером (SRV199); задачи — в Multica, проект ACTR._
