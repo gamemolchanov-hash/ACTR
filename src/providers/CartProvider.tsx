@@ -15,6 +15,7 @@ import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import type { CartItem } from '@/lib/api';
 import { palette } from '@/lib/theme';
+import { PRELAUNCH } from '@/lib/prelaunch';
 
 interface CartContextValue {
   items: CartItem[];
@@ -32,6 +33,7 @@ const STORAGE_KEY = 'storefront_cart';
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [prelaunchOpen, setPrelaunchOpen] = useState(false);
   const skipPersist = useRef(true);
   const router = useRouter();
   const t = useTranslations();
@@ -60,6 +62,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = useCallback((productId: string, quantity: number) => {
+    // Pre-launch (FBG-416): ordering is disabled — don't touch the cart,
+    // just surface the "store is getting ready" notice on the active locale.
+    if (PRELAUNCH) {
+      setPrelaunchOpen(true);
+      return;
+    }
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (existing) {
@@ -175,6 +183,76 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               }}
             >
               {t('cart.checkout')}
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pre-launch notice (FBG-416) — shown instead of adding to cart while
+          ordering is disabled. All copy comes from the `prelaunch.*` keys. */}
+      <Dialog
+        open={prelaunchOpen}
+        onClose={() => setPrelaunchOpen(false)}
+        PaperProps={{
+          sx: {
+            maxWidth: 720,
+            width: '100%',
+            borderRadius: '20px',
+            py: 4,
+            px: 3,
+            position: 'relative',
+            m: 2,
+          },
+        }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: 'rgba(51, 74, 159, 0.2)',
+              backdropFilter: 'blur(2.5px)',
+            },
+          },
+        }}
+      >
+        <IconButton
+          onClick={() => setPrelaunchOpen(false)}
+          sx={{ position: 'absolute', top: 12, right: 12, color: palette.primary }}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <DialogContent sx={{ textAlign: 'center', p: 0, overflow: 'visible' }}>
+          <Typography
+            variant="h2"
+            sx={{ fontWeight: 450, textTransform: 'uppercase', color: palette.primary, mb: 1.5 }}
+          >
+            {t('prelaunch.title')}
+          </Typography>
+
+          <Typography sx={{ fontSize: 18, color: palette.primary, mb: 4, lineHeight: 1.5 }}>
+            {t('prelaunch.message')}
+          </Typography>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setPrelaunchOpen(false);
+                router.push('/catalog');
+              }}
+              sx={{
+                maxWidth: 280,
+                bgcolor: palette.primary,
+                color: palette.white,
+                borderRadius: '10px',
+                py: 1.5,
+                px: 5,
+                fontSize: 18,
+                fontWeight: 450,
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#2a3d85' },
+              }}
+            >
+              {t('prelaunch.cta')}
             </Button>
           </Box>
         </DialogContent>

@@ -31,6 +31,8 @@ import { palette } from '@/lib/theme';
 import { imgCart, imgCartSm } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
+import { PRELAUNCH } from '@/lib/prelaunch';
+import PrelaunchNotice from '@/components/PrelaunchNotice';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
@@ -69,7 +71,9 @@ export default function BasketPage() {
   const [promoError, setPromoError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (items.length === 0) {
+    // Pre-launch (FBG-416): the page renders the notice instead of the cart, so
+    // skip cart validation entirely (avoids a needless BFF call).
+    if (PRELAUNCH || items.length === 0) {
       setValidated([]);
       setSubtotal(0);
       return;
@@ -171,6 +175,11 @@ export default function BasketPage() {
       </Typography>
     </Breadcrumbs>
   );
+
+  /* ============ PRE-LAUNCH (FBG-416) ============ */
+  if (PRELAUNCH) {
+    return <PrelaunchNotice />;
+  }
 
   /* ============ EMPTY STATE ============ */
   if (items.length === 0) {

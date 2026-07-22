@@ -52,6 +52,8 @@ import { proceedButtonDisabled, shippingErrorKey, shippingPanelState } from '@/l
 import { buildOnBilgilendirmeData, renderOnBilgilendirmeFormu } from '@/lib/on-bilgilendirme';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
+import PrelaunchNotice from '@/components/PrelaunchNotice';
+import { PRELAUNCH } from '@/lib/prelaunch';
 import type {
   ArmShippingRate,
   ArmShippingUnavailableReason,
@@ -319,7 +321,10 @@ export default function CheckoutPage() {
 
   // Validate cart on mount / items change
   useEffect(() => {
-    if (items.length === 0) {
+    // Pre-launch (FBG-416): checkout is closed and renders the notice instead,
+    // so skip cart validation (avoids a needless BFF call even if localStorage
+    // still holds items from before the mode was switched on).
+    if (PRELAUNCH || items.length === 0) {
       setValidated([]);
       setSubtotal(0);
       return;
@@ -595,6 +600,11 @@ export default function CheckoutPage() {
       </Typography>
     </Breadcrumbs>
   );
+
+  /* ---- Pre-launch (FBG-416): block direct-URL checkout ---- */
+  if (PRELAUNCH) {
+    return <PrelaunchNotice />;
+  }
 
   /* ---- Empty cart ---- */
   if (!loading && items.length === 0) {
