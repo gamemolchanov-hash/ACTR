@@ -453,9 +453,9 @@ export default function CheckoutPage() {
           lineTotal: v.lineTotal ?? null,
         })),
       subtotal,
-      promoDiscount,
-      walletApplied: walletToApply,
       shippingCost,
+      // The exact amount iyzico will charge — never recomputed in the form.
+      grandTotal: payTotal,
       rate: selectedRate
         ? {
             carrier: selectedRate.carrier,
@@ -471,9 +471,8 @@ export default function CheckoutPage() {
     obfGeneratedAt,
     validated,
     subtotal,
-    promoDiscount,
-    walletToApply,
     shippingCost,
+    payTotal,
     selectedRate,
     form,
     currency,

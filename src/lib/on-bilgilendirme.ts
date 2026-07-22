@@ -16,10 +16,13 @@
  *    persisted snapshot with the real order number + e-mail is a follow-up
  *    (ARM backend needed).
  *  - Taksit is not supported → "Uygulanmamaktadır".
- *  - The Creator Club wallet debit is folded into "Toplam İndirim" so the order
- *    summary reconciles (Ara Toplam − Toplam İndirim + Teslimat = Ödenecek) and
- *    the grand total equals what iyzico actually charges. For guests / no-wallet
- *    orders wallet = 0, so this is a no-op.
+ *  - The grand total is the checkout's `payTotal` (the exact amount iyzico will
+ *    charge) — passed in, never recomputed here, so the form can't diverge from
+ *    the charge (e.g. when a promo exceeds the subtotal and the checkout clamps
+ *    the goods to 0). "Toplam İndirim" is then derived as
+ *    subtotal + shipping − grandTotal so the summary always reconciles. This
+ *    also folds the Creator Club wallet debit into the discount line; for guests
+ *    / no-wallet / no-promo orders it collapses to the plain promo amount.
  *  - Variant, essential characteristics and the hygiene-exception SKU list have
  *    no source field on the product yet → "Uygulanmamaktadır" / "Yoktur".
  *  - Delivery carrier/method/period come from the selected ARM shipping rate;
@@ -73,9 +76,13 @@ export interface BuildOnBilgilendirmeInput {
   currencyLabel: string;
   items: OnBilgilendirmeLineInput[];
   subtotal: number;
-  promoDiscount: number;
-  walletApplied: number;
   shippingCost: number;
+  /**
+   * Final amount charged — the checkout's `payTotal` (already clamped with promo
+   * and wallet). The form's "Ödenecek Toplam Tutar" equals this exactly; the
+   * total discount is derived from it so the summary reconciles.
+   */
+  grandTotal: number;
   /** Selected ARM shipping rate, or null when none is chosen yet. */
   rate: {
     carrier?: string | null;
@@ -150,6 +157,21 @@ function nonEmpty(value: string | null | undefined, fallback: string): string {
 }
 
 /**
+ * GFM tables split on a raw `|` — and LegalMarkdown.splitRow does so BEFORE any
+ * inline/escape parsing, so a `|` in any substituted value (free-text address,
+ * customer name, ARM product name/SKU) would spill into extra columns and
+ * corrupt §2/§4. Escaping to `\|` would not survive splitRow either, so the only
+ * parser-agnostic fix is to replace the delimiter in the data with a slash.
+ */
+function pipeSafe(value: string): string {
+  return value.replace(/\|/g, '/');
+}
+
+function sanitizeMap(map: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, pipeSafe(v)]));
+}
+
+/**
  * Replace `{{key}}` tokens from `map`. Unknown tokens are left intact on purpose,
  * so a forgotten field surfaces as a visible `{{…}}` (caught by tests) rather
  * than silently disappearing.
@@ -178,8 +200,14 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     };
   });
 
-  const totalDiscount = input.promoDiscount + input.walletApplied;
-  const grandTotal = Math.max(0, input.subtotal - totalDiscount + input.shippingCost);
+  // Derive the discount from the authoritative charge so the summary reconciles
+  // (Ara Toplam − Toplam İndirim + Teslimat = Ödenecek) and grand_total never
+  // diverges from payTotal, including the promo>subtotal clamp edge.
+  const additionalCosts = 0;
+  const totalDiscount = Math.max(
+    0,
+    input.subtotal + input.shippingCost + additionalCosts - input.grandTotal,
+  );
 
   const order: Record<string, string> = {
     order_number: draftOrderRef(input.generatedAt),
@@ -192,8 +220,8 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     subtotal: formatObfAmount(input.subtotal),
     total_discount: formatObfAmount(totalDiscount),
     shipping_cost: formatObfAmount(input.shippingCost),
-    additional_costs: formatObfAmount(0),
-    grand_total: formatObfAmount(grandTotal),
+    additional_costs: formatObfAmount(additionalCosts),
+    grand_total: formatObfAmount(input.grandTotal),
     currency,
     selected_payment_method: PAYMENT_METHOD,
     installment_count_or_not_applicable: NOT_APPLICABLE,
@@ -208,7 +236,9 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     kvkk_notice_url: input.kvkkNoticeUrl,
   };
 
-  return { lines, order };
+  // Sanitize every substituted value against the GFM table delimiter (see
+  // pipeSafe). Numbers/constants carry no `|`, so this is a no-op for them.
+  return { lines: lines.map(sanitizeMap), order: sanitizeMap(order) };
 }
 
 /** Fill the canonical template with order data → ready-to-render Markdown. */
