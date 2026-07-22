@@ -22,8 +22,13 @@ import {
   RadioGroup,
   FormControlLabel,
   Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import type { SelectChangeEvent } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { useCart } from '@/providers/CartProvider';
@@ -44,6 +49,8 @@ import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
 import { proceedButtonDisabled, shippingErrorKey, shippingPanelState } from '@/lib/checkout';
+import { buildOnBilgilendirmeData, renderOnBilgilendirmeFormu } from '@/lib/on-bilgilendirme';
+import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
 import type {
   ArmShippingRate,
@@ -161,6 +168,22 @@ const COUNTRIES: { code: string; name: string }[] = [
   { code: 'AE', name: 'United Arab Emirates' },
 ];
 
+/** Single-line address for the Ön Bilgilendirme Formu (billing == shipping here). */
+function formatObfAddress(f: FormData): string {
+  const countryName = COUNTRIES.find((ct) => ct.code === f.country)?.name || f.country;
+  return [
+    f.street,
+    f.building && `No: ${f.building}`,
+    f.block && `Blok: ${f.block}`,
+    f.apartment && `Daire: ${f.apartment}`,
+    f.city,
+    f.zip,
+    countryName,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
 const STORAGE_KEY = 'checkout_form';
 const STORAGE_STEP_KEY = 'checkout_step';
 
@@ -229,6 +252,16 @@ export default function CheckoutPage() {
 
   // Payment session (Stripe Embedded)
   const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
+
+  // Ön Bilgilendirme Formu modal (FBG-401). `obfGeneratedAt` is stamped once on
+  // first open (client-only) so the draft ref / date-time stay stable while the
+  // form's amounts still track the live checkout state.
+  const [obfOpen, setObfOpen] = useState(false);
+  const [obfGeneratedAt, setObfGeneratedAt] = useState<Date | null>(null);
+  const openObf = () => {
+    setObfGeneratedAt((prev) => prev ?? new Date());
+    setObfOpen(true);
+  };
 
   // Hydrate from sessionStorage on mount (client only)
   useEffect(() => {
@@ -398,6 +431,53 @@ export default function CheckoutPage() {
     applied: walletApplied,
   });
   const payTotal = Math.max(0, totalWithShipping - walletToApply);
+
+  // Ön Bilgilendirme Formu, filled with this order's data (FBG-401). Recomputed
+  // whenever any input changes so the form never shows stale figures; only built
+  // once the modal has been opened (obfGeneratedAt set). Rendered through
+  // LegalMarkdown, which enforces the ≥16px regulator minimum centrally.
+  const obfMarkdown = useMemo(() => {
+    if (!obfGeneratedAt) return '';
+    const data = buildOnBilgilendirmeData({
+      generatedAt: obfGeneratedAt,
+      customer: { name: form.name, phone: form.phone, email: form.email },
+      address: formatObfAddress(form),
+      currencyLabel: currency === 'TRY' ? 'TL' : currency,
+      items: validated
+        .filter((v) => v.valid)
+        .map((v) => ({
+          name: v.name,
+          sku: v.sku,
+          quantity: v.quantity,
+          unitPrice: v.unitPrice ?? null,
+          lineTotal: v.lineTotal ?? null,
+        })),
+      subtotal,
+      promoDiscount,
+      walletApplied: walletToApply,
+      shippingCost,
+      rate: selectedRate
+        ? {
+            carrier: selectedRate.carrier,
+            name: selectedRate.name,
+            estMin: selectedRate.estimated_days_min,
+            estMax: selectedRate.estimated_days_max,
+          }
+        : null,
+      kvkkNoticeUrl: 'https://american-creator.tr/legal/kvkk',
+    });
+    return renderOnBilgilendirmeFormu(data);
+  }, [
+    obfGeneratedAt,
+    validated,
+    subtotal,
+    promoDiscount,
+    walletToApply,
+    shippingCost,
+    selectedRate,
+    form,
+    currency,
+  ]);
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -933,9 +1013,25 @@ export default function CheckoutPage() {
             label={
               <Typography sx={{ ...info, color: c.main, lineHeight: '1.5' }}>
                 {t('checkout.consent.mesafeliPrefix')}{' '}
-                <Link href="/legal/mesafeli-satis" target="_blank" rel="noopener noreferrer" style={{ color: c.main }}>
+                <MuiLink
+                  component="button"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openObf();
+                  }}
+                  sx={{
+                    color: c.main,
+                    font: 'inherit',
+                    p: 0,
+                    verticalAlign: 'baseline',
+                    textDecoration: 'underline',
+                    textAlign: 'left',
+                  }}
+                >
                   {t('checkout.consent.mesafeliLink')}
-                </Link>{' '}
+                </MuiLink>{' '}
                 {t('checkout.consent.mesafeliSuffix')}
               </Typography>
             }
@@ -1183,6 +1279,42 @@ export default function CheckoutPage() {
         {/* RIGHT: Order summary */}
         {orderSummary}
       </Stack>
+
+      {/* Sözleşmeler ve Formlar — Ön Bilgilendirme Formu filled with this order's
+          data (FBG-401). Opened from the mesafeli consent link; the buyer reads
+          it before the payment obligation. The Mesafeli Satış Sözleşmesi
+          (FBG-402) will join this modal once its text is delivered. */}
+      <Dialog
+        open={obfOpen}
+        onClose={() => setObfOpen(false)}
+        scroll="paper"
+        maxWidth="md"
+        fullWidth
+        aria-labelledby="obf-dialog-title"
+        slotProps={{
+          backdrop: {
+            sx: { backgroundColor: 'rgba(51, 74, 159, 0.2)', backdropFilter: 'blur(2.5px)' },
+          },
+        }}
+        PaperProps={{ sx: { borderRadius: '20px' } }}
+      >
+        <DialogTitle
+          id="obf-dialog-title"
+          sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase', pr: 6 }}
+        >
+          {t('checkout.obf.title')}
+          <IconButton
+            onClick={() => setObfOpen(false)}
+            aria-label={t('checkout.obf.close')}
+            sx={{ position: 'absolute', top: 12, right: 12, color: c.main }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ bgcolor: 'white' }}>
+          <LegalMarkdown source={obfMarkdown} />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

@@ -79,4 +79,20 @@ describe('messages are next-intl-consumable (unflatten invariant)', () => {
     expect(val).not.toBe('checkout.consent.required');
     expect(val.length).toBeGreaterThan(0);
   });
+
+  // FBG-401 "Sözleşmeler ve Formlar" block chrome — present in both locales.
+  it.each([
+    ['en', enRaw],
+    ['tr', trRaw],
+  ])('%s checkout.obf.* keys resolve in both locales', async (locale, raw) => {
+    const messages = unflatten(raw as Record<string, string>);
+    const t = (await createTranslator({ locale, messages })) as unknown as (
+      key: string,
+    ) => string;
+    for (const key of ['checkout.obf.title', 'checkout.obf.close']) {
+      const val = t(key);
+      expect(val).not.toBe(key);
+      expect(val.length).toBeGreaterThan(0);
+    }
+  });
 });

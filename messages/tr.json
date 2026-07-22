@@ -155,6 +155,8 @@
   "checkout.errors.wallet_promo_conflict": "Promosyon kodu ve cüzdan ödemesi birlikte kullanılamaz. Devam etmek için birini kaldırın.",
   "checkout.errors.wallet_requires_auth": "Cüzdanınızla ödemek için lütfen giriş yapın.",
   "checkout.errors.wallet_unavailable": "Cüzdan ödemesi şu anda kullanılamıyor — tutarın tamamını kartla ödeyebilirsiniz.",
+  "checkout.obf.close": "Kapat",
+  "checkout.obf.title": "Sözleşmeler ve Formlar",
   "checkout.shipping.invalid_postal_code": "{zip} posta kodunu doğrulayamadık. Lütfen kontrol edip tekrar deneyin.",
   "checkout.shipping.network": "Kargo servisine ulaşamadık. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
   "checkout.shipping.not_configured": "Bu adrese kargo şu anda kullanılamıyor.",
