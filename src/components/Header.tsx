@@ -413,38 +413,24 @@ export function Header() {
         </Link>
         <Box sx={{ flex: 1 }} />
         {!!customer ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-            <MuiLink
-              component={Link}
-              href="/account"
-              underline="none"
-              sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-                fontSize: 14,
-                color: palette.primary,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {customer?.name?.split(' ')[0] || t('common.cabinet')}
-            </MuiLink>
-            <MuiLink
-              component="button"
-              onClick={signOut}
-              underline="none"
-              sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-                fontSize: 13,
-                color: palette.primaryLight,
-                whiteSpace: 'nowrap',
-                border: 'none',
-                bgcolor: 'transparent',
-                cursor: 'pointer',
-                p: 0,
-              }}
-            >
-              {t('common.signOut')}
-            </MuiLink>
-          </Box>
+          <MuiLink
+            component={Link}
+            href="/account"
+            underline="none"
+            sx={{
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+              fontSize: 14,
+              color: palette.primary,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 96,
+              minWidth: 0,
+              flexShrink: 1,
+            }}
+          >
+            {customer?.name?.split(' ')[0] || t('common.cabinet')}
+          </MuiLink>
         ) : (
           <MuiLink
             component={Link}
@@ -461,6 +447,33 @@ export function Header() {
             {t('common.signIn')}
           </MuiLink>
         )}
+
+        {/* Language switcher — replaces Sign Out on mobile (FBG-429); Sign Out moved to Drawer */}
+        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+          {(['en', 'tr'] as const).map((lng) => (
+            <Box
+              key={lng}
+              component="button"
+              onClick={() => switchLocale(lng)}
+              sx={{
+                px: 0.75,
+                py: 0.25,
+                border: `1px solid ${locale === lng ? palette.primary : palette.bgLight}`,
+                borderRadius: '4px',
+                bgcolor: locale === lng ? palette.primary : 'transparent',
+                color: locale === lng ? 'white' : palette.primary,
+                cursor: 'pointer',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                fontSize: 11,
+                fontWeight: 500,
+                lineHeight: 1.4,
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              {t(`lang.${lng}`)}
+            </Box>
+          ))}
+        </Box>
         <Link href="/basket" style={{ flexShrink: 0, display: 'flex' }}>
           <Badge
             badgeContent={totalQuantity}
@@ -785,7 +798,7 @@ export function Header() {
           {(!!customer
             ? [
                 { label: t('common.account'), href: '/account' },
-                { label: 'Orders', href: '/account/orders' },
+                { label: t('account.myOrders'), href: '/account/orders' },
               ]
             : [{ label: t('common.signIn'), href: '/login' }]
           ).map((item) => (
