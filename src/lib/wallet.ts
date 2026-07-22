@@ -8,35 +8,54 @@
  */
 
 /**
- * Owner rule (docs/loyalty-creator-club.md §10): a wallet may cover at most 40%
- * of the order total. Kept as a named constant so UI and tests agree on the cap.
+ * Fallback wallet cap (share of the order total the wallet may cover) used only
+ * until `/wallet/validate` answers with the live `wallet_cap` from the storefront
+ * loyalty config. The server is authoritative for the real cap on every request;
+ * this constant just keeps the UI sane during the first round-trip (and if the
+ * field is ever absent from an older BFF response).
  */
-export const WALLET_MAX_RATIO = 0.4;
+export const WALLET_DEFAULT_RATIO = 0.4;
 
 /** Round to 2 decimals (kuruş) — kills FP dust in the previewed amount. */
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/**
- * Highest amount the wallet can cover for a given order total:
- * `min(balance, total × 40%)`, never negative. Inputs are store-currency major
- * units (TRY). Non-finite inputs collapse to 0.
- */
-export function walletCeiling(balance: number, total: number): number {
-  const safeBalance = Number.isFinite(balance) ? Math.max(0, balance) : 0;
-  const cap = (Number.isFinite(total) ? Math.max(0, total) : 0) * WALLET_MAX_RATIO;
-  return round2(Math.min(safeBalance, cap));
+/** Sanitize a server cap into a usable ratio; non-finite/non-positive → default. */
+function safeCap(cap: number): number {
+  return Number.isFinite(cap) && cap > 0 ? cap : WALLET_DEFAULT_RATIO;
 }
 
 /**
- * Clamp a requested wallet amount into `[0, walletCeiling(balance, total)]`.
+ * Highest amount the wallet can cover for a given order total:
+ * `min(balance, total × cap)`, never negative. `cap` is the server's `wallet_cap`
+ * (share of total, e.g. 0.4), defaulting to WALLET_DEFAULT_RATIO before the first
+ * `/wallet/validate` response. Inputs are store-currency major units (TRY);
+ * non-finite inputs collapse to 0.
+ */
+export function walletCeiling(
+  balance: number,
+  total: number,
+  cap: number = WALLET_DEFAULT_RATIO,
+): number {
+  const safeBalance = Number.isFinite(balance) ? Math.max(0, balance) : 0;
+  const ceiling = (Number.isFinite(total) ? Math.max(0, total) : 0) * safeCap(cap);
+  return round2(Math.min(safeBalance, ceiling));
+}
+
+/**
+ * Clamp a requested wallet amount into `[0, walletCeiling(balance, total, cap)]`.
  * Front-end live preview only; the backend re-clamps authoritatively when the
  * order is created. Non-finite / non-positive requests collapse to 0.
  */
-export function clampWalletAmount(requested: number, balance: number, total: number): number {
+export function clampWalletAmount(
+  requested: number,
+  balance: number,
+  total: number,
+  cap: number = WALLET_DEFAULT_RATIO,
+): number {
   if (!Number.isFinite(requested) || requested <= 0) return 0;
-  return round2(Math.min(requested, walletCeiling(balance, total)));
+  return round2(Math.min(requested, walletCeiling(balance, total, cap)));
 }
 
 /**

@@ -168,7 +168,7 @@
   "checkout.wallet.appliedLine": "Cüzdan",
   "checkout.wallet.applyLabel": "Kullanılacak tutar",
   "checkout.wallet.balanceLabel": "Cüzdan bakiyesi",
-  "checkout.wallet.capHint": "Siparişin en fazla %40'ını cüzdanınızla karşılayabilirsiniz.",
+  "checkout.wallet.capHint": "Siparişin en fazla %{percent} kadarını cüzdanınızla karşılayabilirsiniz.",
   "checkout.wallet.empty": "Creator Club cüzdanınız boş.",
   "checkout.wallet.maxHint": "En fazla: {amount}",
   "checkout.wallet.promoActive": "Bir promosyon kodu uygulanmışken cüzdanla ödeme yapılamaz. Cüzdanınızla ödemek için sepetinizdeki promosyon kodunu kaldırın.",

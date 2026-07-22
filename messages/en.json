@@ -168,7 +168,7 @@
   "checkout.wallet.appliedLine": "Wallet",
   "checkout.wallet.applyLabel": "Amount to use",
   "checkout.wallet.balanceLabel": "Wallet balance",
-  "checkout.wallet.capHint": "You can cover up to 40% of the order with your wallet.",
+  "checkout.wallet.capHint": "You can cover up to {percent}% of the order with your wallet.",
   "checkout.wallet.empty": "Your Creator Club wallet is empty.",
   "checkout.wallet.maxHint": "Max: {amount}",
   "checkout.wallet.promoActive": "Wallet payment is unavailable while a promo code is applied. Remove the promo code in your basket to pay with your wallet.",

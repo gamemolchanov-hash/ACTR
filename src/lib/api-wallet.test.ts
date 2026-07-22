@@ -87,13 +87,15 @@ describe('validateWallet — Bearer-protected preview', () => {
     });
   });
 
-  it('POSTs to /wallet/validate with Bearer + X-Currency headers', async () => {
+  it('POSTs to /wallet/validate with { total } (no amount) + Bearer + X-Currency headers', async () => {
     localStorage.setItem('arm_token', 'jwt-xyz');
     const { validateWallet } = await import('./api');
-    const { data } = await validateWallet(400, 1000);
+    const { data } = await validateWallet(1000);
     const [url, reqBody, config] = mockPost.mock.calls[0];
     expect(url).toBe('/wallet/validate');
-    expect(reqBody).toEqual({ amount: 400, total: 1000 });
+    // BFF reads only the order total — `amount` was never part of the contract.
+    expect(reqBody).toEqual({ total: 1000 });
+    expect('amount' in reqBody).toBe(false);
     const headers = config.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer jwt-xyz');
     expect(headers['X-Currency']).toBe('TRY');
@@ -101,5 +103,41 @@ describe('validateWallet — Bearer-protected preview', () => {
     expect(data.program).toBe('cashback_wallet');
     expect(data.balance).toBe(500);
     expect(data.applicable).toBe(400);
+    // live server cap is threaded through, not the hardcoded default
+    expect(data.cap).toBe(0.4);
+  });
+
+  it('threads the live server wallet_cap through the adapter (0.3, not the 0.4 default)', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          program: 'cashback_wallet',
+          wallet_cap: 0.3,
+          wallet_balance: '1000',
+          max_applicable: '300',
+        },
+      },
+    });
+    localStorage.setItem('arm_token', 'jwt-xyz');
+    const { validateWallet } = await import('./api');
+    const { data } = await validateWallet(1000);
+    expect(data.cap).toBe(0.3);
+    expect(data.applicable).toBe(300);
+  });
+
+  it('falls back to the default cap when the BFF omits wallet_cap (older response)', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          program: 'cashback_wallet',
+          wallet_balance: '1000',
+          max_applicable: '400',
+        },
+      },
+    });
+    localStorage.setItem('arm_token', 'jwt-xyz');
+    const { validateWallet } = await import('./api');
+    const { data } = await validateWallet(1000);
+    expect(data.cap).toBe(0.4);
   });
 });

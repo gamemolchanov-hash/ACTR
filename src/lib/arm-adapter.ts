@@ -24,6 +24,7 @@ import type {
   ArmPromoValidation,
   ArmWalletValidation,
 } from './arm-types';
+import { WALLET_DEFAULT_RATIO } from './wallet';
 
 function adaptImages(imgs?: ArmProductImage[]): ProductImage[] | undefined {
   if (!imgs?.length) return undefined;
@@ -118,10 +119,13 @@ function toNum(v: unknown): number {
 export function armToWalletValidation(w: ArmWalletValidation): WalletValidationResult {
   return {
     // Field names per BFF openapi.yaml /wallet/validate: program, wallet_balance,
-    // max_applicable (NOT balance/applicable — that shape never existed server-side).
+    // max_applicable, wallet_cap (NOT balance/applicable — that shape never existed
+    // server-side). Cap is the live loyalty-config ratio; if an older BFF omits it,
+    // fall back to WALLET_DEFAULT_RATIO so the slider still bounds sensibly.
     program: w?.program != null ? String(w.program) : '',
     balance: toNum(w?.wallet_balance),
     applicable: toNum(w?.max_applicable),
+    cap: toNum(w?.wallet_cap) || WALLET_DEFAULT_RATIO,
   };
 }
 

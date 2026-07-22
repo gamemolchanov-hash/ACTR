@@ -91,4 +91,10 @@ export interface WalletValidationResult {
   balance: number;
   /** Server ceiling for this order (min(balance, wallet_cap × total)). */
   applicable: number;
+  /**
+   * Share of the order total the wallet may cover (server `wallet_cap`, e.g. 0.4).
+   * Configurable per storefront loyalty program; falls back to WALLET_DEFAULT_RATIO
+   * when the field is absent from the response.
+   */
+  cap: number;
 }

@@ -6,8 +6,9 @@
  * Shown only to a logged-in customer (the parent gates render — guests never see
  * it, keeping the guest checkout untouched). Lets the member apply part of their
  * cashback wallet to the order: slider + numeric input, live-clamped to
- * `min(balance, total × 40%)` (owner rule §10). `/wallet/validate` previews the
- * authoritative amount; the backend re-clamps and debits on order create.
+ * `min(balance, total × cap)`, where `cap` is the server `wallet_cap` from
+ * `/wallet/validate` (loyalty config, not a hardcoded ratio). That endpoint also
+ * previews the authoritative amount; the backend re-clamps and debits on create.
  *
  * XOR with promo: when a promo code is active the widget is disabled with a
  * plain explanation (and the applied amount is forced back to 0). The promo
@@ -19,7 +20,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Box, Typography, Slider, TextField, Stack, Button } from '@mui/material';
 import { validateWallet } from '@/lib/api';
-import { walletCeiling, clampWalletAmount } from '@/lib/wallet';
+import { walletCeiling, clampWalletAmount, WALLET_DEFAULT_RATIO } from '@/lib/wallet';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 import { palette } from '@/lib/theme';
@@ -50,20 +51,25 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
 
   const [balance, setBalance] = useState<number | null>(null);
   const [program, setProgram] = useState<string | null>(null);
+  // Server `wallet_cap` (share of total the wallet may cover). Held in state so
+  // a server change (30%→50%) drives the slider, not a hardcoded 40%. Defaults
+  // to WALLET_DEFAULT_RATIO until the first /wallet/validate response lands.
+  const [cap, setCap] = useState<number>(WALLET_DEFAULT_RATIO);
   const [failed, setFailed] = useState(false);
   const [input, setInput] = useState('');
 
-  // Fetch the wallet balance once (per mount), as soon as a positive total is
-  // known. Balance is static across shipping changes — the 40% ceiling is
-  // recomputed locally from `total`, so no refetch is needed on total change.
+  // Fetch the wallet balance + cap once (per mount), as soon as a positive total
+  // is known. Both are static across shipping changes — the ceiling is recomputed
+  // locally from `total` and `cap`, so no refetch is needed on total change.
   useEffect(() => {
     if (total <= 0 || balance != null || failed) return;
     let cancelled = false;
-    validateWallet(0, total)
+    validateWallet(total)
       .then((res) => {
         if (!cancelled) {
           setBalance(res.data.balance);
           setProgram(res.data.program);
+          setCap(res.data.cap);
         }
       })
       .catch(() => {
@@ -74,7 +80,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
     };
   }, [total, balance, failed]);
 
-  const ceiling = balance != null ? walletCeiling(balance, total) : 0;
+  const ceiling = balance != null ? walletCeiling(balance, total, cap) : 0;
 
   // Promo turned on → drop any applied wallet amount (XOR, mirrors basket:94-117).
   useEffect(() => {
@@ -82,13 +88,14 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promoActive]);
 
-  // Total shrank (e.g. cheaper shipping) → re-clamp applied to the new ceiling.
+  // Total shrank (e.g. cheaper shipping) or cap changed → re-clamp applied to the
+  // new ceiling.
   useEffect(() => {
     if (balance == null) return;
-    const cap = walletCeiling(balance, total);
-    if (applied > cap) onChange(cap);
+    const max = walletCeiling(balance, total, cap);
+    if (applied > max) onChange(max);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total, balance]);
+  }, [total, balance, cap]);
 
   // Keep the text field in sync with the applied amount (slider ↔ field, reset).
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
   useEffect(() => {
     if (promoActive || applied <= 0 || total <= 0) return;
     const id = setTimeout(() => {
-      validateWallet(applied, total)
+      validateWallet(total)
         .then((res) => {
           const server = res.data.applicable;
           if (Number.isFinite(server) && server < applied) onChange(server);
@@ -117,7 +124,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
   // is optional and must never block checkout.
   if (failed || balance == null || program !== 'cashback_wallet') return null;
 
-  const commit = (raw: number) => onChange(clampWalletAmount(raw, balance, total));
+  const commit = (raw: number) => onChange(clampWalletAmount(raw, balance, total, cap));
 
   return (
     <Box
@@ -147,7 +154,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
       ) : (
         <>
           <Typography sx={{ fontFamily: font, fontSize: 13, color: c.muted, mb: 1 }}>
-            {t('checkout.wallet.capHint')}{' '}
+            {t('checkout.wallet.capHint', { percent: Math.round(cap * 100) })}{' '}
             {t('checkout.wallet.maxHint', { amount: fmtMoney(ceiling, currency, formatLocale) })}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">

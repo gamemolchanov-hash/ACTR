@@ -155,18 +155,20 @@ export async function validatePromo(
 
 /**
  * Preview how much of the Creator Club wallet can be applied to an order.
- * ARM contract: POST /wallet/validate { amount, total } (Bearer-protected) →
- * { balance, applicable }. `applicable` is already clamped by the 40% rule; the
- * frontend clamps again for instant UX and the backend re-clamps on order create.
- * Bearer is required — this is a logged-in-only endpoint; guests never call it.
+ * ARM contract: POST /wallet/validate { total } (Bearer-protected) →
+ * { data: { program, wallet_cap, wallet_balance, max_applicable } }. The BFF reads
+ * only the order total (it never used a requested `amount`) and answers with the
+ * live loyalty cap plus `max_applicable = min(wallet_balance, total × wallet_cap)`.
+ * The frontend clamps to that ceiling for instant UX; the backend re-clamps
+ * authoritatively on order create. Bearer is required — logged-in-only endpoint,
+ * guests never call it.
  */
 export async function validateWallet(
-  amount: number,
   total: number,
 ): Promise<{ data: WalletValidationResult }> {
   const { data } = await api.post(
     ENDPOINTS.walletValidate,
-    { amount, total },
+    { total },
     { headers: { ...currencyHeader(), ...bearerHeader() } },
   );
   return { data: armToWalletValidation(data.data ?? data) };
