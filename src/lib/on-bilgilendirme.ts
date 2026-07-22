@@ -30,7 +30,12 @@
  *  - Variant, essential characteristics and the hygiene-exception SKU list have
  *    no source field on the product yet → "Uygulanmamaktadır" / "Yoktur".
  *  - Delivery carrier/method/period come from the selected ARM shipping rate;
- *    when no rate is selected they read "Belirlenecek".
+ *    when no rate is selected they read "Belirlenecek". The binding "Taahhüt
+ *    Edilen Son Teslim Tarihi" is counted in BUSINESS days (weekends skipped) to
+ *    match the "iş günü" period label and never under-promise. Open questions to
+ *    the client: whether ARM's estimated_days_* are business days (assumed here)
+ *    and the max prep window (PREP_DAYS, hardcoded from §6's "1 ila 2 iş günü");
+ *    public holidays are not modelled — the §6 30-day cap stays the backstop.
  */
 
 import {
@@ -56,9 +61,12 @@ const RETURN_METHOD = 'İade talebi onaylandıktan sonra anlaşmalı iade kargos
 const RETURN_CHANNEL =
   'info@american-creator.tr adresine e-posta ile iade talebi oluşturularak iade kodu temin edilir.';
 
-/** §6: order preparation is normally 1–2 business days before hand-off. */
+/**
+ * Max order-prep window (business days) before hand-off — the upper bound of
+ * §6's "1 ila 2 iş günü". Hardcoded pending a shipping-config source, and counted
+ * as business days like the carrier estimate (both open questions to the client).
+ */
 const PREP_DAYS = 2;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface OnBilgilendirmeLineInput {
   name?: string | null;
@@ -153,10 +161,31 @@ function formatDaysTr(min: number | null | undefined, max: number | null | undef
   return a === b ? `${a} iş günü` : `${a}–${b} iş günü`;
 }
 
-/** Promised last delivery date = generation date + prep + carrier's max transit. */
+/**
+ * Advance `start` by `days` business days, skipping Saturdays and Sundays.
+ * Local-weekday semantics — a delivery promise is read against the buyer's
+ * calendar. Exported for tests.
+ */
+export function addBusinessDays(start: Date, days: number): Date {
+  const d = new Date(start.getTime());
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const wd = d.getDay(); // 0 = Sunday, 6 = Saturday
+    if (wd !== 0 && wd !== 6) added += 1;
+  }
+  return d;
+}
+
+/**
+ * Binding "son teslim tarihi" = generation date + max prep + carrier's max
+ * transit, counted in BUSINESS days so the date matches the "iş günü" period
+ * label and is never earlier than actually achievable (weekends push it out).
+ * Falls back to "Belirlenecek" when the carrier gives no estimate.
+ */
 function promisedDeliveryDate(d: Date, estMax: number | null | undefined): string {
   if (estMax == null) return DELIVERY_TBD;
-  return formatDateTr(new Date(d.getTime() + (PREP_DAYS + estMax) * DAY_MS));
+  return formatDateTr(addBusinessDays(d, PREP_DAYS + estMax));
 }
 
 function nonEmpty(value: string | null | undefined, fallback: string): string {

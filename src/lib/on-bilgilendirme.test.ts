@@ -17,6 +17,7 @@ import {
   buildOnBilgilendirmeData,
   renderOnBilgilendirmeFormu,
   formatObfAmount,
+  addBusinessDays,
   type BuildOnBilgilendirmeInput,
 } from './on-bilgilendirme';
 
@@ -84,6 +85,27 @@ describe('renderOnBilgilendirmeFormu', () => {
     expect(md).toContain('Yurtiçi Kargo'); // delivery carrier
     expect(md).toContain('1–3 iş günü'); // estimated period
     expect(md).toMatch(/Ödenecek Toplam Tutar \| 280,00 TL/); // full order price
+  });
+
+  it('promises the delivery date in business days, not calendar days (Friday order)', () => {
+    const friday = new Date(2026, 6, 24, 10, 0, 0); // 24.07.2026 is a Friday
+    expect(friday.getDay()).toBe(5);
+    const md = render({
+      generatedAt: friday,
+      rate: { carrier: 'Yurtiçi Kargo', name: 'Standart', estMin: 3, estMax: 3 },
+    });
+    const fmt = new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    // prep 2 + transit 3 = 5 business days from Friday, skipping the weekend.
+    const expected = fmt.format(addBusinessDays(friday, 5));
+    expect(md).toContain(`Taahhüt Edilen Son Teslim Tarihi: ${expected}`);
+    // The naive +5 calendar days would fall earlier (crosses a weekend) — the
+    // binding date must not under-promise.
+    const naive = fmt.format(new Date(friday.getTime() + 5 * 24 * 60 * 60 * 1000));
+    expect(expected).not.toBe(naive);
   });
 
   it('derives the promo-only discount from the order price and reconciles the summary', () => {
@@ -175,5 +197,25 @@ describe('formatObfAmount', () => {
   it('returns a dash for a missing amount', () => {
     expect(formatObfAmount(null)).toBe('—');
     expect(formatObfAmount(undefined)).toBe('—');
+  });
+});
+
+describe('addBusinessDays', () => {
+  it('skips the weekend: +1 business day from Friday is Monday (3 calendar days)', () => {
+    const friday = new Date(2026, 6, 24); // Friday
+    expect(friday.getDay()).toBe(5);
+    const next = addBusinessDays(friday, 1);
+    expect(next.getDay()).toBe(1); // Monday
+    expect((next.getTime() - friday.getTime()) / (24 * 60 * 60 * 1000)).toBe(3);
+  });
+
+  it('never lands on a weekend and never precedes the naive calendar date', () => {
+    const start = new Date(2026, 6, 24, 9, 0, 0);
+    for (let n = 1; n <= 20; n++) {
+      const res = addBusinessDays(start, n);
+      expect(res.getDay() === 0 || res.getDay() === 6).toBe(false);
+      const naive = new Date(start.getTime() + n * 24 * 60 * 60 * 1000);
+      expect(res.getTime()).toBeGreaterThanOrEqual(naive.getTime());
+    }
   });
 });
