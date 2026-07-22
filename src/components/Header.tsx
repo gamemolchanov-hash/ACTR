@@ -29,6 +29,7 @@ import { palette } from '@/lib/theme';
 import { fetchProducts, type Product } from '@/lib/api';
 import { imgThumb } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { PRELAUNCH } from '@/lib/prelaunch';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 function productHref(p: Product) {
@@ -272,7 +273,9 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 13, color: palette.primaryLight }}>
-                              {fmtMoney(p.price, currency, formatLocale)}
+                              {PRELAUNCH
+                                ? t('prelaunch.comingSoon')
+                                : fmtMoney(p.price, currency, formatLocale)}
                             </Typography>
                           </Box>
                         </Box>
@@ -603,7 +606,9 @@ export function Header() {
                               {p.name}
                             </Typography>
                             <Typography sx={{ fontSize: 12, color: palette.primaryLight }}>
-                              {fmtMoney(p.price, currency, formatLocale)}
+                              {PRELAUNCH
+                                ? t('prelaunch.comingSoon')
+                                : fmtMoney(p.price, currency, formatLocale)}
                             </Typography>
                           </Box>
                         </Box>

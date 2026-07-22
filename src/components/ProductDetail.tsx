@@ -27,6 +27,7 @@ import { palette } from '@/lib/theme';
 import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { fmtMoney } from '@/lib/money';
+import { PRELAUNCH } from '@/lib/prelaunch';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -48,6 +49,7 @@ function RecentlyViewedCard({
   formatLocale: string;
   currency: string;
 }) {
+  const t = useTranslations();
   const [imgIdx, setImgIdx] = useState(0);
   const [imgFade, setImgFade] = useState(true);
   const imgs = item.images?.length ? item.images : item.image ? [item.image] : [];
@@ -166,7 +168,7 @@ function RecentlyViewedCard({
           >
             {item.name}
           </Typography>
-          {/* Price — locale-aware */}
+          {/* Price — locale-aware; pre-launch shows "coming soon" (FBG-427) */}
           <Typography
             sx={{
               fontSize: 14,
@@ -177,7 +179,7 @@ function RecentlyViewedCard({
               pt: 0.5,
             }}
           >
-            {fmtMoney(item.price, currency, formatLocale)}
+            {PRELAUNCH ? t('prelaunch.comingSoon') : fmtMoney(item.price, currency, formatLocale)}
           </Typography>
         </Box>
       </Link>
@@ -735,24 +737,34 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             </>
           )}
 
-          {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
+          {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01).
+              Pre-launch (FBG-427): "coming soon" replaces the price; the per-unit
+              and KDV Dahil labels are hidden (meaningless without a price). */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <Typography variant="h1">{fmtMoney(product.price, currency, formatLocale)}</Typography>
-              <Typography variant="body1" sx={{ lineHeight: '20px' }}>
-                {t('product.perUnit')}
+              <Typography variant="h1">
+                {PRELAUNCH
+                  ? t('prelaunch.comingSoon')
+                  : fmtMoney(product.price, currency, formatLocale)}
               </Typography>
+              {!PRELAUNCH && (
+                <Typography variant="body1" sx={{ lineHeight: '20px' }}>
+                  {t('product.perUnit')}
+                </Typography>
+              )}
             </Box>
-            <Typography
-              sx={{
-                fontSize: 12,
-                color: palette.primaryLight,
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-                mt: 0.5,
-              }}
-            >
-              {t('price.kdvDahil')}
-            </Typography>
+            {!PRELAUNCH && (
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  color: palette.primaryLight,
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                  mt: 0.5,
+                }}
+              >
+                {t('price.kdvDahil')}
+              </Typography>
+            )}
           </Box>
 
           {/* Quantity + Add to cart */}

@@ -80,6 +80,23 @@ describe('messages are next-intl-consumable (unflatten invariant)', () => {
     expect(val.length).toBeGreaterThan(0);
   });
 
+  // FBG-427 pre-launch "coming soon" price copy — present and translated in both locales.
+  it('EN prelaunch.comingSoon resolves to "Coming soon"', async () => {
+    const messages = unflatten(enRaw as Record<string, string>);
+    const t = (await createTranslator({ locale: 'en', messages })) as unknown as (
+      key: string,
+    ) => string;
+    expect(t('prelaunch.comingSoon')).toBe('Coming soon');
+  });
+
+  it('TR prelaunch.comingSoon resolves to "Yakında satışta"', async () => {
+    const messages = unflatten(trRaw as Record<string, string>);
+    const t = (await createTranslator({ locale: 'tr', messages })) as unknown as (
+      key: string,
+    ) => string;
+    expect(t('prelaunch.comingSoon')).toBe('Yakında satışta');
+  });
+
   // FBG-401 "Sözleşmeler ve Formlar" block chrome — present in both locales.
   it.each([
     ['en', enRaw],

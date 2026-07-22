@@ -10,6 +10,7 @@ import { palette } from '@/lib/theme';
 import type { Product } from '@/lib/api';
 import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
+import { PRELAUNCH } from '@/lib/prelaunch';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 interface ProductCardProps {
@@ -143,7 +144,9 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
       </Link>
 
       <Box sx={{ px: 2, pb: 2 }}>
-        {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01) */}
+        {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01).
+            Pre-launch (FBG-427): show "coming soon" instead of the price and
+            hide the (now meaningless) KDV Dahil line. */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: '12px' }}>
           <Typography
             sx={{
@@ -153,17 +156,19 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
               textAlign: 'center',
             }}
           >
-            {fmtMoney(product.price, currency, formatLocale)}
+            {PRELAUNCH ? t('prelaunch.comingSoon') : fmtMoney(product.price, currency, formatLocale)}
           </Typography>
-          <Typography
-            sx={{
-              fontSize: 11,
-              color: palette.primaryLight,
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
-            }}
-          >
-            {t('price.kdvDahil')}
-          </Typography>
+          {!PRELAUNCH && (
+            <Typography
+              sx={{
+                fontSize: 11,
+                color: palette.primaryLight,
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+              }}
+            >
+              {t('price.kdvDahil')}
+            </Typography>
+          )}
         </Box>
 
         {/* Actions: quantity + "Add to cart" */}
