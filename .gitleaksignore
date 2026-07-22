@@ -1,0 +1,5 @@
+# Историческая находка: dev-бэкап .env.local.bak.* попал в коммит f7e731a3 (19.07.2026).
+# Содержимое — только dev/demo-значения (demo storefront-key public-by-design из
+# autoCRM tests/conftest.py, NEXT_PUBLIC_* и URL); прод-ключи не затронуты, ротация
+# не требуется. Историю не переписываем; .gitignore с тех пор покрывает .env*.bak.*.
+f7e731a371ea2d2fb3b87fdc07d61c4479c2ee8c:.env.local.bak.1782929407:generic-api-key:7
