@@ -454,8 +454,12 @@ export default function CheckoutPage() {
         })),
       subtotal,
       shippingCost,
-      // The exact amount iyzico will charge — never recomputed in the form.
-      grandTotal: payTotal,
+      // Store credit is a payment split, not a discount (shown in the payment
+      // method line); it must not lower the declared order price.
+      walletApplied: walletToApply,
+      // Full order price (subtotal − promo + shipping) — never recomputed in the
+      // form, so "Ödenecek Toplam Tutar" can't diverge from the checkout.
+      grandTotal: totalWithShipping,
       rate: selectedRate
         ? {
             carrier: selectedRate.carrier,
@@ -472,7 +476,8 @@ export default function CheckoutPage() {
     validated,
     subtotal,
     shippingCost,
-    payTotal,
+    totalWithShipping,
+    walletToApply,
     selectedRate,
     form,
     currency,

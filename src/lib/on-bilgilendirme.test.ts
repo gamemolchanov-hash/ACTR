@@ -4,9 +4,10 @@
  * The critical acceptance guarantees:
  *  - NO raw `{{…}}` token survives into the rendered form (incl. multi-item
  *    carts, where §4's product block repeats);
- *  - the grand total equals the charge (payTotal) and the summary reconciles,
- *    including the promo>subtotal clamp edge;
- *  - a `|` in any value cannot break the §2/§4 GFM tables.
+ *  - "Ödenecek Toplam Tutar" is the full order price (never lowered by the
+ *    wallet) and the summary reconciles, including the promo>subtotal clamp edge;
+ *  - the Creator Club wallet is a payment split, not a discount;
+ *  - a `|` or a line break in any value cannot break the §2/§4 GFM tables.
  * Pure-function tests (deterministic: the timestamp is passed in), so no need to
  * mount the Stripe/auth-heavy checkout page.
  */
@@ -33,7 +34,8 @@ function sampleInput(overrides: Partial<BuildOnBilgilendirmeInput> = {}): BuildO
     ],
     subtotal: 250,
     shippingCost: 30,
-    grandTotal: 280, // 250 + 30, no discount
+    walletApplied: 0,
+    grandTotal: 280, // full order price: 250 + 30, no promo
     rate: { carrier: 'Yurtiçi Kargo', name: 'Standart', estMin: 1, estMax: 3 },
     kvkkNoticeUrl: 'https://american-creator.tr/legal/kvkk',
     ...overrides,
@@ -81,18 +83,28 @@ describe('renderOnBilgilendirmeFormu', () => {
     expect(md).toContain('Yoktur'); // hygiene exception list
     expect(md).toContain('Yurtiçi Kargo'); // delivery carrier
     expect(md).toContain('1–3 iş günü'); // estimated period
-    expect(md).toMatch(/Ödenecek Toplam Tutar \| 280,00 TL/); // grand total = payTotal
+    expect(md).toMatch(/Ödenecek Toplam Tutar \| 280,00 TL/); // full order price
   });
 
-  it('shows the grand total = payTotal and reconciles the summary (discount derived)', () => {
-    // subtotal 250 + shipping 30 − payTotal 230 ⇒ total discount 50,00
+  it('derives the promo-only discount from the order price and reconciles the summary', () => {
+    // full price 280 with a 50 promo ⇒ grandTotal 230, total discount 50,00
     const md = render({ grandTotal: 230 });
     expect(md).toMatch(/Toplam İndirim \| 50,00 TL/);
     expect(md).toMatch(/Ödenecek Toplam Tutar \| 230,00 TL/);
   });
 
-  it('matches the charged amount when a promo exceeds the subtotal (clamp edge)', () => {
-    // checkout: finalTotal=max(0,100−150)=0 → +shipping 20 → payTotal 20.
+  it('shows the wallet as a payment split, not a discount, keeping the full price', () => {
+    // subtotal 250 + shipping 30, no promo → order price 280; wallet 50 covers
+    // part, card pays 230. "Toplam İndirim" stays 0 and "Ödenecek" is the full 280.
+    const md = render({ walletApplied: 50, grandTotal: 280 });
+    expect(md).toMatch(/Toplam İndirim \| 0,00 TL/);
+    expect(md).toMatch(/Ödenecek Toplam Tutar \| 280,00 TL/);
+    expect(md).toContain('Creator Club Cüzdanı (50,00 TL)');
+    expect(md).toContain('(230,00 TL)'); // card share
+  });
+
+  it('matches the checkout price when a promo exceeds the subtotal (clamp edge)', () => {
+    // checkout: finalTotal=max(0,100−150)=0 → +shipping 20 → order price 20.
     // The form MUST show 20,00 (not 0,00) and discount = 100 + 20 − 20 = 100.
     const md = render({ subtotal: 100, shippingCost: 20, grandTotal: 20 });
     expect(md).toMatch(/Ödenecek Toplam Tutar \| 20,00 TL/);
@@ -105,6 +117,7 @@ describe('renderOnBilgilendirmeFormu', () => {
       rate: null,
       subtotal: 0,
       shippingCost: 0,
+      walletApplied: 0,
       grandTotal: 0,
     });
     expect(md).not.toMatch(/\{\{|\}\}/);
@@ -132,6 +145,24 @@ describe('renderOnBilgilendirmeFormu', () => {
     expect(cells).toContain('Cad. / Sok No 5 / Daire 3');
     expect(cells).toContain('Serum / 50ml');
     expect(cells).toContain('SKU/1');
+  });
+
+  it('keeps §2/§4 tables intact when values contain a line break / tab', () => {
+    // A newline in a value would otherwise end the table row early and drop the
+    // rest of the §4 product table (price/SKU/qty vanish).
+    const md = render({
+      customer: { name: 'Ayşe\nYılmaz', phone: '+90 555', email: 'a@b.co' },
+      address: 'Cad. No 5\r\nDaire 3',
+      items: [{ name: 'Serum\n50ml', sku: 'SKU\t1', quantity: 1, unitPrice: 10, lineTotal: 10 }],
+    });
+    for (const row of tableRows(md)) expect(row.length).toBe(2);
+    const cells = tableRows(md).flat();
+    expect(cells).toContain('Ayşe Yılmaz'); // newline collapsed to a space
+    expect(cells).toContain('Serum 50ml');
+    expect(cells).toContain('SKU 1');
+    expect(cells).toContain('Cad. No 5 Daire 3');
+    // §4 product table survived in full — the unit price row is still present.
+    expect(md).toContain('KDV Dâhil Birim Fiyat');
   });
 });
 

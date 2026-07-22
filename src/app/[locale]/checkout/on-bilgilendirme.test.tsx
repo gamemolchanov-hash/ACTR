@@ -26,6 +26,7 @@ const baseInput = {
   ],
   subtotal: 250,
   shippingCost: 30,
+  walletApplied: 0,
   grandTotal: 280,
   rate: { carrier: 'Yurtiçi Kargo', name: 'Standart', estMin: 1, estMax: 3 },
   kvkkNoticeUrl: 'https://american-creator.tr/legal/kvkk',

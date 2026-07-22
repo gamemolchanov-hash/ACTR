@@ -16,13 +16,17 @@
  *    persisted snapshot with the real order number + e-mail is a follow-up
  *    (ARM backend needed).
  *  - Taksit is not supported → "Uygulanmamaktadır".
- *  - The grand total is the checkout's `payTotal` (the exact amount iyzico will
- *    charge) — passed in, never recomputed here, so the form can't diverge from
- *    the charge (e.g. when a promo exceeds the subtotal and the checkout clamps
- *    the goods to 0). "Toplam İndirim" is then derived as
- *    subtotal + shipping − grandTotal so the summary always reconciles. This
- *    also folds the Creator Club wallet debit into the discount line; for guests
- *    / no-wallet / no-promo orders it collapses to the plain promo amount.
+ *  - The grand total ("Ödenecek Toplam Tutar") is the FULL order price — the
+ *    checkout's `totalWithShipping` (subtotal − promo + shipping, already
+ *    clamped) — passed in and never recomputed here, so it can't diverge from
+ *    the checkout (incl. the promo>subtotal clamp edge). "Toplam İndirim" carries
+ *    the promo discount ONLY, derived as subtotal + shipping − grandTotal so the
+ *    summary reconciles.
+ *  - The Creator Club wallet (FBG-385) is a payment instrument (store credit),
+ *    NOT a discount on the goods: when applied it is shown as a wallet/card split
+ *    in the payment method line, never in "Toplam İndirim" and never lowering the
+ *    declared order price. Promo and wallet are mutually exclusive on this
+ *    checkout (XOR).
  *  - Variant, essential characteristics and the hygiene-exception SKU list have
  *    no source field on the product yet → "Uygulanmamaktadır" / "Yoktur".
  *  - Delivery carrier/method/period come from the selected ARM shipping rate;
@@ -39,8 +43,8 @@ const HYGIENE_NONE = 'Yoktur';
 const DELIVERY_TBD = 'Belirlenecek';
 const DASH = '—';
 
-/** Payment is card-only via iyzico; taksit is not offered. */
-const PAYMENT_METHOD = 'Kredi Kartı / Banka Kartı (iyzico)';
+/** Card payment via iyzico; taksit is not offered. Wallet split is appended when used. */
+const PAYMENT_METHOD_CARD = 'Kredi Kartı / Banka Kartı (iyzico)';
 
 /**
  * Return carrier/method are not configured in the storefront yet (open question
@@ -77,10 +81,14 @@ export interface BuildOnBilgilendirmeInput {
   items: OnBilgilendirmeLineInput[];
   subtotal: number;
   shippingCost: number;
+  /** Creator Club wallet debit (store credit) — a payment split, not a discount. */
+  walletApplied: number;
   /**
-   * Final amount charged — the checkout's `payTotal` (already clamped with promo
-   * and wallet). The form's "Ödenecek Toplam Tutar" equals this exactly; the
-   * total discount is derived from it so the summary reconciles.
+   * Full order price to be paid — the checkout's `totalWithShipping`
+   * (subtotal − promo + shipping, already clamped). The form's "Ödenecek Toplam
+   * Tutar" equals this exactly; "Toplam İndirim" (promo only) is derived from it
+   * so the summary reconciles. The wallet-covered part vs card is split in the
+   * payment method line.
    */
   grandTotal: number;
   /** Selected ARM shipping rate, or null when none is chosen yet. */
@@ -157,18 +165,23 @@ function nonEmpty(value: string | null | undefined, fallback: string): string {
 }
 
 /**
- * GFM tables split on a raw `|` — and LegalMarkdown.splitRow does so BEFORE any
- * inline/escape parsing, so a `|` in any substituted value (free-text address,
- * customer name, ARM product name/SKU) would spill into extra columns and
- * corrupt §2/§4. Escaping to `\|` would not survive splitRow either, so the only
- * parser-agnostic fix is to replace the delimiter in the data with a slash.
+ * Make a value safe to drop into a GFM table cell. LegalMarkdown reads a table
+ * row-by-row and splits on a raw `|` BEFORE any inline/escape parsing, so BOTH a
+ * `|` and a line break in a substituted value (free-text address, customer name,
+ * ARM product name/SKU) corrupt §2/§4: a `|` spills into extra columns, and a
+ * newline/tab ends the row early and drops the rest of the table. Escaping to
+ * `\|` would not survive splitRow either, so the delimiter is turned into a
+ * slash and any line break / tab is collapsed to a single space.
  */
-function pipeSafe(value: string): string {
-  return value.replace(/\|/g, '/');
+function sanitizeCellValue(value: string): string {
+  return value
+    .replace(/\|/g, '/')
+    .replace(/[\r\n\t]+/g, ' ')
+    .trim();
 }
 
 function sanitizeMap(map: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, pipeSafe(v)]));
+  return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, sanitizeCellValue(v)]));
 }
 
 /**
@@ -200,14 +213,23 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     };
   });
 
-  // Derive the discount from the authoritative charge so the summary reconciles
-  // (Ara Toplam − Toplam İndirim + Teslimat = Ödenecek) and grand_total never
-  // diverges from payTotal, including the promo>subtotal clamp edge.
+  // "Toplam İndirim" = promo discount only, derived from the full order price so
+  // the summary reconciles (Ara Toplam − Toplam İndirim + Teslimat = Ödenecek).
+  // The wallet is NOT a discount — it splits the payment below.
   const additionalCosts = 0;
   const totalDiscount = Math.max(
     0,
     input.subtotal + input.shippingCost + additionalCosts - input.grandTotal,
   );
+
+  // Creator Club wallet is store credit: show the wallet/card split in the
+  // payment method, not as a discount. Card share = full order price − wallet.
+  const cardAmount = Math.max(0, input.grandTotal - input.walletApplied);
+  const paymentMethod =
+    input.walletApplied > 0
+      ? `Creator Club Cüzdanı (${formatObfAmount(input.walletApplied)} ${currency}) + ` +
+        `${PAYMENT_METHOD_CARD} (${formatObfAmount(cardAmount)} ${currency})`
+      : PAYMENT_METHOD_CARD;
 
   const order: Record<string, string> = {
     order_number: draftOrderRef(input.generatedAt),
@@ -223,7 +245,7 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     additional_costs: formatObfAmount(additionalCosts),
     grand_total: formatObfAmount(input.grandTotal),
     currency,
-    selected_payment_method: PAYMENT_METHOD,
+    selected_payment_method: paymentMethod,
     installment_count_or_not_applicable: NOT_APPLICABLE,
     delivery_carrier_full_trade_name: nonEmpty(input.rate?.carrier, DELIVERY_TBD),
     delivery_method: nonEmpty(input.rate?.name, DELIVERY_TBD),
@@ -236,8 +258,8 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
     kvkk_notice_url: input.kvkkNoticeUrl,
   };
 
-  // Sanitize every substituted value against the GFM table delimiter (see
-  // pipeSafe). Numbers/constants carry no `|`, so this is a no-op for them.
+  // Sanitize every substituted value against GFM-table-breaking chars (see
+  // sanitizeCellValue). Numbers/constants carry none, so it's a no-op for them.
   return { lines: lines.map(sanitizeMap), order: sanitizeMap(order) };
 }
 
