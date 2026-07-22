@@ -2,8 +2,13 @@
  * Storefront sitemap.xml route.
  *
  * I18N-04 (04-05): each entry now uses localizedEntry() which emits the
- * canonical /en/ URL plus alternates.languages for both /en/ and /tr/,
- * giving search engines hreflang signals for every catalog/category/product page.
+ * canonical URL (the site default locale) plus alternates.languages for both
+ * /en/ and /tr/, giving search engines hreflang signals for every
+ * catalog/category/product page.
+ *
+ * FBG-425: the default locale is now TR (Turkish market), so the canonical <loc>
+ * and the explicit hreflang="x-default" both point at the /tr/ variant — the two
+ * signals stay in lock-step (no canonical=EN vs x-default=TR mismatch).
  *
  * Failure handling (FBG-67): during the production build the BFF may be
  * unreachable — degrade to static URLs and let the first runtime revalidation
@@ -29,12 +34,18 @@ const STATIC_PATHS = [
 
 /**
  * Build a sitemap entry for a path that is available in all supported locales.
- * Canonical URL = EN (x-default implicit); alternates.languages lists every locale.
+ * Canonical URL = the site default locale (TR, FBG-425); alternates.languages
+ * lists every locale plus an explicit x-default that mirrors the canonical.
  *
  * Pattern 10 from 04-PATTERNS.md (I18N-04, D-07).
  *
  * T-04-12: URLs are built from routing.locales + SITE_URL (not user input).
  */
+function localeUrl(locale: string, path: string): string {
+  // Root path '/' → /${locale}, all others → /${locale}${path}
+  return path === '/' ? `${SITE_URL}/${locale}` : `${SITE_URL}/${locale}${path}`;
+}
+
 function localizedEntry(
   path: string,
   opts?: {
@@ -45,12 +56,14 @@ function localizedEntry(
 ): MetadataRoute.Sitemap[number] {
   const languages: Record<string, string> = {};
   for (const locale of routing.locales) {
-    // Root path '/' → /${locale}, all others → /${locale}${path}
-    languages[locale] = path === '/' ? `${SITE_URL}/${locale}` : `${SITE_URL}/${locale}${path}`;
+    languages[locale] = localeUrl(locale, path);
   }
+  // Canonical = the site default locale (TR); x-default mirrors it so both SEO
+  // signals name the same variant (FBG-425).
+  const canonical = localeUrl(routing.defaultLocale, path);
+  languages['x-default'] = canonical;
   return {
-    // Canonical = EN (first locale); alternates carry all locales
-    url: path === '/' ? `${SITE_URL}/en` : `${SITE_URL}/en${path}`,
+    url: canonical,
     ...(opts?.changeFrequency ? { changeFrequency: opts.changeFrequency } : {}),
     ...(opts?.priority !== undefined ? { priority: opts.priority } : {}),
     ...(opts?.lastModified ? { lastModified: opts.lastModified } : {}),

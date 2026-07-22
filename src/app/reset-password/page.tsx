@@ -20,11 +20,11 @@ function ResetPasswordRedirectInner() {
 
   useEffect(() => {
     const token = params.get('token');
-    // Read NEXT_LOCALE cookie; default to 'en'
+    // Read NEXT_LOCALE cookie; default to the site default 'tr' (FBG-425) when absent
     const localeCookie = document.cookie
       .split(';')
       .find((c) => c.trim().startsWith('NEXT_LOCALE='));
-    const locale = localeCookie ? localeCookie.split('=')[1].trim() : 'en';
+    const locale = localeCookie ? localeCookie.split('=')[1].trim() : 'tr';
     router.replace(
       `/${locale}/login/reset-password${token ? `?token=${encodeURIComponent(token)}` : ''}`,
     );

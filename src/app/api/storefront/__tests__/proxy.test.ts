@@ -61,11 +61,13 @@ describe('ARM storefront proxy — ?lang injection (D-08, I18N-03)', () => {
     expect(calledUrl).toContain('lang=en-US');
   });
 
-  it('defaults to lang=en-US on product detail when no NEXT_LOCALE cookie', async () => {
+  it('defaults to lang=tr-TR on product detail when no NEXT_LOCALE cookie (site default TR, FBG-425)', async () => {
     const req = makeReq('products/some-slug');
     await GET(req, makeCtx(['products', 'some-slug']));
     const [calledUrl] = mockFetch.mock.calls[0];
-    expect(calledUrl).toContain('lang=en-US');
+    expect(calledUrl).toContain('lang=tr-TR');
+    // The old EN default must no longer leak through for cookieless requests.
+    expect(calledUrl).not.toContain('lang=en-US');
   });
 
   it('does NOT inject lang on /products list (path.length===1)', async () => {

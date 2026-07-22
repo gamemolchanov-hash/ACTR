@@ -23,14 +23,15 @@ const STOREFRONT_KEY = process.env.ARM_STOREFRONT_KEY || '';
 // LOCALE_TO_BCP47 (единый контракт, arm-contract.ts): маппинг cookie-локали в BCP-47.
 // BFF валидирует /^[a-z]{2}-[A-Z]{2}$/ — короткие en/tr молча игнорируются; переведённый
 // контент даёт только полный код (D-08). Проксирует как фолбэк, когда клиент не передал
-// ?lang явно (FBG-258 шлёт его для tr из URL-локали; здесь остаётся защита для en/legacy).
+// ?lang явно (FBG-258 шлёт его для tr из URL-локали; здесь фолбэк для legacy/без-cookie —
+// при отсутствии NEXT_LOCALE берём дефолт сайта tr, а не en-US, FBG-425).
 
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   // Inject ?lang=<bcp47> ONLY on product-detail (path.length===2 && path[0]==='products').
   // The products list (/products) and all other endpoints must not receive ?lang.
   // Never overwrite an existing ?lang param (passthrough from client or test tooling).
   // Security: value comes from a fixed LOCALE_TO_BCP47 map, not from user input (T-04-05).
-  const locale = req.cookies.get('NEXT_LOCALE')?.value || 'en';
+  const locale = req.cookies.get('NEXT_LOCALE')?.value || 'tr';
   const bcp47 = LOCALE_TO_BCP47[locale] || 'en-US';
   const isProductDetail = path.length === 2 && path[0] === 'products';
 
