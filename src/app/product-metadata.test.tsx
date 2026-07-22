@@ -29,6 +29,9 @@ import { fetchProductServer } from '@/lib/server-api';
 import { notFound } from 'next/navigation';
 import { SITE_URL } from '@/lib/seo';
 
+// Mirrors image-url.ts TENANT_ID fallback so the OG-image expectation is env-robust.
+const TENANT = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
+
 const product: Product = {
   id: 'uuid-1',
   name: 'BASE GEL 15 ML',
@@ -65,7 +68,7 @@ describe('product page generateMetadata', () => {
     const alternates = md.alternates as { canonical: string; languages: Record<string, string> };
     expect(alternates.canonical).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
     const og = md.openGraph as { images?: { url: string }[]; locale?: string };
-    expect(og.images?.[0].url).toBe(`${SITE_URL}/product-images/a.png`);
+    expect(og.images?.[0].url).toBe(`${SITE_URL}/api/storefront/images/${TENANT}/a.png?w=1200`);
     // OG locale for EN (I18N-04)
     expect(og.locale).toBe('en_US');
   });

@@ -12,6 +12,7 @@
 import type { Metadata } from 'next';
 import type { Product } from './api';
 import { fmtMoney } from './money';
+import { imgOg } from './image-url';
 
 export const SITE_NAME = 'American Creator';
 
@@ -80,12 +81,15 @@ export function productCanonicalUrl(product: Product): string {
   return absoluteUrl(`/catalog/${categorySlug}/${productSlug}`);
 }
 
-/** Absolute product image URLs, ordered by `sort` (full-res originals). */
+/**
+ * Absolute product image URLs, ordered by `sort` (ARM proxy, ~1200px for OG).
+ * Same path/width for og:image, twitter:image and JSON-LD `image` (single source).
+ */
 export function productImageAbsoluteUrls(product: Product): string[] {
   if (!product.images?.length) return [];
   return [...product.images]
     .sort((a, b) => a.sort - b.sort)
-    .map((img) => absoluteUrl(`/product-images/${img.file_path}`));
+    .map((img) => absoluteUrl(imgOg(img.file_path)));
 }
 
 /**

@@ -31,7 +31,7 @@ import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { imgDetail, imgThumb, imgCard } from '@/lib/image-url';
+import { imgDetail, imgThumb, imgCard, imgOriginal } from '@/lib/image-url';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 
@@ -530,7 +530,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                     {/* Full-res image */}
                     <Box
                       component="img"
-                      src={`/product-images/${selectedImage.file_path}`}
+                      src={imgOriginal(selectedImage.file_path)}
                       alt={product.name}
                       onLoad={() => setLbLoaded(true)}
                       sx={{

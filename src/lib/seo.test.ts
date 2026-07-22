@@ -25,6 +25,10 @@ import {
   jsonLdScript,
 } from './seo';
 
+// Mirrors image-url.ts TENANT_ID fallback so the expectation is env-robust.
+const TENANT = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
+const img = (fp: string) => `${SITE_URL}/api/storefront/images/${TENANT}/${fp}?w=1200`;
+
 const baseProduct: Product = {
   id: 'uuid-1',
   name: 'BASE GEL 15 ML',
@@ -78,10 +82,7 @@ describe('productCanonicalUrl', () => {
 
 describe('productImageAbsoluteUrls', () => {
   it('returns absolute URLs ordered by sort', () => {
-    expect(productImageAbsoluteUrls(baseProduct)).toEqual([
-      `${SITE_URL}/product-images/a.png`,
-      `${SITE_URL}/product-images/b.png`,
-    ]);
+    expect(productImageAbsoluteUrls(baseProduct)).toEqual([img('a.png'), img('b.png')]);
   });
 
   it('returns [] when the product has no images', () => {
@@ -129,12 +130,12 @@ describe('buildProductMetadata', () => {
     const og = md.openGraph as { url?: string; images?: { url: string }[]; siteName?: string; locale?: string };
     expect(og.url).toBe(`${SITE_URL}/en/catalog/base_gel/198`);
     expect(og.siteName).toBe(SITE_NAME);
-    expect(og.images?.[0].url).toBe(`${SITE_URL}/product-images/a.png`);
+    expect(og.images?.[0].url).toBe(img('a.png'));
     // OG locale for EN (I18N-04)
     expect(og.locale).toBe('en_US');
     const tw = md.twitter as { card?: string; images?: string[] };
     expect(tw.card).toBe('summary_large_image');
-    expect(tw.images?.[0]).toBe(`${SITE_URL}/product-images/a.png`);
+    expect(tw.images?.[0]).toBe(img('a.png'));
   });
 
   it('uses tr_TR OG locale and /tr/ canonical for tr locale (I18N-04)', () => {
@@ -163,10 +164,7 @@ describe('buildProductJsonLd', () => {
     expect(ld['@type']).toBe('Product');
     expect(ld.name).toBe('BASE GEL 15 ML');
     expect(ld.sku).toBe('AC-BG-15');
-    expect(ld.image).toEqual([
-      `${SITE_URL}/product-images/a.png`,
-      `${SITE_URL}/product-images/b.png`,
-    ]);
+    expect(ld.image).toEqual([img('a.png'), img('b.png')]);
     expect(ld.category).toBe('Базовые покрытия');
     expect(ld.offers.price).toBe('1100');
     // Must be TRY, not RUB (I18N-01, I18N-04)

@@ -3,7 +3,7 @@
  *
  * ARM отдаёт WebP-варианты по ширине через `/public/arm/storefront/images/:tenantId/*?w=`
  * (публичный эндпоинт). Идём через тот же Next-прокси `/api/storefront/*`.
- * Прежняя OMS-схема `/product-images/p/{rule}/{fp}` убрана.
+ * Прежняя OMS-схема (rewrite по file_path) убрана — весь трафик через ARM-прокси.
  */
 
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || 'demo-tenant';
@@ -26,3 +26,12 @@ export const imgThumb = (fp: string) => previewUrl(fp, 'thumb');
 export const imgCard = (fp: string) => previewUrl(fp, 'card');
 export const imgCart = (fp: string) => previewUrl(fp, 'cart');
 export const imgCartSm = (fp: string) => previewUrl(fp, 'cart_sm');
+
+/**
+ * Full-resolution original (без `w` → ARM отдаёт исходник) — для зум-оверлея товара.
+ * Не через `previewUrl`: у него нет rule «оригинал», неизвестный rule упал бы в 400px.
+ */
+export const imgOriginal = (fp: string) => `/api/storefront/images/${TENANT_ID}/${fp}`;
+
+/** OG / Twitter / JSON-LD image (~1200px — рекомендуемая ширина Open Graph). */
+export const imgOg = (fp: string) => `/api/storefront/images/${TENANT_ID}/${fp}?w=1200`;
