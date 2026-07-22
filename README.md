@@ -3,6 +3,12 @@
 Витрина для турецкого рынка (TR · TRY · EN+TR) с дизайном **american-creator.ru**,
 работающая по **ARM Portal API** (как forza-brava.com).
 
+## Pipeline
+
+Задачи витрины ведутся в Multica (проект ACTR) и выполняются автономным
+конвейером на SRV199: скаут → dev → гейты (tsc/vitest/build + gitleaks/semgrep)
+→ кросс-вендорное ревью → QA → деплой на SRVACTR01.
+
 ## Что это
 
 - **База:** копия фронта `services/storefront` из autoCRM (Next.js 14 App Router + MUI).
