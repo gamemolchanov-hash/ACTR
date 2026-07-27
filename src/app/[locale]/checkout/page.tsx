@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import dynamic from 'next/dynamic';
 import {
   Box,
@@ -207,6 +207,7 @@ function saveToSession(key: string, value: unknown) {
 
 export default function CheckoutPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
@@ -1326,7 +1327,7 @@ export default function CheckoutPage() {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ bgcolor: 'white' }}>
-          <LegalMarkdown source={obfMarkdown} />
+          <LegalMarkdown source={obfMarkdown} locale={locale} />
         </DialogContent>
       </Dialog>
     </Box>

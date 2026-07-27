@@ -56,11 +56,14 @@ describe('Ön Bilgilendirme Formu on checkout', () => {
     }
   });
 
-  it('links the two canon cross-references (mesafeli satış sözleşmesi + Cayma Bildirim Formu)', () => {
-    const { container } = render(<LegalMarkdown source={markdown} />);
+  it('links the two canon cross-references and keeps the checkout locale on the page link', () => {
+    // The checkout dialog renders the OBF with the active locale (FBG-453): the
+    // internal page link MUST carry it (`localePrefix: 'always'`), otherwise an
+    // /en visitor is bounced to /tr. The PDF download stays unprefixed by design.
+    const { container } = render(<LegalMarkdown source={markdown} locale="en" />);
     const anchors = Array.from(container.querySelectorAll('a'));
 
-    const contract = anchors.find((a) => a.getAttribute('href') === '/legal/mesafeli-satis');
+    const contract = anchors.find((a) => a.getAttribute('href') === '/en/legal/mesafeli-satis');
     expect(contract).toBeDefined();
     expect(contract?.textContent).toBe('mesafeli satış sözleşmesi');
 
@@ -69,7 +72,7 @@ describe('Ön Bilgilendirme Formu on checkout', () => {
     );
     expect(withdrawalForm).toBeDefined();
     expect(withdrawalForm?.textContent).toBe('Cayma Bildirim Formu');
-    // The PDF download opens in a new tab.
+    // The PDF download opens in a new tab and is not locale-prefixed.
     expect(withdrawalForm?.getAttribute('target')).toBe('_blank');
   });
 
