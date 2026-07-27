@@ -19,15 +19,17 @@
  *     token stays visible on the page (§16, §18)
  *   - `\>` in "Hesabım \> İletişim Tercihleri" (§16) → literal `>`
  * The `☐` empty-checkbox glyphs (§15) are ordinary Unicode, not Markdown tokens,
- * and render as-is. The bold names of the other legal documents
- * (**Gizlilik ve Çerez Politikası**, …) are intentionally left as bold text, not
- * links — cross-document links are a separate task once all documents are live.
+ * and render as-is. In §11 the client's `**<u>Gizlilik ve Çerez Politikası</u>**`
+ * cross-reference (the only underlined name in the canon) becomes a bold Markdown
+ * link to /legal/gizlilik; LegalMarkdown's `locale` prop (the shared FBG-453
+ * mechanism) prefixes the active locale at render time. The same document name in
+ * §1 is a plain, un-underlined mention in the canon and stays plain text.
  *
- * The ONLY deviation from the client's docx→md export is inside §18: the three
- * footer examples arrived with the callout label glued to the footer text
- * (`E-posta footer KIZIL KALİNA…`, `Telefon araması "American Creator…`). Those
- * glue points are un-glued with `<br>` line breaks — no word is added, removed
- * or changed. §2 requisites already arrive as clean key-value rows in this
+ * Two structural deviations from the client's docx→md export, neither changing a
+ * word: the §11 link above, and inside §18 the three footer examples arrived with
+ * the callout label glued to the footer text (`E-posta footer KIZIL KALİNA…`,
+ * `Telefon araması "American Creator…`); those glue points are un-glued with
+ * `<br>` line breaks. §2 requisites already arrive as clean key-value rows in this
  * export, so nothing is glued there.
  */
 export const TICARI_ELEKTRONIK_ILETI_MARKDOWN = String.raw`
@@ -177,7 +179,7 @@ Alıcı, ticari elektronik ileti onayını istediği zaman, gerekçe göstermede
 
 # **11\. Kişisel Verilerin İşlenmesi**
 
-Ticari ileti izinlerinin yönetimi için ad-soyad, e-posta adresi, telefon numarası, marka ve kanal tercihleri, onay/ret tarihi, onay kaynağı, metin sürümü ve ispat kayıtları işlenebilir. Ayrıntılı bilgi **Gizlilik ve Çerez Politikası** ile ilgili KVKK aydınlatma metinlerinde yer alır.
+Ticari ileti izinlerinin yönetimi için ad-soyad, e-posta adresi, telefon numarası, marka ve kanal tercihleri, onay/ret tarihi, onay kaynağı, metin sürümü ve ispat kayıtları işlenebilir. Ayrıntılı bilgi **[Gizlilik ve Çerez Politikası](/legal/gizlilik)** ile ilgili KVKK aydınlatma metinlerinde yer alır.
 
 KVKK kapsamındaki kişisel veri işleme faaliyetleri ile ticari elektronik ileti onayı birbirinden bağımsız hukuki süreçlerdir. Ticari elektronik ileti onayı yalnızca 6563 sayılı Kanun kapsamında değerlendirilir. KVKK kapsamında açık rıza gerektiren veri işleme faaliyetleri için ise gerektiğinde ayrıca açık rıza alınır.
 

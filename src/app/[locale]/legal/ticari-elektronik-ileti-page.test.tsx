@@ -72,15 +72,28 @@ describe('LegalPage — ticari-elektronik-ileti Markdown document', () => {
     expect(container.textContent).not.toContain('consent\\_at');
   });
 
-  it('keeps other legal-document names bold, not links', async () => {
+  it('links the §11 Gizlilik ve Çerez Politikası name as a bold link to /legal/gizlilik (FBG-457)', async () => {
     const { container } = await renderPage('ticari-elektronik-ileti', 'tr');
-    const strongTexts = Array.from(container.querySelectorAll('strong')).map(
-      (s) => s.textContent,
+    const gizlilikLinks = Array.from(container.querySelectorAll('a')).filter(
+      (a) => a.textContent === 'Gizlilik ve Çerez Politikası',
     );
-    expect(strongTexts).toContain('Gizlilik ve Çerez Politikası');
-    // No anchor points at that document (cross-links are a later task).
-    const linkTexts = Array.from(container.querySelectorAll('a')).map((a) => a.textContent);
-    expect(linkTexts).not.toContain('Gizlilik ve Çerez Politikası');
+    // Exactly one link across the document — the §1 mention stays plain text.
+    expect(gizlilikLinks.length).toBe(1);
+    expect(gizlilikLinks[0].getAttribute('href')).toBe('/tr/legal/gizlilik');
+    // The bold formatting from the canon (`**<u>…</u>**`) is preserved: bold + link.
+    expect(gizlilikLinks[0].closest('strong')).not.toBeNull();
+  });
+
+  it('carries the page locale into the §11 link on /en; §1 mention stays plain text (FBG-457)', async () => {
+    const { container } = await renderPage('ticari-elektronik-ileti', 'en');
+    const gizlilik = Array.from(container.querySelectorAll('a')).find(
+      (a) => a.textContent === 'Gizlilik ve Çerez Politikası',
+    );
+    expect(gizlilik?.getAttribute('href')).toBe('/en/legal/gizlilik');
+    // §1's second sentence is unchanged and NOT a link.
+    expect(container.textContent).toContain(
+      'Kişisel verilerin işlenmesine ilişkin aydınlatma, Gizlilik ve Çerez Politikası ile ilgili KVKK metinlerinde ayrıca yapılır.',
+    );
   });
 
   it('shows the "text is in Turkish" notice on non-TR locales only', async () => {

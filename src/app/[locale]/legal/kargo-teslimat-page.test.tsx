@@ -63,4 +63,58 @@ describe('LegalPage — kargo-teslimat Markdown document', () => {
     expect(container.textContent).toContain('KK-TK-KTP-2026-V2');
     expect(container.textContent).not.toContain('The official text of this policy is in Turkish');
   });
+
+  it('links İade ve Cayma Politikası (§1/§4/§7/§13) and the §1 sözleşme, carrying the locale (FBG-457)', async () => {
+    const { container } = await renderPage('kargo-teslimat', 'tr');
+    const iadeLinks = Array.from(container.querySelectorAll('a')).filter(
+      (a) => a.textContent === 'İade ve Cayma Politikası',
+    );
+    // §1, §4, §7 and §13 each reference the return policy → four locale-aware links.
+    expect(iadeLinks.length).toBe(4);
+    expect(iadeLinks.every((a) => a.getAttribute('href') === '/tr/legal/iade')).toBe(true);
+    // §1 also links the distance-sales contract.
+    const mesafeli = Array.from(container.querySelectorAll('a')).find(
+      (a) => a.textContent === 'Mesafeli Satış Sözleşmesi',
+    );
+    expect(mesafeli?.getAttribute('href')).toBe('/tr/legal/mesafeli-satis');
+  });
+
+  it('leaves "Ön Bilgilendirme Formu" (§1) as plain text, not a link (FBG-457)', async () => {
+    const { container } = await renderPage('kargo-teslimat', 'tr');
+    expect(container.textContent).toContain('Ön Bilgilendirme Formu');
+    const linkTexts = Array.from(container.querySelectorAll('a')).map((a) => a.textContent);
+    expect(linkTexts).not.toContain('Ön Bilgilendirme Formu');
+  });
+
+  it('uses the revised §16 wording and links KVKK + Gizlilik with the TR locale (FBG-457)', async () => {
+    const { container } = await renderPage('kargo-teslimat', 'tr');
+    const text = container.textContent ?? '';
+    // §16 second sentence rewritten to the client's 27.07.2026 canon; the
+    // first sentence and the rest of the paragraph are unchanged.
+    expect(text).toContain(
+      "Kişisel verilerin işlenmesine ve aktarılmasına ilişkin ayrıntılı açıklamalar, Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni ile Gizlilik ve Çerez Politikası'nda yer almaktadır.",
+    );
+    // the superseded phrasing is gone.
+    expect(text).not.toContain('İnternet Sitesi KVKK Aydınlatma Metni');
+    const hrefByText = (t: string) =>
+      Array.from(container.querySelectorAll('a'))
+        .find((a) => a.textContent === t)
+        ?.getAttribute('href');
+    expect(hrefByText('Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni')).toBe(
+      '/tr/legal/kvkk',
+    );
+    expect(hrefByText('Gizlilik ve Çerez Politikası')).toBe('/tr/legal/gizlilik');
+  });
+
+  it('carries the page locale into the §16 links on /en (FBG-457)', async () => {
+    const { container } = await renderPage('kargo-teslimat', 'en');
+    const kvkk = Array.from(container.querySelectorAll('a')).find(
+      (a) => a.textContent === 'Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni',
+    );
+    expect(kvkk?.getAttribute('href')).toBe('/en/legal/kvkk');
+    const gizlilik = Array.from(container.querySelectorAll('a')).find(
+      (a) => a.textContent === 'Gizlilik ve Çerez Politikası',
+    );
+    expect(gizlilik?.getAttribute('href')).toBe('/en/legal/gizlilik');
+  });
 });

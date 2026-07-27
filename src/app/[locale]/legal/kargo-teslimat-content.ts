@@ -12,11 +12,20 @@
  * `String.raw` keeps backslash escapes (`\.`, `\+`) byte-for-byte so the source
  * matches the client document; LegalMarkdown resolves them at render time.
  *
- * The ONLY deviation from the client's docx→md export is inside the §2 table:
- * the Satıcı and NİKAR requisite cells arrived with their fields concatenated
- * without a separator (`…ŞİRKETİMERSİS:…`, `…LİMİTED ŞİRKETİVKN:…`). Those glue
- * points are un-glued with `<br>` line breaks — no word is added, removed or
- * changed.
+ * Two kinds of deviation from the client's docx→md export:
+ *  - inside the §2 table the Satıcı and NİKAR requisite cells arrived with their
+ *    fields concatenated without a separator (`…ŞİRKETİMERSİS:…`, `…LİMİTED
+ *    ŞİRKETİVKN:…`); those glue points are un-glued with `<br>` line breaks — no
+ *    word is added, removed or changed;
+ *  - the `<u>…</u>` cross-references the client underlined in §§1, 4, 7, 13 and 16
+ *    become Markdown links to the referenced pages: İade ve Cayma Politikası →
+ *    /legal/iade, Mesafeli Satış Sözleşmesi → /legal/mesafeli-satis, the §16 KVKK
+ *    Aydınlatma Metni → /legal/kvkk and Gizlilik ve Çerez Politikası →
+ *    /legal/gizlilik. "Ön Bilgilendirme Formu" (§1) has no underline in the canon
+ *    and stays plain text. Page links are bare `/legal/…` hrefs; LegalMarkdown's
+ *    `locale` prop (the shared FBG-453 mechanism) prefixes the active locale at
+ *    render time. The §16 second sentence follows the client's 27.07.2026 revised
+ *    wording (KVKK Aydınlatma Metni now named before Gizlilik ve Çerez Politikası).
  */
 export const KARGO_TESLIMAT_MARKDOWN = String.raw`
 **AMERICAN CREATOR**
@@ -33,7 +42,7 @@ export const KARGO_TESLIMAT_MARKDOWN = String.raw`
 
 # **1\. Amaç, Kapsam ve Belgenin Niteliği**
 
-İşbu Kargo ve Teslimat Politikası (“Politika”), American Creator internet sitesi üzerinden verilen siparişlerin onaylanması, fulfillment merkezinde hazırlanması, paketlenmesi, taşıyıcıya teslimi ve tüketiciye ulaştırılması süreçlerini düzenler. Politika, Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve İade ve Cayma Politikası ile birlikte uygulanır. Siparişe özgü teslimat süresi, taşıyıcı, teslimat yöntemi ve kargo ücreti bilgileri, tüketicinin ödeme yükümlülüğü altına girmesinden önce ayrıca gösterilir.
+İşbu Kargo ve Teslimat Politikası (“Politika”), American Creator internet sitesi üzerinden verilen siparişlerin onaylanması, fulfillment merkezinde hazırlanması, paketlenmesi, taşıyıcıya teslimi ve tüketiciye ulaştırılması süreçlerini düzenler. Politika, Ön Bilgilendirme Formu, [Mesafeli Satış Sözleşmesi](/legal/mesafeli-satis) ve [İade ve Cayma Politikası](/legal/iade) ile birlikte uygulanır. Siparişe özgü teslimat süresi, taşıyıcı, teslimat yöntemi ve kargo ücreti bilgileri, tüketicinin ödeme yükümlülüğü altına girmesinden önce ayrıca gösterilir.
 
 Bu Politika tüketici işlemleri için hazırlanmıştır. Ticari veya mesleki amaçla hareket eden alıcılarla yapılan satışlarda, emredici hükümler saklı kalmak kaydıyla taraflar arasındaki ticari sözleşme ve Türk Ticaret Kanunu hükümleri uygulanır.
 
@@ -58,7 +67,7 @@ Tüketici, teslimat adresini eksiksiz ve doğru bildirmekle yükümlüdür. Aske
 
 Sipariş, ödemenin veya kullanılan ödeme yöntemine göre ödeme yetkilendirmesinin başarıyla tamamlanması ve Satıcı tarafından sipariş teyidinin kalıcı veri saklayıcısı ile tüketiciye iletilmesi üzerine hazırlık sürecine alınır. Ödeme başarısız, risk kontrolünde beklemede veya doğrulama gerektiriyorsa hazırlık süreci başlatılmayabilir. Satıcı, hukuka uygun dolandırıcılık ve işlem güvenliği kontrolleri kapsamında sipariş sahibinden ek doğrulama isteyebilir.
 
-Tüketicinin, malın tesliminden önce cayma hakkını kullanmasına ilişkin bildirimi gecikmeksizin işleme alınır. Bildirimin ürün taşıyıcıya teslim edilmeden önce Satıcıya ulaşması hâlinde, sevkiyatın durdurulması için makul operasyonel tedbirler alınır. Bildirime rağmen ürünün taşıyıcıya teslim edilmiş veya sevkiyatının durdurulamamış olması, tüketicinin Mesafeli Sözleşmeler Yönetmeliği uyarınca sahip olduğu cayma hakkını ortadan kaldırmaz. Bu durumda cayma bildiriminin sonuçları, bedel iadesi ve gerektiğinde malın geri gönderilmesi, İade ve Cayma Politikası ile ilgili mevzuat hükümlerine göre yürütülür.
+Tüketicinin, malın tesliminden önce cayma hakkını kullanmasına ilişkin bildirimi gecikmeksizin işleme alınır. Bildirimin ürün taşıyıcıya teslim edilmeden önce Satıcıya ulaşması hâlinde, sevkiyatın durdurulması için makul operasyonel tedbirler alınır. Bildirime rağmen ürünün taşıyıcıya teslim edilmiş veya sevkiyatının durdurulamamış olması, tüketicinin Mesafeli Sözleşmeler Yönetmeliği uyarınca sahip olduğu cayma hakkını ortadan kaldırmaz. Bu durumda cayma bildiriminin sonuçları, bedel iadesi ve gerektiğinde malın geri gönderilmesi, [İade ve Cayma Politikası](/legal/iade) ile ilgili mevzuat hükümlerine göre yürütülür.
 
 # **5\. Fulfillment Merkezinde Hazırlama ve Paketleme**
 
@@ -76,7 +85,7 @@ Taşıyıcının hizmet kesintisi, kapasite sorunu veya benzeri haklı operasyon
 
 Tüketiciden talep edilecek gönderim ücreti, varsa ücretsiz kargo eşiği, teslimat bölgesine bağlı ek ücretler ve kampanya koşulları, tüketicinin ödeme yükümlülüğü altına girmesinden önce açıkça gösterilir. Önceden bildirilmeyen bir nakliye veya teslimat bedeli tüketiciden talep edilmez. Ücretsiz kargo kampanyasının koşulları, kampanya süresi ve alt limitleri sipariş tarihinde geçerli olan açıklamalara göre uygulanır.
 
-Cayma hakkı veya ayıplı mal nedeniyle yapılacak geri gönderimlere ilişkin masraflar, İade ve Cayma Politikası’nda ayrıca düzenlenir.
+Cayma hakkı veya ayıplı mal nedeniyle yapılacak geri gönderimlere ilişkin masraflar, [İade ve Cayma Politikası](/legal/iade)’nda ayrıca düzenlenir.
 
 # **8\. Teslimat Süresi ve Otuz Günlük Üst Sınır**
 
@@ -114,7 +123,7 @@ Adresin yanlış veya eksik olması, alıcının adreste bulunmaması, teslim ko
 
 Paketin teslim edilemeyerek Satıcıya dönmesi, tek başına tüketicinin cayma hakkını kullandığı veya sözleşmeyi feshettiği anlamına gelmez.
 
-Paketin Satıcıya dönmesi hâlinde tüketiciyle iletişime geçilir. Yeniden gönderim, ancak tüketicinin açık talebi ve uygulanacak yeniden gönderim bedelini kabul etmesi üzerine gerçekleştirilir. İlk teslimatın gerçekleştirilememesinin tüketiciden kaynaklanması ve yeniden gönderim bedelinin uygulanabileceği hususunda tüketiciye sipariş öncesinde açık bilgilendirme yapılmış olması şartıyla, tüketiciden yalnızca yeniden gönderim için fiilen uygulanacak taşıma bedeli esas alınarak hesaplanan, vergiler dâhil toplam tutar talep edilebilir; bu tutar yeniden gönderim gerçekleştirilmeden önce tüketiciye bildirilir. Satıcı, fulfillment hizmet sağlayıcısı veya taşıyıcıdan kaynaklanan bir nedenle teslimatın gerçekleştirilememesi ya da tüketiciye teslimata ilişkin hatalı veya yetersiz bildirim yapılması hâlinde yeniden gönderim bedeli talep edilmez. Tüketici cayma hakkını kullanırsa, geri gönderim masrafları ve bedel iadesi bakımından İade ve Cayma Politikası ile ilgili mevzuat hükümleri uygulanır; teslim edilememe süreci ile cayma hakkının kullanılması birbirine karıştırılmaz.
+Paketin Satıcıya dönmesi hâlinde tüketiciyle iletişime geçilir. Yeniden gönderim, ancak tüketicinin açık talebi ve uygulanacak yeniden gönderim bedelini kabul etmesi üzerine gerçekleştirilir. İlk teslimatın gerçekleştirilememesinin tüketiciden kaynaklanması ve yeniden gönderim bedelinin uygulanabileceği hususunda tüketiciye sipariş öncesinde açık bilgilendirme yapılmış olması şartıyla, tüketiciden yalnızca yeniden gönderim için fiilen uygulanacak taşıma bedeli esas alınarak hesaplanan, vergiler dâhil toplam tutar talep edilebilir; bu tutar yeniden gönderim gerçekleştirilmeden önce tüketiciye bildirilir. Satıcı, fulfillment hizmet sağlayıcısı veya taşıyıcıdan kaynaklanan bir nedenle teslimatın gerçekleştirilememesi ya da tüketiciye teslimata ilişkin hatalı veya yetersiz bildirim yapılması hâlinde yeniden gönderim bedeli talep edilmez. Tüketici cayma hakkını kullanırsa, geri gönderim masrafları ve bedel iadesi bakımından [İade ve Cayma Politikası](/legal/iade) ile ilgili mevzuat hükümleri uygulanır; teslim edilememe süreci ile cayma hakkının kullanılması birbirine karıştırılmaz.
 
 # **14\. Stok Uyuşmazlığı ve İfanın İmkânsızlaşması**
 
@@ -128,7 +137,7 @@ Doğal afet, salgın, savaş, yaygın ulaşım kesintisi, kamu otoritesi kararı
 
 # **16\. Kişisel Veriler**
 
-Teslimat için gerekli olan ad-soyad, telefon, teslimat adresi, sipariş numarası ve paket bilgileri, siparişin hazırlanması, taşınması, teslimi, teslimat sorunlarının çözülmesi ve uyuşmazlıkların yönetilmesi amaçlarıyla fulfillment hizmet sağlayıcısına ve ilgili taşıyıcıya aktarılabilir. Kişisel verilerin işlenmesine ve aktarılmasına ilişkin ayrıntılı açıklamalar, American Creator Gizlilik ve Çerez Politikası ile İnternet Sitesi KVKK Aydınlatma Metni’nde yer almaktadır.
+Teslimat için gerekli olan ad-soyad, telefon, teslimat adresi, sipariş numarası ve paket bilgileri, siparişin hazırlanması, taşınması, teslimi, teslimat sorunlarının çözülmesi ve uyuşmazlıkların yönetilmesi amaçlarıyla fulfillment hizmet sağlayıcısına ve ilgili taşıyıcıya aktarılabilir. Kişisel verilerin işlenmesine ve aktarılmasına ilişkin ayrıntılı açıklamalar, [Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni](/legal/kvkk) ile [Gizlilik ve Çerez Politikası](/legal/gizlilik)'nda yer almaktadır.
 
 Teslimatın doğrulanması amacıyla kişisel veri işlenmesinin gerekli olduğu durumlarda, bu veriler teslimatın güvenli şekilde gerçekleştirilmesi, teslimin belgelendirilmesi, teslimatla ilgili başvuruların incelenmesi ve hukuki yükümlülüklerin yerine getirilmesi amaçlarıyla; ilgili mevzuata ve kişisel verilerin işlenmesinde amaçla bağlantılı, sınırlı ve ölçülü olma ilkesine uygun şekilde işlenir.
 
