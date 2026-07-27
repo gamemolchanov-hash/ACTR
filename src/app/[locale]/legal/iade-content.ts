@@ -159,17 +159,19 @@ Taksitli kart işlemlerinde iadenin karta yansıma biçimi, kart çıkaran kurul
 
 # **12\. Ürünün Değer Kaybı ve İade Paketleme Yükümlülüğü**
 
-Hijyen istisnası kapsamına girmeyen ürünlerde tüketici, ürünü işleyişine, teknik özelliklerine ve kullanım talimatına uygun şekilde kullanması nedeniyle meydana gelen değişiklik ve bozulmalardan sorumlu değildir.
+Alıcı, cayma hakkı süresi içinde ürünü yalnızca niteliğini, özelliklerini ve işleyişini belirlemek amacıyla olağan şekilde inceleyebilir ve kullanabilir.
 
-Üründe değer kaybı bulunduğunun ileri sürülmesi hâlinde, bu durum her somut olay bakımından ayrıca değerlendirilir. Bedelden otomatik olarak herhangi bir kesinti yapılamaz; değer kaybına ilişkin bir talep ancak fiilî zararın ve bunun hukuki dayanağının ortaya konulması hâlinde ileri sürülebilir.
+Ürünün bu sınırların ötesinde kullanılması nedeniyle değer kaybı meydana gelmesi hâlinde, Alıcı yalnızca fiilen oluşan, ispatlanabilen ve hukuken talep edilebilir değer kaybından sorumludur.
 
-Sağlık veya hijyen istisnası kapsamına girmeyen ürünlerde yalnızca ambalajın açılmış olması veya ürünün niteliğini, özelliklerini ve işleyişini değerlendirmek amacıyla olağan şekilde incelenmiş olması tek başına değer kaybı oluşturmaz.
+Ücret iadesinden otomatik olarak herhangi bir tutar düşülmez. Değer kaybına ilişkin herhangi bir değerlendirme yalnızca ürünün somut durumu, oluştuğu iddia edilen zararın niteliği, hukuki dayanağı ve mevcut deliller birlikte değerlendirilerek yapılabilir.
 
-Hijyen ürünü bakımından koruyucu unsurun açılması hâlinde ise 6 ncı maddede düzenlenen cayma hakkı istisnası uygulanır.
+Depo, lojistik hizmet sağlayıcısı veya iade kabul personeli tek başına değer kaybı tespiti yapamaz ve ücret iadesinden kesinti kararı veremez. Bu kişiler yalnızca ürünün teslim anındaki fiili durumuna ilişkin teknik inceleme ve kayıt işlemlerini yürütür.
 
-Tüketici ürünü, iade taşımasında zarar görmeyecek şekilde paketlemelidir. Ürünün orijinal ürün kutusu, taşıma etiketi yapıştırılarak tek başına kargo ambalajı olarak kullanılmamalı; dış taşıma kutusu veya koruyucu ambalaj kullanılmalıdır.
+Herhangi bir kesinti yapılabilmesi için oluştuğu iddia edilen değer kaybının somut delillerle ortaya konulması ve ilgili mevzuata göre hukuken talep edilebilir nitelikte olması gerekir.
 
-Tüketici, ürünü teslim aldığı andaki durumunu koruyacak şekilde muhafaza etmek ve iade sürecinde makul özeni göstermekle yükümlüdür.
+Ürün üzerinde yalnızca olağan inceleme kapsamında gerçekleştirilen işlemler nedeniyle değer kaybı bulunduğu kabul edilemez.
+
+Ürünün teslimi sırasında mevcut olmayan hasar, eksiklik veya değer kaybına ilişkin değerlendirmelerde, Satıcı gerekli gördüğü ölçüde fotoğraf, video, teslim kayıtları, taşıma kayıtları ve diğer teknik delillerden yararlanabilir.
 
 # **13\. Ayıplı, Hasarlı, Eksik veya Yanlış Ürünler**
 
