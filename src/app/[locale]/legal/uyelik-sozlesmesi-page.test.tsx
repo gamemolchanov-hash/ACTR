@@ -60,17 +60,45 @@ describe('LegalPage — uyelik-sozlesmesi Markdown document', () => {
     expect(text).not.toContain('ŞİRKETİMERSİS');
   });
 
-  it('keeps other legal-document names bold, not links', async () => {
+  it('links referenced legal documents to the active-locale pages; self-reference stays text (FBG-453)', async () => {
     const { container } = await renderPage('uyelik-sozlesmesi', 'tr');
-    const strongTexts = Array.from(container.querySelectorAll('strong')).map((s) => s.textContent);
-    expect(strongTexts).toContain('Kargo ve Teslimat Politikası');
-    expect(strongTexts).toContain('İade ve Cayma Politikası');
-    expect(strongTexts).toContain('Gizlilik ve Çerez Politikası');
-    expect(strongTexts).toContain('Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni');
-    // Cross-document links are a later task: no anchor points at those docs.
+    const hrefByText = (t: string) =>
+      Array.from(container.querySelectorAll('a'))
+        .find((a) => a.textContent === t)
+        ?.getAttribute('href');
+    expect(hrefByText('Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni')).toBe('/tr/legal/kvkk');
+    expect(hrefByText('Gizlilik ve Çerez Politikası')).toBe('/tr/legal/gizlilik');
+    expect(hrefByText('Kargo ve Teslimat Politikası')).toBe('/tr/legal/kargo-teslimat');
+    expect(hrefByText('İade ve Cayma Politikası')).toBe('/tr/legal/iade');
+    expect(hrefByText('Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni')).toBe(
+      '/tr/legal/ticari-elektronik-ileti',
+    );
+    // The §13 self-reference is intentionally left as plain text, not a link.
     const linkTexts = Array.from(container.querySelectorAll('a')).map((a) => a.textContent);
-    expect(linkTexts).not.toContain('Kargo ve Teslimat Politikası');
-    expect(linkTexts).not.toContain('Gizlilik ve Çerez Politikası');
+    expect(linkTexts).not.toContain('Üyelik Sözleşmesi');
+  });
+
+  it('carries the page locale into the document links on /en (FBG-453)', async () => {
+    const { container } = await renderPage('uyelik-sozlesmesi', 'en');
+    const kvkk = Array.from(container.querySelectorAll('a')).find(
+      (a) => a.textContent === 'Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni',
+    );
+    expect(kvkk?.getAttribute('href')).toBe('/en/legal/kvkk');
+  });
+
+  it('uses the updated §4 and §13 wording from the canon (FBG-453)', async () => {
+    const { container } = await renderPage('uyelik-sozlesmesi', 'tr');
+    const text = container.textContent ?? '';
+    // §4: the capitalised document names, rest of the paragraph unchanged.
+    expect(text).toContain(
+      'Üyelik formunda Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni ile Gizlilik ve Çerez Politikası ayrıca erişilebilir kılınır.',
+    );
+    // §13: first paragraph incl. the "ticari elektronik ileti onayı" tail.
+    expect(text).toContain(
+      "Üyelik Sözleşmesi'nin kabulü, açık rıza verilmesi veya ticari elektronik ileti onayı verilmesi anlamına gelmez.",
+    );
+    // the superseded §4 phrasing is gone.
+    expect(text).not.toContain('aydınlatma metinleri ayrıca erişilebilir kılınır');
   });
 
   it('shows the "text is in Turkish" notice on non-TR locales only', async () => {

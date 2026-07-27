@@ -109,7 +109,7 @@ export default async function LegalPage({ params }: Props) {
                   </Typography>
                 </Box>
               )}
-              <LegalMarkdown source={markdown} />
+              <LegalMarkdown source={markdown} locale={locale} />
             </>
           ) : (
             <>

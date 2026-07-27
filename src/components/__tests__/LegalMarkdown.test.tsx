@@ -11,7 +11,7 @@ import { render, screen, within, cleanup } from '@testing-library/react';
 // This config does not set test.globals, so @testing-library's auto-cleanup is
 // not registered; unmount between cases so global screen/body queries stay unique.
 afterEach(cleanup);
-import LegalMarkdown, { parseMarkdown, isSafeHref } from '../LegalMarkdown';
+import LegalMarkdown, { parseMarkdown, isSafeHref, localizeHref } from '../LegalMarkdown';
 import { GIZLILIK_MARKDOWN } from '@/app/[locale]/legal/gizlilik-content';
 import { KARGO_TESLIMAT_MARKDOWN } from '@/app/[locale]/legal/kargo-teslimat-content';
 import { IADE_MARKDOWN } from '@/app/[locale]/legal/iade-content';
@@ -80,6 +80,7 @@ describe('LegalMarkdown rendering', () => {
   });
 
   it('renders a site-relative [text](/path) as an in-page link (FBG-399)', () => {
+    // Without a locale prop the href is left unprefixed (checkout OBF / units).
     const { container } = render(<LegalMarkdown source={'See [KVKK](/legal/kvkk) page.'} />);
     const a = container.querySelector('a');
     expect(a).not.toBeNull();
@@ -88,6 +89,27 @@ describe('LegalMarkdown rendering', () => {
     // internal, non-download links stay in the same tab
     expect(a?.getAttribute('target')).toBeNull();
     expect(a?.getAttribute('rel')).toBeNull();
+  });
+
+  it('prefixes a same-tab in-page link with the active locale (FBG-453)', () => {
+    const tr = render(<LegalMarkdown source={'See [KVKK](/legal/kvkk) page.'} locale="tr" />);
+    expect(tr.container.querySelector('a')?.getAttribute('href')).toBe('/tr/legal/kvkk');
+    cleanup();
+    const en = render(<LegalMarkdown source={'See [KVKK](/legal/kvkk) page.'} locale="en" />);
+    expect(en.container.querySelector('a')?.getAttribute('href')).toBe('/en/legal/kvkk');
+  });
+
+  it('never prefixes a .pdf download or https link, even with a locale (FBG-453)', () => {
+    const { container } = render(
+      <LegalMarkdown
+        source={'[Form](/legal/cayma-bildirim-formu.pdf) and [Site](https://american-creator.tr/).'}
+        locale="tr"
+      />,
+    );
+    const [pdf, ext] = Array.from(container.querySelectorAll('a'));
+    // downloads and external URLs are locale-agnostic — no /tr segment added
+    expect(pdf?.getAttribute('href')).toBe('/legal/cayma-bildirim-formu.pdf');
+    expect(ext?.getAttribute('href')).toBe('https://american-creator.tr/');
   });
 
   it('opens PDF and https links in a new tab with rel="noopener" (FBG-399)', () => {
@@ -162,6 +184,18 @@ describe('isSafeHref (link href guard, FBG-399)', () => {
     expect(isSafeHref('/\n/evil.example.com')).toBe(false);
     expect(isSafeHref('/\r/evil.example.com')).toBe(false);
     expect(isSafeHref('/\t\\evil.example.com')).toBe(false);
+  });
+});
+
+describe('localizeHref (locale prefixing, FBG-453)', () => {
+  it('prefixes a site-relative path with the given locale', () => {
+    expect(localizeHref('/legal/kvkk', 'tr')).toBe('/tr/legal/kvkk');
+    expect(localizeHref('/legal/kvkk', 'en')).toBe('/en/legal/kvkk');
+  });
+
+  it('leaves the href unchanged when no locale is given', () => {
+    expect(localizeHref('/legal/kvkk')).toBe('/legal/kvkk');
+    expect(localizeHref('/legal/kvkk', undefined)).toBe('/legal/kvkk');
   });
 });
 

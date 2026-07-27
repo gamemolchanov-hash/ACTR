@@ -14,16 +14,22 @@
  *   - `\.` in section numbers (`1\.`) → literal `.`
  *   - `\+` in the phone number (`\+90 531 871 30 07`, §2/§23) → literal `+`
  *
- * The bold names of the other legal documents (**Kargo ve Teslimat Politikası**,
- * **İade ve Cayma Politikası**, **Gizlilik ve Çerez Politikası**, **Ticari
- * Elektronik İleti Bilgilendirmesi ve Onay Metni** — §10, §13, §14) are
- * intentionally left as bold text, not links: cross-document links are a
- * separate task once all eight documents are live.
+ * The names of the other legal documents underlined in the lawyer's canon are
+ * rendered as in-page links to their pages (FBG-453): Kişisel Verilerin
+ * İşlenmesine İlişkin Aydınlatma Metni → /legal/kvkk and Gizlilik ve Çerez
+ * Politikası → /legal/gizlilik (§4, §13), Kargo ve Teslimat Politikası →
+ * /legal/kargo-teslimat and İade ve Cayma Politikası → /legal/iade (§10), and
+ * Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni →
+ * /legal/ticari-elektronik-ileti (§14). LegalMarkdown prefixes each with the
+ * active locale so they stay in the page's language. The §13 self-reference
+ * "Üyelik Sözleşmesi" is intentionally left as plain text.
  *
  * The requisite/definition/role tables (§2 "Şirket ve İletişim Bilgileri", §3
  * "Tanımlar", §7 "Rolleri") arrive as clean pipe-separated rows in this export,
  * so — unlike some earlier docx→md exports (FBG-394/396) — no field is glued and
- * no `<br>` un-gluing is applied. Not a single word is added, removed or changed.
+ * no `<br>` un-gluing is applied. The text is verbatim from the canon except the
+ * lawyer's §4 and §13 wording update (FBG-453); the version header stays V2/2.0
+ * as the lawyer did not bump it (inconsistency reported upstream).
  */
 export const UYELIK_SOZLESMESI_MARKDOWN = String.raw`
 **AMERICAN CREATOR**
@@ -79,7 +85,7 @@ Sözleşme, Üyenin üyelik formunda zorunlu alanları doldurması, Sözleşmeye
 
 Şirket; kabul edilen Sözleşme sürümünü, kabul tarih-saatini ve üyelik hesabıyla ilişkilendirilen asgari teknik ispat kayıtlarını hukuka uygun şekilde saklar. Üyeye, kabul ettiği sürüme Hesap üzerinden erişim sağlanır veya Sözleşmenin bir örneği kayıtlı e-posta adresine kalıcı veri saklayıcısı ile iletilir.
 
-Üyelik formunda kişisel verilerin işlenmesine ilişkin aydınlatma metinleri ayrıca erişilebilir kılınır. Aydınlatma metninin sunulması veya okunduğunun belirtilmesi, açık rıza ya da ticari elektronik ileti onayı anlamına gelmez.
+Üyelik formunda [Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni](/legal/kvkk) ile [Gizlilik ve Çerez Politikası](/legal/gizlilik) ayrıca erişilebilir kılınır. Aydınlatma metninin sunulması veya okunduğunun belirtilmesi, açık rıza ya da ticari elektronik ileti onayı anlamına gelmez.
 
 # **5\. Üyelik Koşulları**
 
@@ -140,7 +146,7 @@ Tüketicinin kanundan doğan cayma hakkını kullanması, ayıplı mal veya hizm
 
 Her sipariş, üyelik ilişkisinden ayrı bir satış işlemidir. Sipariş verilmeden önce ürünün temel nitelikleri, toplam fiyat, teslimat, cayma hakkı, iade masrafları ve diğer zorunlu bilgiler Ön Bilgilendirme Formu ile sunulur; satış ilişkisi Mesafeli Satış Sözleşmesi kapsamında kurulur.
 
-Sipariş hazırlama ve teslimat için **Kargo ve Teslimat Politikası**; cayma, iade, hijyen istisnası ve ayıplı ürün süreçleri için **İade ve Cayma Politikası** uygulanır. Bu belgelerin güncel sürümleri Site üzerinde erişilebilir tutulur.
+Sipariş hazırlama ve teslimat için **[Kargo ve Teslimat Politikası](/legal/kargo-teslimat)**; cayma, iade, hijyen istisnası ve ayıplı ürün süreçleri için **[İade ve Cayma Politikası](/legal/iade)** uygulanır. Bu belgelerin güncel sürümleri Site üzerinde erişilebilir tutulur.
 
 Üye, teslimat, fatura ve iletişim bilgilerini sipariş onayından önce kontrol eder. Yanlış veya eksik bilginin düzeltilmesi mümkün olduğu ölçüde sağlanır. Üyenin kusurundan kaynaklanan, makul ve belgelenebilir yeniden gönderim masrafları emredici tüketici hükümleri saklı kalmak üzere Üyeye yansıtılabilir.
 
@@ -160,7 +166,7 @@ Siteye ait yazılım, tasarım, metin, görsel, veri tabanı, marka, logo, alan 
 
 # **13\. Kişisel Verilerin Korunması ve Çerezler**
 
-Üyelik kapsamında kişisel verilerin toplanma yöntemleri, amaçları, hukuki sebepleri, alıcı grupları, saklama kuralları ve ilgili kişi hakları **Gizlilik ve Çerez Politikası** ile ilgili KVKK aydınlatma metinlerinde açıklanır. Üyelik Sözleşmesinin kabulü, açık rıza verilmesi anlamına gelmez.
+Üyelik kapsamında kişisel verilerin toplanma yöntemleri, işlenme amaçları, hukuki sebepleri, alıcı grupları, saklama süreleri ve ilgili kişi hakları, [Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni](/legal/kvkk) ile [Gizlilik ve Çerez Politikası](/legal/gizlilik)'nda açıklanmaktadır. Üyelik Sözleşmesi'nin kabulü, açık rıza verilmesi veya ticari elektronik ileti onayı verilmesi anlamına gelmez.
 
 Sipariş verilmesi halinde ad-soyad, telefon, teslimat adresi, sipariş numarası ve gerekli paket bilgileri; siparişin hazırlanması, teslimatı ve iade süreçlerinin yürütülmesi amacıyla ilgili alıcı grupları olan fulfillment operatörü ve taşıyıcı ile amaçla bağlantılı, sınırlı ve ölçülü şekilde paylaşılabilir.
 
@@ -168,7 +174,7 @@ Zorunlu olmayan çerezler, Üyenin çerez tercih merkezinde verdiği ayrı ve ka
 
 # **14\. Ticari Elektronik İletiler ve Hizmet Bildirimleri**
 
-Kampanya, indirim, yeni ürün ve tanıtım amaçlı e-posta, mesaj veya aramalar yalnızca geçerli kanal onayı bulunması halinde ve **Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni** uyarınca gönderilir. Ticari elektronik ileti onayı üyelik şartı değildir; önceden işaretli sunulamaz ve üyelik onayıyla birleştirilemez.
+Kampanya, indirim, yeni ürün ve tanıtım amaçlı e-posta, mesaj veya aramalar yalnızca geçerli kanal onayı bulunması halinde ve **[Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni](/legal/ticari-elektronik-ileti)** uyarınca gönderilir. Ticari elektronik ileti onayı üyelik şartı değildir; önceden işaretli sunulamaz ve üyelik onayıyla birleştirilemez.
 
 Üyelik güvenliği, parola sıfırlama, hesap değişikliği, sipariş teyidi, ödeme, fatura, teslimat, iade, ürün güvenliliği veya kanuni bilgilendirme mesajları, ilgili işlem ilişkisinin yürütülmesi için gönderilebilir. Onay gerektirmeyen bu bildirimlere reklam veya ürün özendirmesi eklenmez.
 

@@ -14,7 +14,11 @@ import { palette } from '@/lib/palette';
  *   - hard line breaks (`<br>`) — used to un-glue multi-field table cells (FBG-396)
  *   - inline links `[text](href)` — only site-relative (`/…`) or `https://`
  *     targets become an <a>; any other scheme (javascript:, data:, …) is left
- *     as literal text, so no unsafe URL ever reaches an href (FBG-399)
+ *     as literal text, so no unsafe URL ever reaches an href (FBG-399). A
+ *     same-tab, site-relative in-page link is prefixed with the active `locale`
+ *     so it stays within the visitor's language (`localePrefix: 'always'`);
+ *     external `https://` URLs and `.pdf` downloads keep their href verbatim
+ *     (FBG-453)
  *
  * We keep our own parser instead of pulling react-markdown + remark-gfm into the
  * storefront bundle: the input is a small, fixed set of static documents, the
@@ -133,12 +137,29 @@ export function isSafeHref(rawHref: string): boolean {
 }
 
 /**
+ * Prefix a site-relative in-page link with the active UI locale.
+ *
+ * next-intl runs with `localePrefix: 'always'` (i18n/routing.ts), so an internal
+ * link must carry the locale segment (`/tr/legal/…`, `/en/legal/…`); a bare
+ * `/legal/…` would be redirected to the default locale by middleware, silently
+ * dropping the visitor's chosen language (FBG-428). Only same-tab internal links
+ * reach this helper — external `https://` URLs and static `.pdf` downloads are
+ * excluded by the `external` check at the call site and keep their href verbatim.
+ * When no locale is supplied (e.g. the checkout OBF dialog or an isolated unit
+ * render) the href is returned unchanged, preserving the pre-FBG-453 behaviour.
+ */
+export function localizeHref(href: string, locale?: string): string {
+  return locale ? `/${locale}${href}` : href;
+}
+
+/**
  * Render inline `**bold**`, `*italic*`, `[text](href)` links and backslash
  * escapes to React nodes. A fresh RegExp is created per call: the function
  * recurses into bold/italic/link content, so a shared stateful (global) regex
- * would corrupt `lastIndex`.
+ * would corrupt `lastIndex`. `locale`, when given, prefixes same-tab internal
+ * link hrefs so they stay within the visitor's language (see `localizeHref`).
  */
-function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+function renderInline(text: string, keyPrefix: string, locale?: string): React.ReactNode[] {
   const re = new RegExp(INLINE_SOURCE, 'g');
   const nodes: React.ReactNode[] = [];
   let last = 0;
@@ -150,26 +171,27 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(m[1]); // escaped punctuation → literal char
     } else if (m[2] !== undefined) {
       nodes.push(
-        <strong key={`${keyPrefix}-b${k}`}>{renderInline(m[2], `${keyPrefix}-b${k}`)}</strong>,
+        <strong key={`${keyPrefix}-b${k}`}>{renderInline(m[2], `${keyPrefix}-b${k}`, locale)}</strong>,
       );
     } else if (m[3] !== undefined) {
-      nodes.push(<em key={`${keyPrefix}-i${k}`}>{renderInline(m[3], `${keyPrefix}-i${k}`)}</em>);
+      nodes.push(<em key={`${keyPrefix}-i${k}`}>{renderInline(m[3], `${keyPrefix}-i${k}`, locale)}</em>);
     } else if (m[4] !== undefined) {
       nodes.push(<br key={`${keyPrefix}-br${k}`} />);
     } else if (m[5] !== undefined) {
       const label = m[5];
       const href = m[6];
       if (isSafeHref(href)) {
-        // External URLs and downloadable files (e.g. PDFs) open in a new tab.
+        // External URLs and downloadable files (e.g. PDFs) open in a new tab and
+        // keep their href as-is; same-tab in-page links get the active locale.
         const external = /^https:\/\//i.test(href) || /\.pdf(?:[?#]|$)/i.test(href);
         nodes.push(
           <a
             key={`${keyPrefix}-a${k}`}
-            href={href}
+            href={external ? href : localizeHref(href, locale)}
             {...(external ? { target: '_blank', rel: 'noopener' } : {})}
             style={{ color: palette.primary, textDecoration: 'underline' }}
           >
-            {renderInline(label, `${keyPrefix}-a${k}`)}
+            {renderInline(label, `${keyPrefix}-a${k}`, locale)}
           </a>,
         );
       } else {
@@ -205,7 +227,7 @@ const tableWrapperSx = {
   '& th': { bgcolor: palette.white, fontWeight: 600 },
 } as const;
 
-function renderBlock(block: Block, idx: number): React.ReactNode {
+function renderBlock(block: Block, idx: number, locale?: string): React.ReactNode {
   const key = `b${idx}`;
   switch (block.kind) {
     case 'heading': {
@@ -224,7 +246,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
             mb: 1.5,
           }}
         >
-          {renderInline(block.text, key)}
+          {renderInline(block.text, key, locale)}
         </Typography>
       );
     }
@@ -241,7 +263,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
             mb: 2,
           }}
         >
-          {renderInline(block.text, key)}
+          {renderInline(block.text, key, locale)}
         </Typography>
       );
     case 'list':
@@ -260,7 +282,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
                 mb: 0.5,
               }}
             >
-              {renderInline(item, `${key}-${li}`)}
+              {renderInline(item, `${key}-${li}`, locale)}
             </Typography>
           ))}
         </Box>
@@ -273,7 +295,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
             <thead>
               <tr>
                 {header.map((cell, ci) => (
-                  <th key={ci}>{renderInline(cell, `${key}-h${ci}`)}</th>
+                  <th key={ci}>{renderInline(cell, `${key}-h${ci}`, locale)}</th>
                 ))}
               </tr>
             </thead>
@@ -282,7 +304,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
                 {body.map((row, ri) => (
                   <tr key={ri}>
                     {row.map((cell, ci) => (
-                      <td key={ci}>{renderInline(cell, `${key}-${ri}-${ci}`)}</td>
+                      <td key={ci}>{renderInline(cell, `${key}-${ri}-${ci}`, locale)}</td>
                     ))}
                   </tr>
                 ))}
@@ -295,7 +317,7 @@ function renderBlock(block: Block, idx: number): React.ReactNode {
   }
 }
 
-export default function LegalMarkdown({ source }: { source: string }) {
+export default function LegalMarkdown({ source, locale }: { source: string; locale?: string }) {
   const blocks = parseMarkdown(source);
-  return <Box>{blocks.map((block, idx) => renderBlock(block, idx))}</Box>;
+  return <Box>{blocks.map((block, idx) => renderBlock(block, idx, locale))}</Box>;
 }
