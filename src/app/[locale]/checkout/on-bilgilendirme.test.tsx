@@ -56,6 +56,23 @@ describe('Ön Bilgilendirme Formu on checkout', () => {
     }
   });
 
+  it('links the two canon cross-references (mesafeli satış sözleşmesi + Cayma Bildirim Formu)', () => {
+    const { container } = render(<LegalMarkdown source={markdown} />);
+    const anchors = Array.from(container.querySelectorAll('a'));
+
+    const contract = anchors.find((a) => a.getAttribute('href') === '/legal/mesafeli-satis');
+    expect(contract).toBeDefined();
+    expect(contract?.textContent).toBe('mesafeli satış sözleşmesi');
+
+    const withdrawalForm = anchors.find(
+      (a) => a.getAttribute('href') === '/legal/cayma-bildirim-formu.pdf',
+    );
+    expect(withdrawalForm).toBeDefined();
+    expect(withdrawalForm?.textContent).toBe('Cayma Bildirim Formu');
+    // The PDF download opens in a new tab.
+    expect(withdrawalForm?.getAttribute('target')).toBe('_blank');
+  });
+
   it('does not corrupt §2/§4 tables when data contains a "|"', () => {
     const md = renderOnBilgilendirmeFormu(
       buildOnBilgilendirmeData({

@@ -7,6 +7,7 @@ import { LEGAL_SLUGS, SECTION_COUNT } from '../legal-config';
 import type { LegalSlug } from '../legal-config';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import { KVKK_MARKDOWN } from '../kvkk-content';
+import { MESAFELI_SATIS_MARKDOWN } from '../mesafeli-satis-content';
 import { GIZLILIK_MARKDOWN } from '../gizlilik-content';
 import { KARGO_TESLIMAT_MARKDOWN } from '../kargo-teslimat-content';
 import { IADE_MARKDOWN } from '../iade-content';
@@ -16,6 +17,7 @@ import { UYELIK_SOZLESMESI_MARKDOWN } from '../uyelik-sozlesmesi-content';
 /** Slugs whose body is a full Markdown document instead of s1..sN sections. */
 const MARKDOWN_DOCS: Partial<Record<LegalSlug, string>> = {
   kvkk: KVKK_MARKDOWN,
+  'mesafeli-satis': MESAFELI_SATIS_MARKDOWN,
   gizlilik: GIZLILIK_MARKDOWN,
   'kargo-teslimat': KARGO_TESLIMAT_MARKDOWN,
   iade: IADE_MARKDOWN,

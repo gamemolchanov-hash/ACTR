@@ -25,6 +25,11 @@
  * Placeholder underscores that arrived backslash-escaped in the source
  * (`{{order\_number}}`) are normalised to `{{order_number}}`.
  *
+ * FBG-456: the canon's two `<u>` cross-references — "mesafeli satış sözleşmesi"
+ * (intro) and "Cayma Bildirim Formu" (§8) — are turned into Markdown links to
+ * /legal/mesafeli-satis and the published /legal/cayma-bildirim-formu.pdf; only
+ * the link markup is added around the existing phrases, no word is changed.
+ *
  * `String.raw` keeps the `\.` (section numbers) and `\+` (phone) escapes
  * byte-for-byte; LegalMarkdown resolves them to literal `.`/`+` at render time.
  *
@@ -62,7 +67,7 @@ export const ON_BILGILENDIRME_TEMPLATE = String.raw`
 | **Yürürlük / Güncelleme** | 21.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
-*Bu Ön Bilgilendirme Formu, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca, mesafeli satış sözleşmesi kurulmadan önce tüketicinin bilgilendirilmesi amacıyla hazırlanmıştır. Bu Form'da yer alan bilgiler, siparişin tamamlanmasından önce Alıcı'nın bilgisine sunulur.*
+*Bu Ön Bilgilendirme Formu, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca, [mesafeli satış sözleşmesi](/legal/mesafeli-satis) kurulmadan önce tüketicinin bilgilendirilmesi amacıyla hazırlanmıştır. Bu Form'da yer alan bilgiler, siparişin tamamlanmasından önce Alıcı'nın bilgisine sunulur.*
 
 # **1\. Satici Bi̇lgi̇leri̇**
 
@@ -157,7 +162,7 @@ Cayma Bildirimi Posta Adresi:<br>
 KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ<br>
 Oba Mahallesi 225 Sokak, Summer Park Sitesi B Blok No: 8B, İç Kapı No: 20, 07460 Alanya / Antalya, Türkiye
 
-Alıcı, internet sitesinde yayımlanan Örnek Cayma Bildirim Formu'nu kullanabileceği gibi cayma kararını açıkça bildiren başka bir beyanda da bulunabilir. Örnek formun kullanılması zorunlu değildir.
+Alıcı, internet sitesinde yayımlanan Örnek [Cayma Bildirim Formu](/legal/cayma-bildirim-formu.pdf)'nu kullanabileceği gibi cayma kararını açıkça bildiren başka bir beyanda da bulunabilir. Örnek formun kullanılması zorunlu değildir.
 
 Cayma bildiriminin elektronik ortamda iletilmesi hâlinde, bildirimin Satıcı'ya ulaştığına ilişkin teyit bilgisi Alıcı'ya kalıcı veri saklayıcısı aracılığıyla iletilir.
 
