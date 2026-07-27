@@ -65,7 +65,7 @@ FIELDS = [
 
 REMINDERS = [
     "• Cayma bildirimi teslim tarihinden itibaren on dört gün içinde yapılmalıdır; teslimden önce de cayma mümkündür.",
-    "• Satıcı ürünü kendisi almayı teklif etmedikçe ürün, cayma bildiriminden itibaren on gün içinde geri gönderilmelidir.",
+    "• Satıcı ürünü kendisi almayı teklif etmedikçe ürün, cayma bildiriminden itibaren on dört gün içinde geri gönderilmelidir.",
     "• Sağlık veya hijyen açısından iadesi uygun olmayan kozmetik ürünlerde koruyucu ambalajın, jelatinin, bandın, "
     "mührün veya benzeri güvenlik unsurunun teslimden sonra açılması hâlinde cayma hakkı kullanılamaz. "
     "Ayıplı mala ilişkin tüketici hakları saklıdır.",
