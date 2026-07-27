@@ -157,7 +157,7 @@ Geri ödeme, tüketicinin satın alırken kullandığı ödeme aracına uygun, t
 
 Taksitli kart işlemlerinde iadenin karta yansıma biçimi, kart çıkaran kuruluşun mevzuata ve kendi işlem sistemine göre yürüttüğü sürece bağlıdır.
 
-# **12\. Ürünün Değer Kaybı ve İade Paketleme Yükümlülüğü**
+# **12\. Ürünün Değerinde Azalma**
 
 Alıcı, cayma hakkı süresi içinde ürünü yalnızca niteliğini, özelliklerini ve işleyişini belirlemek amacıyla olağan şekilde inceleyebilir ve kullanabilir.
 

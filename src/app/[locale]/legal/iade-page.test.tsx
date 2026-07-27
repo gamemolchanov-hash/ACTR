@@ -3,9 +3,9 @@
  *
  * The return/withdrawal policy renders a full Markdown document instead of
  * s1..sN sections; non-TR locales get a short "official text is in Turkish"
- * notice, TR does not. This test pins the §12 rewrite ("Ürünün Değer Kaybı")
- * to the lawyer's new canon: seven paragraphs, the old packaging obligation
- * gone, header/version and the §4 PDF link untouched. Renders the async Server
+ * notice, TR does not. This test pins the §12 rewrite ("Ürünün Değerinde
+ * Azalma") to the lawyer's new canon: seven paragraphs, the old packaging
+ * obligation gone, header/version and the §4 PDF link untouched. Renders the async Server
  * Component directly with a stubbed translator.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -42,8 +42,8 @@ describe('LegalPage — iade Markdown document', () => {
   it('renders the rewritten §12 (all seven canon paragraphs)', async () => {
     const { container } = await renderPage('iade', 'tr');
     const text = container.textContent ?? '';
-    // heading is intentionally kept even though its body no longer mentions packaging
-    expect(text).toContain('12. Ürünün Değer Kaybı ve İade Paketleme Yükümlülüğü');
+    // heading renamed to the lawyer's canon (FBG-460); body unchanged from FBG-452
+    expect(text).toContain('12. Ürünün Değerinde Azalma');
     // 1 → 7, a fragment of each new paragraph
     expect(text).toContain(
       'Alıcı, cayma hakkı süresi içinde ürünü yalnızca niteliğini, özelliklerini ve işleyişini belirlemek',
