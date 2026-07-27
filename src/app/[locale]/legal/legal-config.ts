@@ -18,13 +18,13 @@ export const LEGAL_SLUGS = [
 export type LegalSlug = (typeof LEGAL_SLUGS)[number];
 
 /**
- * Number of s1..sN sections for each slug. `gizlilik`, `kargo-teslimat`,
+ * Number of s1..sN sections for each slug. `kvkk`, `gizlilik`, `kargo-teslimat`,
  * `iade`, `ticari-elektronik-ileti` and `uyelik-sozlesmesi` render a full
  * Markdown document instead of sections (see their *-content.ts), so they have
  * none.
  */
 export const SECTION_COUNT: Record<LegalSlug, number> = {
-  'kvkk': 4,
+  'kvkk': 0,
   'mesafeli-satis': 3,
   'iade': 0,
   'gizlilik': 0,
