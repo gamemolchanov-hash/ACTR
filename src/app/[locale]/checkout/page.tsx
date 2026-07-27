@@ -49,7 +49,12 @@ import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
 import { proceedButtonDisabled, shippingErrorKey, shippingPanelState } from '@/lib/checkout';
-import { buildOnBilgilendirmeData, renderOnBilgilendirmeFormu } from '@/lib/on-bilgilendirme';
+import {
+  buildOnBilgilendirmeData,
+  renderOnBilgilendirmeFormu,
+  type BuildOnBilgilendirmeInput,
+} from '@/lib/on-bilgilendirme';
+import { buildMesafeliSatisData, renderMesafeliSatis } from '@/lib/mesafeli-satis';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
@@ -438,13 +443,15 @@ export default function CheckoutPage() {
   });
   const payTotal = Math.max(0, totalWithShipping - walletToApply);
 
-  // Ön Bilgilendirme Formu, filled with this order's data (FBG-401). Recomputed
-  // whenever any input changes so the form never shows stale figures; only built
-  // once the modal has been opened (obfGeneratedAt set). Rendered through
-  // LegalMarkdown, which enforces the ≥16px regulator minimum centrally.
-  const obfMarkdown = useMemo(() => {
-    if (!obfGeneratedAt) return '';
-    const data = buildOnBilgilendirmeData({
+  // Shared order snapshot for the on-checkout legal documents. Both the Ön
+  // Bilgilendirme Formu (FBG-401) and the Mesafeli Satış Sözleşmesi (FBG-458) are
+  // filled from the SAME data, so they can never disagree on price / carrier /
+  // buyer. Recomputed whenever any input changes so neither document shows stale
+  // figures; only built once the modal has been opened (obfGeneratedAt set, which
+  // also fixes the draft ref and date-time).
+  const legalDocInput = useMemo<BuildOnBilgilendirmeInput | null>(() => {
+    if (!obfGeneratedAt) return null;
+    return {
       generatedAt: obfGeneratedAt,
       customer: { name: form.name, phone: form.phone, email: form.email },
       address: formatObfAddress(form),
@@ -464,7 +471,7 @@ export default function CheckoutPage() {
       // method line); it must not lower the declared order price.
       walletApplied: walletToApply,
       // Full order price (subtotal − promo + shipping) — never recomputed in the
-      // form, so "Ödenecek Toplam Tutar" can't diverge from the checkout.
+      // documents, so "Ödenecek Toplam Tutar" can't diverge from the checkout.
       grandTotal: totalWithShipping,
       rate: selectedRate
         ? {
@@ -475,8 +482,7 @@ export default function CheckoutPage() {
           }
         : null,
       kvkkNoticeUrl: 'https://american-creator.tr/legal/kvkk',
-    });
-    return renderOnBilgilendirmeFormu(data);
+    };
   }, [
     obfGeneratedAt,
     validated,
@@ -488,6 +494,17 @@ export default function CheckoutPage() {
     form,
     currency,
   ]);
+
+  // Rendered through LegalMarkdown, which enforces the ≥16px regulator minimum.
+  const obfMarkdown = useMemo(
+    () =>
+      legalDocInput ? renderOnBilgilendirmeFormu(buildOnBilgilendirmeData(legalDocInput)) : '',
+    [legalDocInput],
+  );
+  const mesafeliMarkdown = useMemo(
+    () => (legalDocInput ? renderMesafeliSatis(buildMesafeliSatisData(legalDocInput)) : ''),
+    [legalDocInput],
+  );
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -1295,10 +1312,10 @@ export default function CheckoutPage() {
         {orderSummary}
       </Stack>
 
-      {/* Sözleşmeler ve Formlar — Ön Bilgilendirme Formu filled with this order's
-          data (FBG-401). Opened from the mesafeli consent link; the buyer reads
-          it before the payment obligation. The Mesafeli Satış Sözleşmesi
-          (FBG-402) will join this modal once its text is delivered. */}
+      {/* Sözleşmeler ve Formlar — the Ön Bilgilendirme Formu (FBG-401) and the
+          Mesafeli Satış Sözleşmesi (FBG-458), both filled with this order's data
+          and stacked in one modal. Opened from the mesafeli consent link; the
+          buyer reads them before the payment obligation arises. */}
       <Dialog
         open={obfOpen}
         onClose={() => setObfOpen(false)}
@@ -1328,6 +1345,8 @@ export default function CheckoutPage() {
         </DialogTitle>
         <DialogContent dividers sx={{ bgcolor: 'white' }}>
           <LegalMarkdown source={obfMarkdown} locale={locale} />
+          <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', my: 4 }} />
+          <LegalMarkdown source={mesafeliMarkdown} locale={locale} />
         </DialogContent>
       </Dialog>
     </Box>

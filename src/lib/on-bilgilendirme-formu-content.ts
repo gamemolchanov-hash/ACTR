@@ -39,6 +39,14 @@
  * OUTPUT reproduces the client document exactly.
  */
 
+/**
+ * Canonical document code / version of this form. Kept as a named constant so
+ * dependent documents (the Mesafeli Satış Sözleşmesi carries it as its
+ * "Ön Bilgilendirme Sürümü", FBG-458) reference the single source instead of
+ * re-hardcoding the string — the two versions can never drift apart.
+ */
+export const ON_BILGILENDIRME_DOC_CODE = 'KK-ET-OBF-2026-V2';
+
 /** The §4 per-product block — filled once per cart line, then joined. */
 export const ON_BILGILENDIRME_PRODUCT_BLOCK = String.raw`**Ürün Bilgileri**
 
@@ -62,7 +70,7 @@ export const ON_BILGILENDIRME_TEMPLATE = String.raw`
 | Satıcı | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 | :---- | :---- |
 | **İnternet Sitesi** | https://american-creator.tr/ |
-| **Doküman Kodu** | KK-ET-OBF-2026-V2 |
+| **Doküman Kodu** | ${ON_BILGILENDIRME_DOC_CODE} |
 | **Sürüm** | 2.0 |
 | **Yürürlük / Güncelleme** | 21.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |

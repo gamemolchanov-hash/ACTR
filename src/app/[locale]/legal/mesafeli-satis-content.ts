@@ -45,7 +45,29 @@
  *    "Ön Bilgilendirme Formu" is NOT linked — it has no public page (it is the
  *    per-order form rendered on checkout);
  *  - the §12 and "Hukuki Dayanaklar" `> •` blockquote lists become `* ` bullets.
+ *
+ * FBG-458: the §5 "Siparişe Konu Ürünler" table mixes per-product rows with
+ * order-level rows in one pipe table. Its eight product rows (Ürün Adı …
+ * KDV Dâhil Ürün Toplamı) are held out as `MESAFELI_SATIS_PRODUCT_BLOCK` and
+ * spliced back inline, so the template string — and therefore the public
+ * `MESAFELI_SATIS_MARKDOWN` — stays byte-for-byte the canon. The checkout render
+ * repeats that block once per cart line (see src/lib/mesafeli-satis.ts).
  */
+
+/**
+ * The §5 per-product rows — repeated once per cart line by the checkout renderer,
+ * then spliced back into the single §5 table. Held out (not duplicated) so the
+ * template below stays byte-for-byte the canon and the public view is unchanged.
+ */
+export const MESAFELI_SATIS_PRODUCT_BLOCK = String.raw`| **Ürün Adı** | {{product_name}} |
+| **Ürün Kodu / SKU** | {{sku}} |
+| **Varyant** | {{variant}} |
+| **Temel Nitelikler** | {{essential_characteristics}} |
+| **Miktar** | {{quantity}} |
+| **Birim Fiyatı** | {{unit_price_vat_included}} |
+| **İndirim Tutarı** | {{discount_amount}} |
+| **KDV Dâhil Ürün Toplamı** | {{line_total}} |`;
+
 export const MESAFELI_SATIS_TEMPLATE = String.raw`
 **AMERICAN CREATOR**
 
@@ -137,14 +159,7 @@ Sipariş ve Sözleşme, siparişin tamamlanmasından sonra Alıcının e-posta a
 | **Sipariş Numarası** | {{order_number}} |
 |----|----|
 | **Sipariş Tarihi / Saati** | {{order_date_time}} |
-| **Ürün Adı** | {{product_name}} |
-| **Ürün Kodu / SKU** | {{sku}} |
-| **Varyant** | {{variant}} |
-| **Temel Nitelikler** | {{essential_characteristics}} |
-| **Miktar** | {{quantity}} |
-| **Birim Fiyatı** | {{unit_price_vat_included}} |
-| **İndirim Tutarı** | {{discount_amount}} |
-| **KDV Dâhil Ürün Toplamı** | {{line_total}} |
+${MESAFELI_SATIS_PRODUCT_BLOCK}
 | **Ara Toplam** | {{subtotal}} |
 | **Toplam İndirim** | {{total_discount}} |
 | **Teslimat Bedeli** | {{shipping_cost}} |

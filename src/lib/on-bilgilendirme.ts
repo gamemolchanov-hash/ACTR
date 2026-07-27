@@ -218,7 +218,7 @@ function sanitizeMap(map: Record<string, string>): Record<string, string> {
  * so a forgotten field surfaces as a visible `{{…}}` (caught by tests) rather
  * than silently disappearing.
  */
-function applyPlaceholders(src: string, map: Record<string, string>): string {
+export function applyPlaceholders(src: string, map: Record<string, string>): string {
   return src.replace(/\{\{([a-z0-9_]+)\}\}/gi, (full, key) => (key in map ? map[key] : full));
 }
 
