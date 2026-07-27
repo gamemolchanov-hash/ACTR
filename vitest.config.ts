@@ -10,6 +10,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Unmount rendered React roots after every test so no leftover scheduler work
+    // touches `window` once jsdom is torn down (see vitest.setup.ts).
+    setupFiles: ['./vitest.setup.ts'],
     // src app tests + the diff-cover gate's pure-function unit tests (tools/diff-cover.test.mjs)
     include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.mjs'],
     server: {
