@@ -13,6 +13,7 @@ import { KARGO_TESLIMAT_MARKDOWN } from '../kargo-teslimat-content';
 import { IADE_MARKDOWN } from '../iade-content';
 import { TICARI_ELEKTRONIK_ILETI_MARKDOWN } from '../ticari-elektronik-ileti-content';
 import { UYELIK_SOZLESMESI_MARKDOWN } from '../uyelik-sozlesmesi-content';
+import { ACIK_RIZA_MARKDOWN } from '../acik-riza-content';
 
 /** Slugs whose body is a full Markdown document instead of s1..sN sections. */
 const MARKDOWN_DOCS: Partial<Record<LegalSlug, string>> = {
@@ -23,6 +24,7 @@ const MARKDOWN_DOCS: Partial<Record<LegalSlug, string>> = {
   iade: IADE_MARKDOWN,
   'ticari-elektronik-ileti': TICARI_ELEKTRONIK_ILETI_MARKDOWN,
   'uyelik-sozlesmesi': UYELIK_SOZLESMESI_MARKDOWN,
+  'acik-riza': ACIK_RIZA_MARKDOWN,
 };
 
 export function generateStaticParams() {

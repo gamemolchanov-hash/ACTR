@@ -65,6 +65,7 @@ export function Footer() {
 
   const NAV_COL_LEGAL = [
     { label: t('legal.kvkk.navLabel'), href: '/legal/kvkk' },
+    { label: t('legal.acik_riza.navLabel'), href: '/legal/acik-riza' },
     { label: t('legal.mesafeli_satis.navLabel'), href: '/legal/mesafeli-satis' },
     { label: t('legal.iade.navLabel'), href: '/legal/iade' },
     { label: t('legal.gizlilik.navLabel'), href: '/legal/gizlilik' },
