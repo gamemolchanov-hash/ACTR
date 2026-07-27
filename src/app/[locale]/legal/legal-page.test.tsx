@@ -2,8 +2,8 @@
  * Legal stub page tests (05-01 COMP-02).
  *
  * Tests:
- * 1. LEGAL_SLUGS contains exactly the 5 required slugs
- * 2. generateStaticParams returns params for all 5 slugs
+ * 1. LEGAL_SLUGS contains exactly the 7 required slugs
+ * 2. generateStaticParams returns params for all 7 slugs
  * 3. All i18n keys for each slug exist in messages/en.json and messages/tr.json
  * 4. Unknown slug is NOT in LEGAL_SLUGS (→ triggers notFound)
  * 5. Slug-to-namespace conversion (hyphen→underscore) is correct
@@ -41,7 +41,6 @@ const EXPECTED_SLUGS = [
   'mesafeli-satis',
   'iade',
   'gizlilik',
-  'kullanim-kosullari',
   'kargo-teslimat',
   'ticari-elektronik-ileti',
   'uyelik-sozlesmesi',
@@ -74,7 +73,6 @@ describe('LegalPage exports', () => {
       ['mesafeli-satis', 'mesafeli_satis'],
       ['iade', 'iade'],
       ['gizlilik', 'gizlilik'],
-      ['kullanim-kosullari', 'kullanim_kosullari'],
       ['kargo-teslimat', 'kargo_teslimat'],
       ['ticari-elektronik-ileti', 'ticari_elektronik_ileti'],
       ['uyelik-sozlesmesi', 'uyelik_sozlesmesi'],
@@ -103,7 +101,6 @@ describe('Legal i18n key parity (EN + TR)', () => {
     expect(enMessages).toHaveProperty('legal.mesafeli_satis.title');
     expect(enMessages).toHaveProperty('legal.iade.title');
     expect(enMessages).toHaveProperty('legal.gizlilik.title');
-    expect(enMessages).toHaveProperty('legal.kullanim_kosullari.title');
     expect(enMessages).toHaveProperty('legal.kargo_teslimat.title');
     expect(enMessages).toHaveProperty('legal.ticari_elektronik_ileti.title');
     expect(enMessages).toHaveProperty('legal.uyelik_sozlesmesi.title');
@@ -114,7 +111,6 @@ describe('Legal i18n key parity (EN + TR)', () => {
     expect(trMessages).toHaveProperty('legal.mesafeli_satis.title');
     expect(trMessages).toHaveProperty('legal.iade.title');
     expect(trMessages).toHaveProperty('legal.gizlilik.title');
-    expect(trMessages).toHaveProperty('legal.kullanim_kosullari.title');
     expect(trMessages).toHaveProperty('legal.kargo_teslimat.title');
     expect(trMessages).toHaveProperty('legal.ticari_elektronik_ileti.title');
     expect(trMessages).toHaveProperty('legal.uyelik_sozlesmesi.title');

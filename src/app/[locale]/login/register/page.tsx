@@ -421,7 +421,7 @@ export default function RegisterPage() {
                   }}
                 >
                   I agree to the{' '}
-                  <Link href="/legal/kullanim-kosullari" style={{ color: palette.primary }}>
+                  <Link href="/legal/uyelik-sozlesmesi" style={{ color: palette.primary }}>
                     Terms of Service
                   </Link>
                   {' '}and{' '}

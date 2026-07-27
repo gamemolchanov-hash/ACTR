@@ -68,7 +68,6 @@ export function Footer() {
     { label: t('legal.mesafeli_satis.navLabel'), href: '/legal/mesafeli-satis' },
     { label: t('legal.iade.navLabel'), href: '/legal/iade' },
     { label: t('legal.gizlilik.navLabel'), href: '/legal/gizlilik' },
-    { label: t('legal.kullanim_kosullari.navLabel'), href: '/legal/kullanim-kosullari' },
     { label: t('legal.kargo_teslimat.navLabel'), href: '/legal/kargo-teslimat' },
     { label: t('legal.ticari_elektronik_ileti.navLabel'), href: '/legal/ticari-elektronik-ileti' },
     { label: t('legal.uyelik_sozlesmesi.navLabel'), href: '/legal/uyelik-sozlesmesi' },
