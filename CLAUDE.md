@@ -5,7 +5,7 @@
 **ACTR — American Creator TR storefront**
 
 Витрина интернет-магазина для **турецкого рынка** с дизайном и кодом фронта как у
-**american-creator.ru** (`services/storefront`, Next.js 14 + MUI), но работающая по **ARM Portal
+**american-creator.ru** (`services/storefront`, Next.js 15 + MUI), но работающая по **ARM Portal
 API** (`/public/arm/storefront/*`, как forza-brava.com). Отдельный standalone-репозиторий
 `~/work/puz/ACTR`. Рынок — Турция, валюта — TRY, языки — EN + TR.
 
@@ -14,7 +14,7 @@ API** (`/public/arm/storefront/*`, как forza-brava.com). Отдельный s
 
 ### Constraints
 
-- **Tech stack**: Next.js 14 + MUI (наследуется как есть) — дизайн сохраняется 1:1.
+- **Tech stack**: Next.js 15 (15.5.20) + React 19 + MUI — дизайн унаследован от `services/storefront` 1:1; апгрейд фреймворка — FBG-359 (17.07.2026).
 - **API contract**: ARM `/public/arm/storefront/*` — заголовки `X-Tenant-ID`, `X-Storefront-Key`
   (server-side), `X-Currency`.
 
