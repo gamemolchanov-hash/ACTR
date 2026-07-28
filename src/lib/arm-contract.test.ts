@@ -100,8 +100,8 @@ describe('ARM contract — product ?lang param (FBG-258, single source of truth)
     expect(productLangParam('tr')).toBe('tr-TR');
   });
 
-  it('returns undefined for English → no ?lang param, base EN content', () => {
-    expect(productLangParam('en')).toBeUndefined();
+  it('returns en-US for English → explicit ?lang, not the proxy cookie fallback (FBG-395)', () => {
+    expect(productLangParam('en')).toBe('en-US');
   });
 
   it('returns undefined when locale is omitted (locale-agnostic client fetch)', () => {

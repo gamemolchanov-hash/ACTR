@@ -106,10 +106,11 @@ export async function fetchProduct(id: string, locale?: string): Promise<{ data:
     if (!product) throw new Error('Product not found');
     return { data: product };
   }
-  // FBG-258: локаль tr → ?lang=tr-TR — BFF COALESCE'ит перевод поверх базовых EN-полей;
-  // при отсутствии перевода отдаётся база (translation_locale=null, безопасный фолбэк).
-  // en (и неизвестные локали) → без параметра: базовый EN, как раньше. Локаль берётся из
-  // URL (next-intl useLocale), а не из cookie — согласованно с SSR/SEO (server-api.ts).
+  // FBG-258/FBG-395: локаль → ?lang=<bcp47> из URL (en → en-US, tr → tr-TR), а НЕ из
+  // cookie. BFF COALESCE'ит перевод поверх базовых EN-полей; при отсутствии перевода
+  // отдаётся база (безопасный фолбэк). Явный lang для en обязателен: без него прокси
+  // при отсутствии cookie NEXT_LOCALE (KVKK, İşlevsel off) дописал бы дефолт tr-TR и
+  // product-detail получал бы турецкий текст при EN-интерфейсе (FBG-395).
   const lang = productLangParam(locale);
   const { data } = await api.get<{ data: ArmDistributorProduct }>(
     ENDPOINTS.product(id),

@@ -101,6 +101,16 @@ describe('ARM storefront proxy — ?lang injection (D-08, I18N-03)', () => {
     expect(calledUrl).not.toContain('lang=tr-TR');
   });
 
+  it('passes a client-supplied lang=en-US through cookie-less, never falling back to tr-TR (FBG-395)', async () => {
+    // The EN client now always sends ?lang=en-US (productLangParam), so a cookie-less
+    // /en product-detail no longer gets the proxy's tr-TR default injected on top.
+    const req = makeReq('products/some-slug', undefined, 'lang=en-US');
+    await GET(req, makeCtx(['products', 'some-slug']));
+    const [calledUrl] = mockFetch.mock.calls[0];
+    expect(calledUrl).toContain('lang=en-US');
+    expect(calledUrl).not.toContain('lang=tr-TR');
+  });
+
   it('only sends full BCP-47 codes — never short codes like "en" or "tr"', async () => {
     const req = makeReq('products/slug-1', 'tr');
     await GET(req, makeCtx(['products', 'slug-1']));

@@ -82,12 +82,12 @@ describe('fetchProduct — ?lang locale param (FBG-258)', () => {
     expect(config?.params?.lang).toBe('tr-TR');
   });
 
-  it('sends NO ?lang param when locale=en (base EN content)', async () => {
+  it('requests ?lang=en-US when locale=en so the proxy never falls back to tr (FBG-395)', async () => {
     const { fetchProduct } = await import('./api');
     await fetchProduct('198', 'en');
     const [url, config] = mockGet.mock.calls[0];
     expect(url).toBe('/products/198');
-    expect(config?.params?.lang).toBeUndefined();
+    expect(config?.params?.lang).toBe('en-US');
   });
 
   it('sends NO ?lang param when locale is omitted', async () => {

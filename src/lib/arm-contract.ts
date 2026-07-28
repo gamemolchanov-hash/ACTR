@@ -60,12 +60,18 @@ export const LOCALE_TO_BCP47: Record<string, string> = {
 /**
  * `?lang=` для клиентского запроса product-detail, выведенный из активной локали
  * витрины (next-intl `useLocale()` / URL `params.locale`, а НЕ из cookie).
- * Англ. локаль (дефолт) → `undefined`: параметр не добавляется, BFF отдаёт базовый EN.
- * Локаль с переводами (`tr`) → BCP-47 (`tr-TR`). Неизвестная локаль → `undefined`
- * (безопасный фолбэк на базу EN). FBG-258.
+ * Известная локаль → полный BCP-47 (`en` → `en-US`, `tr` → `tr-TR`); неизвестная
+ * или отсутствующая → `undefined` (безопасный фолбэк на базу EN). FBG-258.
+ *
+ * FBG-395: `en` теперь тоже отдаёт `en-US`, а не `undefined`. Прокси дописывает
+ * `?lang` из cookie `NEXT_LOCALE` лишь когда клиент не передал param; после того как
+ * FBG-395 перестал писать `NEXT_LOCALE` без İşlevsel-согласия, cookie-less `/en`
+ * уходил в дефолт прокси `tr-TR` — product-detail на клиенте отдавал турецкий текст
+ * при EN-интерфейсе. Явный `en-US` из URL-локали снимает зависимость от cookie и
+ * совпадает с SSR (`server-api.ts`, `LOCALE_TO_BCP47[locale] || 'en-US'`).
  */
 export function productLangParam(locale?: string): string | undefined {
-  if (!locale || locale === 'en') return undefined;
+  if (!locale) return undefined;
   return LOCALE_TO_BCP47[locale];
 }
 
