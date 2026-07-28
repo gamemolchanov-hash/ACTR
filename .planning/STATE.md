@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-29)
 Phase: 7 (tr) — ✅ VERIFIED (passed)
 Plan: 1/1 complete
 Status: Milestone v1.0 code-complete (7/7 phases). Phase 7 human-validated 2026-07-03 — TRY catalog renders live on ARM demo data. Milestone lifecycle (audit → complete → cleanup) NOT run — deferred by user after Phase 7.
-Last activity: 2026-07-03 — Phase 7 → passed; demo BFF/Directus data gap fixed, ₺ catalog confirmed live
+Last activity: 2026-07-28 — Completed quick task 260728-i5h: CLAUDE.md стек → Next.js 15 + React 19 (FBG-359)
 
 Progress: [██████████] 100% (7/7 фаз)
 
@@ -137,6 +137,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent:
 | 260701-unn | Fix Best Seller badge overlay in ProductCard (no longer inflates card height) | 2026-07-01 | 201f832 | [260701-unn-fix-best-seller-badge-in-src-components-](./quick/260701-unn-fix-best-seller-badge-in-src-components-/) |
 | 260701-viz | Storefront: display currency from BFF config.currency (server-resolved, CurrencyProvider/useCurrency) | 2026-07-01 | 55a5c66 | [260701-viz-storefront-use-bff-config-currency-for-p](./quick/260701-viz-storefront-use-bff-config-currency-for-p/) |
 | 260701-xae | Storefront: format money+dates by config.country (format-locale, narrowSymbol, numeric dates) — needs BFF `/config.country` | 2026-07-02 | 1f81844 | [260701-xae-storefront-format-money-and-dates-by-con](./quick/260701-xae-storefront-format-money-and-dates-by-con/) |
+| 260728-i5h | CLAUDE.md: обновить строку стека Next.js 14 → Next.js 15 (репо на 15.5.20 + React 19 с 17.07.2026, FBG-359) | 2026-07-28 | 86b4efa | [260728-i5h-claude-md-next-js-14-next-js-15-15-5-20-](./quick/260728-i5h-claude-md-next-js-14-next-js-15-15-5-20-/) |
 
 ## Deferred Items
 
