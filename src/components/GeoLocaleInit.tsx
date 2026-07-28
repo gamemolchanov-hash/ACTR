@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePathname } from '@/i18n/navigation';
-import { persistLocalePreference } from '@/lib/consent';
+import { canRun, persistLocalePreference, readStoredConsent } from '@/lib/consent';
 
 /**
  * GeoLocaleInit — client-side geo-based locale default (D-03).
@@ -28,8 +28,14 @@ export function GeoLocaleInit({ currentLocale }: { currentLocale: string }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // User already has a locale preference — respect it
-    if (document.cookie.includes('NEXT_LOCALE=')) return;
+    // Respect a remembered locale preference only when the NEXT_LOCALE cookie is
+    // backed by a *current* İşlevsel grant. An orphan cookie (expired/legacy
+    // consent) must not suppress geo detection — the consent provider evicts it on
+    // load, so honouring it here would just mask the geo default for one visit.
+    const now = Date.now();
+    if (document.cookie.includes('NEXT_LOCALE=') && canRun('functional', readStoredConsent(now), now)) {
+      return;
+    }
 
     fetch('/api/storefront/config')
       .then((r) => r.json())

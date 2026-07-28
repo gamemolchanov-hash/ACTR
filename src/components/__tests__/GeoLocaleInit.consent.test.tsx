@@ -48,12 +48,22 @@ describe('GeoLocaleInit — consent-gated NEXT_LOCALE (FBG-395)', () => {
     expect(document.cookie).toContain('NEXT_LOCALE=tr');
   });
 
-  it('does nothing when a NEXT_LOCALE cookie already exists (explicit choice wins)', async () => {
+  it('respects an existing NEXT_LOCALE only when İşlevsel consent is current (explicit choice wins)', async () => {
+    writeStoredConsent(
+      buildConsentRecord('custom', { functional: true, analytics: false, marketing: false }),
+    );
     document.cookie = 'NEXT_LOCALE=en;path=/';
     render(<GeoLocaleInit currentLocale="en" />);
     await Promise.resolve();
     expect(global.fetch).not.toHaveBeenCalled();
     expect(routerSpy.replace).not.toHaveBeenCalled();
+  });
+
+  it('ignores an orphan NEXT_LOCALE (cookie without current consent) and still runs geo', async () => {
+    // Legacy/expired cookie with no stored consent must not mask the geo default.
+    document.cookie = 'NEXT_LOCALE=en;path=/';
+    render(<GeoLocaleInit currentLocale="en" />);
+    await waitFor(() => expect(routerSpy.replace).toHaveBeenCalledWith('/tr'));
   });
 
   it('does not redirect when the visitor is already on /tr', async () => {

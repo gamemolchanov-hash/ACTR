@@ -68,3 +68,29 @@ describe('i18n middleware — cookie-less → /tr, explicit cookie wins (FBG-428
     expect(redirectPath(middleware(makeReq('en-US,en;q=0.9', 'tr')))).toBe('/tr');
   });
 });
+
+describe('i18n middleware — never writes NEXT_LOCALE server-side (FBG-395/KVKK)', () => {
+  /** A page request (not the bare root), where next-intl would otherwise sync the cookie. */
+  function pageReq(path: string, cookieLocale?: string): NextRequest {
+    const headers: Record<string, string> = {};
+    if (cookieLocale) headers['Cookie'] = `NEXT_LOCALE=${cookieLocale}`;
+    return new NextRequest(`http://localhost:3000${path}`, { headers });
+  }
+
+  it('does not set NEXT_LOCALE for a cookie-less /tr page (no write without consent)', () => {
+    expect(nextLocaleSetCookie(middleware(pageReq('/tr/catalog')))).toBeNull();
+  });
+
+  it('does not set NEXT_LOCALE for a cookie-less /en page', () => {
+    expect(nextLocaleSetCookie(middleware(pageReq('/en/catalog')))).toBeNull();
+  });
+
+  it('does not re-sync NEXT_LOCALE even when the cookie disagrees with the URL locale', () => {
+    // cookie=en on a /tr page previously produced Set-Cookie: NEXT_LOCALE=tr.
+    expect(nextLocaleSetCookie(middleware(pageReq('/tr/catalog', 'en')))).toBeNull();
+  });
+
+  it('does not set NEXT_LOCALE on the cookie-less bare root redirect', () => {
+    expect(nextLocaleSetCookie(middleware(makeReq()))).toBeNull();
+  });
+});

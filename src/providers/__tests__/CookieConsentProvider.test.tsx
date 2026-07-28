@@ -18,6 +18,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import trFlat from '../../../messages/tr.json';
 import {
+  BANNER_VERSION,
   CONSENT_STORAGE_KEY,
   CONSENT_TTL_MS,
   buildConsentRecord,
@@ -125,6 +126,7 @@ describe('CookieConsentProvider — banner actions', () => {
       marketing: true,
     });
     expect(rec.policyVersion).toBe('KK-KVKK-GCP-2026-V3');
+    expect(rec.bannerVersion).toBe(BANNER_VERSION);
     expect(typeof rec.timestamp).toBe('number');
   });
 
@@ -233,5 +235,40 @@ describe('CookieConsentProvider — resilience & re-prompt', () => {
     localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(stale));
     renderProvider();
     expect(screen.getByText(TR.bannerTitle)).toBeTruthy();
+  });
+
+  it('evicts an orphan NEXT_LOCALE on load when there is no consent record (legacy cookie)', () => {
+    document.cookie = 'NEXT_LOCALE=en;path=/';
+    renderProvider();
+    expect(screen.getByText(TR.bannerTitle)).toBeTruthy(); // banner (no consent)
+    expect(document.cookie).not.toContain('NEXT_LOCALE='); // orphan removed
+  });
+
+  it('evicts NEXT_LOCALE on load when the stored consent has expired', () => {
+    localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify(
+        buildConsentRecord(
+          'accepted_all',
+          { functional: true, analytics: true, marketing: true },
+          Date.now() - CONSENT_TTL_MS - 1000,
+        ),
+      ),
+    );
+    document.cookie = 'NEXT_LOCALE=en;path=/';
+    renderProvider();
+    expect(document.cookie).not.toContain('NEXT_LOCALE=');
+  });
+
+  it('keeps NEXT_LOCALE on load when İşlevsel consent is current', () => {
+    localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify(
+        buildConsentRecord('custom', { functional: true, analytics: false, marketing: false }),
+      ),
+    );
+    document.cookie = 'NEXT_LOCALE=en;path=/';
+    renderProvider();
+    expect(document.cookie).toContain('NEXT_LOCALE=en'); // legit remembered preference
   });
 });

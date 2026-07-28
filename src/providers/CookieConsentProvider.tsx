@@ -67,7 +67,18 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   // hidden), so this cannot cause a hydration mismatch and no optional cookie or
   // script can be gated-in before this runs (default-deny until hydrated).
   useEffect(() => {
-    setConsent(readStoredConsent());
+    const now = Date.now();
+    const stored = readStoredConsent(now);
+    // KVKK: NEXT_LOCALE is a functional cookie — it must never linger without a
+    // *current* İşlevsel grant. Expired / version-mismatched / legacy (pre-FBG-395)
+    // state leaves `stored` without that grant (readStoredConsent already drops
+    // stale records), so evict any orphan cookie on load — not only on an explicit
+    // reject/withdraw. Without this, a re-prompt shows the banner while an optional
+    // cookie is still in effect (and read server-side).
+    if (!canRunGate('functional', stored, now)) {
+      clearLocalePreference();
+    }
+    setConsent(stored);
     setHydrated(true);
   }, []);
 
