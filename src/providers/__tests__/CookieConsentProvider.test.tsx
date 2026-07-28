@@ -55,6 +55,8 @@ const TR = {
   manage: 'Tercihleri Yönet',
   save: 'Seçimlerimi Kaydet',
   functional: 'İşlevsel Çerezler',
+  analytics: 'Analitik ve Performans Çerezleri',
+  marketing: 'Pazarlama ve Hedefleme Çerezleri',
   toastAccepted: 'Çerez tercihleriniz kaydedildi. Tüm isteğe bağlı çerezler etkinleştirildi.',
   toastRejected: 'Çerez tercihleriniz kaydedildi. Yalnızca zorunlu çerezler kullanılacaktır.',
   toastSaved: 'Çerez tercihleriniz başarıyla güncellendi.',
@@ -168,7 +170,7 @@ describe('CookieConsentProvider — Tercih Merkezi', () => {
     expect(document.cookie).toContain('NEXT_LOCALE=tr');
   });
 
-  it('withdrawing İşlevsel deletes NEXT_LOCALE immediately and shows the revocation toast', () => {
+  it('partial change (only İşlevsel off) shows the UPDATE toast, not the revocation one', () => {
     // Seed a full acceptance + a persisted locale cookie.
     localStorage.setItem(
       CONSENT_STORAGE_KEY,
@@ -185,12 +187,47 @@ describe('CookieConsentProvider — Tercih Merkezi', () => {
 
     const funcSwitch = screen.getByRole('checkbox', { name: TR.functional });
     expect((funcSwitch as HTMLInputElement).checked).toBe(true); // reflects the saved value
-    fireEvent.click(funcSwitch); // turn it off
+    fireEvent.click(funcSwitch); // turn İşlevsel off; analytics/marketing stay ON
+    fireEvent.click(screen.getByRole('button', { name: TR.save }));
+
+    // Not a full withdrawal → "updated", never the misleading "all optional off" copy.
+    expect(screen.getByText(TR.toastSaved)).toBeTruthy();
+    expect(screen.queryByText(TR.toastRevoked)).toBeNull();
+    // İşlevsel off → NEXT_LOCALE gone; the still-granted categories keep running.
+    expect(document.cookie).not.toContain('NEXT_LOCALE=');
+    expect(screen.getByTestId('analytics-gate').textContent).toBe('allowed');
+    expect(storedConsent()!.categories).toMatchObject({
+      functional: false,
+      analytics: true,
+      marketing: true,
+    });
+  });
+
+  it('full withdrawal (every optional category off) shows the revocation toast and clears NEXT_LOCALE', () => {
+    localStorage.setItem(
+      CONSENT_STORAGE_KEY,
+      JSON.stringify(
+        buildConsentRecord('accepted_all', { functional: true, analytics: true, marketing: true }),
+      ),
+    );
+    document.cookie = 'NEXT_LOCALE=tr;path=/';
+    renderProvider();
+    fireEvent.click(screen.getByText('open-prefs'));
+
+    // Turn all three optional switches off → genuine withdrawal.
+    fireEvent.click(screen.getByRole('checkbox', { name: TR.functional }));
+    fireEvent.click(screen.getByRole('checkbox', { name: TR.analytics }));
+    fireEvent.click(screen.getByRole('checkbox', { name: TR.marketing }));
     fireEvent.click(screen.getByRole('button', { name: TR.save }));
 
     expect(screen.getByText(TR.toastRevoked)).toBeTruthy();
     expect(document.cookie).not.toContain('NEXT_LOCALE=');
-    expect(storedConsent()!.categories.functional).toBe(false);
+    expect(screen.getByTestId('analytics-gate').textContent).toBe('blocked');
+    expect(storedConsent()!.categories).toMatchObject({
+      functional: false,
+      analytics: false,
+      marketing: false,
+    });
   });
 });
 

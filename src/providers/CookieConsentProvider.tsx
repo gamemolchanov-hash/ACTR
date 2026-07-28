@@ -131,17 +131,18 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
 
   const savePreferences = useCallback(
     (selection: OptionalSelection) => {
-      // A save that turns OFF a previously-granted optional category is a
-      // withdrawal ("Onayınız geri alındı…"); otherwise it's a neutral update.
       const prev = consent ? consent.categories : defaultCategories();
-      const withdrew =
-        (prev.functional && !selection.functional) ||
-        (prev.analytics && !selection.analytics) ||
-        (prev.marketing && !selection.marketing);
       const allOn = selection.functional && selection.analytics && selection.marketing;
       const allOff = !selection.functional && !selection.analytics && !selection.marketing;
       const status = allOn ? 'accepted_all' : allOff ? 'rejected_all' : 'custom';
-      applyDecision(buildConsentRecord(status, selection), withdrew ? 'revoked' : 'saved');
+      // The "Onayınız geri alındı. İsteğe bağlı çerezler devre dışı bırakıldı."
+      // toast asserts that ALL optional cookies are now off, so it may only fire on
+      // a *full* withdrawal: there was some optional grant before and every optional
+      // category is now off. A partial change (one category off while others stay
+      // on) is a neutral update ("…başarıyla güncellendi.").
+      const prevHadOptional = prev.functional || prev.analytics || prev.marketing;
+      const toast = prevHadOptional && allOff ? 'revoked' : 'saved';
+      applyDecision(buildConsentRecord(status, selection), toast);
     },
     [applyDecision, consent],
   );
