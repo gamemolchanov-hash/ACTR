@@ -4,6 +4,7 @@ import { Box, Typography, Link as MuiLink } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
+import { useConsent } from '@/providers/CookieConsentProvider';
 
 const SOCIALS = [
   { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/905386089604', label: 'WhatsApp' },
@@ -51,6 +52,31 @@ function SocialIcons() {
 
 export function Footer() {
   const t = useTranslations();
+  const { openPreferences } = useConsent();
+
+  // Cookie preferences is a button (opens the Tercih Merkezi dialog), not a route,
+  // so it lives outside NAV_COL_LEGAL — but shares the footer link styling.
+  const cookiePrefsSx = {
+    ...navLinkSx,
+    background: 'none',
+    border: 'none',
+    p: 0,
+    textAlign: 'left' as const,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  };
+  const CookiePreferencesLink = (
+    <MuiLink
+      component="button"
+      type="button"
+      onClick={openPreferences}
+      aria-label={t('cookieConsent.footerLinkAria')}
+      underline="none"
+      sx={cookiePrefsSx}
+    >
+      {t('cookieConsent.footerLink')}
+    </MuiLink>
+  );
 
   const NAV_COL1 = [
     { label: t('nav.catalog'), href: '/catalog' },
@@ -150,6 +176,7 @@ export function Footer() {
                   {item.label}
                 </MuiLink>
               ))}
+              {CookiePreferencesLink}
             </Box>
           </Box>
 
@@ -195,6 +222,7 @@ export function Footer() {
                 {item.label}
               </MuiLink>
             ))}
+            {CookiePreferencesLink}
           </Box>
 
           {/* Phone */}

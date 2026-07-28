@@ -22,6 +22,12 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
+// Footer now reads the consent context (Çerez Tercihleri button); stub it so the
+// CLS test can mount Footer without the full provider.
+vi.mock('@/providers/CookieConsentProvider', () => ({
+  useConsent: () => ({ openPreferences: () => {} }),
+}));
+
 describe('Footer CLS (FBG-229)', () => {
   it('gives every footer image explicit width and height attributes', () => {
     const { container } = render(<Footer />);

@@ -19,7 +19,25 @@ const handleI18nRouting = createMiddleware(routing);
  */
 export default function middleware(request: NextRequest): ReturnType<typeof handleI18nRouting> {
   request.headers.delete('accept-language');
-  return handleI18nRouting(request);
+  const response = handleI18nRouting(request);
+  stripLocaleSetCookie(response);
+  return response;
+}
+
+/**
+ * FBG-395 (KVKK): NEXT_LOCALE is a *functional* (optional) cookie, so it must not
+ * be written without the visitor's İşlevsel consent. next-intl otherwise syncs it
+ * via Set-Cookie on nearly every request; strip that header here so the only
+ * writer is the consent-gated client path (persistLocalePreference). Reading the
+ * cookie is untouched, so an explicit /en choice still resolves (FBG-428).
+ */
+function stripLocaleSetCookie(response: ReturnType<typeof handleI18nRouting>): void {
+  const setCookies = response.headers.getSetCookie();
+  if (setCookies.length === 0) return;
+  const kept = setCookies.filter((cookie) => !/^NEXT_LOCALE=/i.test(cookie));
+  if (kept.length === setCookies.length) return;
+  response.headers.delete('set-cookie');
+  for (const cookie of kept) response.headers.append('set-cookie', cookie);
 }
 
 export const config = {

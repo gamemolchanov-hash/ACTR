@@ -1,20 +1,27 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
+import { usePathname } from '@/i18n/navigation';
+import { persistLocalePreference } from '@/lib/consent';
 
 /**
  * GeoLocaleInit — client-side geo-based locale default (D-03).
  *
  * On first visit (no NEXT_LOCALE cookie), fetches /api/storefront/config.
- * If geo_country === 'TR' and the current locale is not 'tr', sets the
- * cookie and redirects to the TR version of the current page.
+ * If geo_country === 'TR' and the current locale is not 'tr', redirects to the
+ * TR version of the current page.
  *
- * Progressive enhancement: fetch errors are silently swallowed so the
- * page always renders even if the BFF is unavailable.
+ * FBG-395 (KVKK): NEXT_LOCALE is a functional (optional) cookie, so it is only
+ * persisted through the consent-gated writer (persistLocalePreference) — a no-op
+ * until İşlevsel consent is granted. Without persistence the geo default still
+ * applies on each visit (the locale lives in the URL), it just isn't remembered.
+ * The redirect uses the raw Next router with an explicit /tr prefix so next-intl's
+ * client cookie sync (syncLocaleCookie) never writes NEXT_LOCALE behind the gate.
  *
- * T-04-03: router.replace uses locale-validated next-intl navigation;
- * pathname comes from usePathname(), not from user input.
+ * Progressive enhancement: fetch errors are silently swallowed so the page always
+ * renders even if the BFF is unavailable. The pathname comes from usePathname(),
+ * not from user input.
  */
 export function GeoLocaleInit({ currentLocale }: { currentLocale: string }) {
   const router = useRouter();
@@ -28,10 +35,9 @@ export function GeoLocaleInit({ currentLocale }: { currentLocale: string }) {
       .then((r) => r.json())
       .then((cfg) => {
         if (cfg.geo_country === 'TR' && currentLocale !== 'tr') {
-          // Set cookie first so middleware picks it up on subsequent requests
-          document.cookie =
-            'NEXT_LOCALE=tr;path=/;max-age=' + 365 * 24 * 3600 + ';SameSite=Lax';
-          router.replace(pathname, { locale: 'tr' });
+          // Remember the choice only if functional consent is granted (else a no-op).
+          persistLocalePreference('tr');
+          router.replace(`/tr${pathname === '/' ? '' : pathname}`);
         }
       })
       .catch(() => {

@@ -17,6 +17,9 @@ const authState = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 const routerSpy = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
+// FBG-395: locale switching now uses the raw Next router (so next-intl's client
+// cookie sync never writes NEXT_LOCALE behind the consent gate).
+const nextRouterSpy = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -33,6 +36,7 @@ vi.mock('@/i18n/navigation', () => ({
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
+  useRouter: () => nextRouterSpy,
 }));
 
 vi.mock('@/providers/CartProvider', () => ({
@@ -53,6 +57,7 @@ vi.mock('@/lib/api', () => ({
 }));
 
 import { Header } from '../Header';
+import { buildConsentRecord, writeStoredConsent, CONSENT_STORAGE_KEY } from '@/lib/consent';
 
 function openDrawer() {
   const icon = document.querySelector('[data-testid="MenuIcon"]');
@@ -64,7 +69,10 @@ beforeEach(() => {
   authState.signOut.mockClear();
   routerSpy.replace.mockClear();
   routerSpy.push.mockClear();
+  nextRouterSpy.replace.mockClear();
+  nextRouterSpy.push.mockClear();
   document.cookie = 'NEXT_LOCALE=; max-age=0; path=/';
+  localStorage.removeItem(CONSENT_STORAGE_KEY);
 });
 
 afterEach(() => {
@@ -84,13 +92,27 @@ describe('Header — mobile language switcher & Drawer sign out (FBG-429)', () =
     expect(screen.getAllByText('common.signOut')).toHaveLength(1);
   });
 
-  it('tapping a language button sets the NEXT_LOCALE cookie and switches locale', () => {
+  it('with functional consent: tapping a language button persists NEXT_LOCALE and switches locale', () => {
+    // NEXT_LOCALE is a functional cookie (FBG-395) → only persisted with İşlevsel consent.
+    writeStoredConsent(
+      buildConsentRecord('custom', { functional: true, analytics: false, marketing: false }),
+    );
     render(<Header />);
 
     fireEvent.click(screen.getAllByText('lang.tr')[0]);
 
     expect(document.cookie).toContain('NEXT_LOCALE=tr');
-    expect(routerSpy.replace).toHaveBeenCalledWith('/', { locale: 'tr' });
+    // Raw-router navigation to the locale-prefixed URL (bypasses next-intl cookie sync).
+    expect(nextRouterSpy.replace).toHaveBeenCalledWith('/tr');
+  });
+
+  it('without functional consent: switching language navigates but does NOT write NEXT_LOCALE', () => {
+    render(<Header />);
+
+    fireEvent.click(screen.getAllByText('lang.tr')[0]);
+
+    expect(document.cookie).not.toContain('NEXT_LOCALE=');
+    expect(nextRouterSpy.replace).toHaveBeenCalledWith('/tr');
   });
 
   it('logged in: Drawer shows the translated Orders item and a working Sign Out', () => {

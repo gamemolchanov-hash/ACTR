@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { CartProvider } from '@/providers/CartProvider';
+import { CookieConsentProvider } from '@/providers/CookieConsentProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import { AuthProvider } from '@/lib/auth-context';
 import { Header } from '@/components/Header';
@@ -112,12 +113,14 @@ export default async function LocaleLayout({
                 <QueryProvider>
                   <AuthProvider>
                     <CartProvider>
-                      <GeoLocaleInit currentLocale={locale} />
-                      <Suspense>
-                        <Header />
-                      </Suspense>
-                      <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
-                      <Footer />
+                      <CookieConsentProvider>
+                        <GeoLocaleInit currentLocale={locale} />
+                        <Suspense>
+                          <Header />
+                        </Suspense>
+                        <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
+                        <Footer />
+                      </CookieConsentProvider>
                     </CartProvider>
                   </AuthProvider>
                 </QueryProvider>

@@ -21,7 +21,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter as useNextRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
@@ -30,6 +30,7 @@ import { fetchProducts, type Product } from '@/lib/api';
 import { imgThumb } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
+import { persistLocalePreference } from '@/lib/consent';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 function productHref(p: Product) {
@@ -39,6 +40,7 @@ function productHref(p: Product) {
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const nextRouter = useNextRouter();
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations();
@@ -103,10 +105,14 @@ export function Header() {
     [],
   );
 
-  // Language switcher: switch locale and set NEXT_LOCALE cookie
+  // Language switcher (FBG-395): NEXT_LOCALE is a functional cookie, so it is only
+  // persisted through the consent gate (a no-op without İşlevsel consent). Navigate
+  // with the raw router + explicit locale prefix so next-intl's client cookie sync
+  // (syncLocaleCookie) never writes NEXT_LOCALE behind the gate. The language still
+  // switches — it lives in the URL — it just isn't remembered without consent.
   const switchLocale = (next: string) => {
-    document.cookie = `NEXT_LOCALE=${next};path=/;max-age=${365 * 24 * 3600};SameSite=Lax`;
-    router.replace(pathname, { locale: next });
+    persistLocalePreference(next);
+    nextRouter.replace(`/${next}${pathname === '/' ? '' : pathname}`);
   };
 
   return (
