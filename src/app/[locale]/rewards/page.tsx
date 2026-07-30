@@ -126,7 +126,11 @@ export default function RewardsPage() {
   const xpActive = isMember ? (loyalty?.xp_active ?? 0) : null;
   const balance = isMember ? (loyalty?.wallet_balance ?? 0) : null;
   const progress = tierProgress(xpActive ?? 0, config.tiers, loyalty?.tier_code);
-  const segments = tierSegments(xpActive, config.tiers, loyalty?.tier_code);
+  // Гость видит лестницу глазами свежего участника (владелец, 30.07, паритет с
+  // forza-brava.com/rewards): BASE — яркий «текущий» (он даётся сразу при
+  // вступлении), верхние тиры — под замком. Не `null`: preview-режим бара
+  // (все сегменты бледные) читался как «BASE ещё не достигнут».
+  const segments = tierSegments(xpActive ?? 0, config.tiers, loyalty?.tier_code);
   const cashbackPct = isMember
     ? ratePercent(loyalty?.cashback_rate ?? progress.current?.cashback_rate)
     : null;
@@ -184,7 +188,7 @@ export default function RewardsPage() {
           expiring={expiring}
         />
 
-        <CreatorTierBar tiers={config.tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
+        <CreatorTierBar tiers={config.tiers} xpActive={xpActive ?? 0} tierCode={loyalty?.tier_code} />
 
         {/* ── Tier cards ── */}
         {segments.length > 0 && (
