@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -117,9 +116,14 @@ export default async function LocaleLayout({
                       <CookieConsentProvider>
                         <GeoLocaleInit currentLocale={locale} />
                         <LoyaltyProgramProvider>
-                          <Suspense>
-                            <Header />
-                          </Suspense>
+                          {/* No Suspense boundary here, deliberately (FBG-472):
+                              a boundary around the header keeps it out of the
+                              prerendered HTML and makes it hydrate in its own
+                              later pass, so it lags — or, when that pass never
+                              comes, never joins — the rest of the chrome. The
+                              header therefore uses no dynamic hook that would
+                              need one; see the prefill note in Header.tsx. */}
+                          <Header />
                           <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
                           <Footer />
                         </LoyaltyProgramProvider>

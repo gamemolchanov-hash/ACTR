@@ -21,7 +21,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { useSearchParams, useRouter as useNextRouter } from 'next/navigation';
+import { useRouter as useNextRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
@@ -43,15 +43,12 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const nextRouter = useNextRouter();
-  const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations();
   const { totalQuantity } = useCart();
   const { customer, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState(
-    searchParams.get('search') || searchParams.get('q') || '',
-  );
+  const [searchValue, setSearchValue] = useState('');
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -113,6 +110,34 @@ export function Header() {
     },
     [],
   );
+
+  // Search box prefill — read from the URL on mount instead of `useSearchParams()`
+  // (FBG-472).
+  //
+  // That hook was the only thing in the whole header that needed a Suspense
+  // boundary, and the boundary is what made the header the one piece of chrome
+  // that does NOT render with the rest of the page:
+  //
+  //  - prerendered routes (every `/[locale]/*` page here) bail the ENTIRE header
+  //    out of the HTML — the built `/en.html` carried
+  //    `<!--$!--><template data-dgst="BAILOUT_TO_CLIENT_SIDE_RENDERING">` where
+  //    the header belongs, and no `<header>` anywhere;
+  //  - `next dev` streams it in as a late boundary (`<!--$?-->` in place, markup
+  //    delivered at the end of the document) that hydrates in its OWN pass, after
+  //    the provider and the footer are already live — so for as long as that pass
+  //    is outstanding the header is inert server markup: no fibers on its nodes,
+  //    nav links behaving as plain `<a>` (full page loads), and a published
+  //    programme rendering into the footer but not into it.
+  //
+  // The prefill itself never needed the hook: this layout is persistent, so the
+  // state initialiser only ever ran on a full document load, which is exactly
+  // when `location.search` is the query being rendered. Same value, no boundary.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('search') || params.get('q');
+    // Never overwrite something the visitor has already typed.
+    if (q) setSearchValue((current) => current || q);
+  }, []);
 
   // Language switcher (FBG-395): NEXT_LOCALE is a functional cookie, so it is only
   // persisted through the consent gate (a no-op without İşlevsel consent). Navigate

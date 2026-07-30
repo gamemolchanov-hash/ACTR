@@ -119,23 +119,12 @@ function useHydrated(): boolean {
  *
  * The programme arrives from a fetch, so it is never known during the server
  * render: the HTML always carries the no-link variant, and it is published about
- * a second into the page's life. `<Footer>` hydrates with this provider and
- * follows it immediately. `<Header>` does not: `next dev` serves it as a pending
- * streamed Suspense boundary (`<!--$?--><template id="B:0">`, content spliced in
- * from the end of the document — see CreatorClubLinks.hydration.test.tsx for the
- * measurement), so its subtree hydrates in its own later pass. Until it does it
- * is inert markup: publishing the programme does not put the entry there, and a
- * revalidation that returns the same string re-renders nothing at all. That is
- * why the entry reaches the footer well before the header.
- *
- * Publishing the programme to the hydration render on top of that makes the
- * header TEAR when its turn comes: it hydrates against markup written before the
- * answer, React reports "server rendered text didn't match the client" on the
- * nav entry and throws the boundary away to rebuild it. That rebuild does put
- * the entry back, and it stays through three client navigations after it —
- * measured against the real header on the pre-fix provider — so the tear is the
- * defect to remove here, not a mechanism that strands the header without the
- * entry.
+ * a second into the page's life — i.e. while the chrome is being hydrated.
+ * Publishing it straight into the hydration render makes the consumer TEAR: it
+ * hydrates against markup written before the answer, and React reports
+ * "Hydration failed because the server rendered text didn't match the client" on
+ * the nav entry (`/contacts` where the client wants `/rewards`) and throws that
+ * subtree away to rebuild it.
  *
  * Gating on hydration removes the tear at its root: the first client render of
  * every consumer reproduces what the server rendered for the gated entry, so no
@@ -144,6 +133,12 @@ function useHydrated(): boolean {
  * stands rather than having to catch it changing. Fail-closed is unchanged:
  * unknown, dormant and not-yet-hydrated all render no link, and the routes stay
  * gated server-side regardless.
+ *
+ * The gate is here, in the hook, and not in one component on purpose: it holds
+ * for every consumer of the programme, whenever that consumer happens to
+ * hydrate. Getting the header to hydrate WITH the footer in the first place is a
+ * separate matter, and belongs to the layout — see the Suspense note there and
+ * the prefill note in Header.tsx.
  */
 export function useLoyaltyProgram(): string | null {
   const program = useContext(LoyaltyProgramContext);
