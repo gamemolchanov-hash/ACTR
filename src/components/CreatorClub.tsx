@@ -1,10 +1,15 @@
 'use client';
 
 /**
- * Creator Club visuals (FBG-469) — the dark wallet card and the segmented tier
+ * Creator Club visuals (FBG-469) — the wallet card and the segmented tier
  * bar, shared by the public `/rewards` page and the private `/account/loyalty`
  * page so both tell the same story in the ACTR design system (MUI `sx` +
  * `palette`, LiraFix/Futura + Open Sans — no Tailwind, no styled-components).
+ *
+ * The wallet card is a LIGHT `bgLight` surface with primary-blue accents —
+ * NOT the dark card of the forza-brava reference: ACTR has no dark content
+ * surfaces (владелец, 30.07.2026), the only dark area of the design is the
+ * footer.
  *
  * Everything is driven by the `/config` tier array: the number of tiers, their
  * names, thresholds and cashback rates come from the backend, so changing the
@@ -37,10 +42,10 @@ import {
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
-/** Ink on the dark card — the footer palette, so the two dark surfaces match. */
-const CARD_TEXT = palette.footerText;
-const CARD_MUTED = palette.footerSecondary;
-const EXPIRING = '#ff8a5b';
+/** Ink on the light card — same pairing as the account/loyalty cards. */
+const CARD_TEXT = palette.primary;
+const CARD_MUTED = palette.primaryLight;
+const EXPIRING = palette.cartBadge;
 
 const overlineSx = {
   fontFamily: fontBody,
@@ -109,9 +114,9 @@ export function CreatorWalletCard({
   return (
     <Box
       sx={{
-        bgcolor: palette.footerDark,
+        bgcolor: palette.bgLight,
         color: CARD_TEXT,
-        borderRadius: '24px',
+        borderRadius: '20px',
         p: { xs: 2.5, md: 4 },
       }}
     >
@@ -131,13 +136,13 @@ export function CreatorWalletCard({
               height: 40,
               flexShrink: 0,
               borderRadius: '14px',
-              bgcolor: 'rgba(255,255,255,0.08)',
+              bgcolor: palette.white,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <AccountBalanceWallet sx={{ fontSize: 20, color: CARD_MUTED }} />
+            <AccountBalanceWallet sx={{ fontSize: 20, color: palette.primary }} />
           </Box>
           <Box sx={{ minWidth: 0 }}>
             <Typography sx={{ ...overlineSx, color: CARD_MUTED }}>
@@ -197,7 +202,7 @@ export function CreatorWalletCard({
             px: 2,
             py: 1.5,
             borderRadius: '16px',
-            bgcolor: 'rgba(255,255,255,0.06)',
+            bgcolor: palette.white,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -219,11 +224,11 @@ export function CreatorWalletCard({
           )}
           {cashbackPct != null && (
             <Chip
-              icon={<Bolt sx={{ color: `${CARD_TEXT} !important`, fontSize: 16 }} />}
+              icon={<Bolt sx={{ color: `${palette.white} !important`, fontSize: 16 }} />}
               label={t('loyalty.cashback', { rate: formatPercent(cashbackPct, formatLocale) })}
               sx={{
-                bgcolor: 'rgba(255,255,255,0.12)',
-                color: CARD_TEXT,
+                bgcolor: palette.primary,
+                color: palette.white,
                 fontFamily: fontMain,
               }}
             />
