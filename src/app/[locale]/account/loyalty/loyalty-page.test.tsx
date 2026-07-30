@@ -23,10 +23,18 @@ const authState = vi.hoisted(() => ({
   loading: false,
 }));
 
+// See rewards-page.test.tsx: tier codes are localised through
+// `loyalty.tierNames.<code>`, absent keys fall back to the BFF-derived label.
+const translatedTiers = vi.hoisted(() => new Set<string>());
+
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace?: string) => (key: string, params?: Record<string, unknown>) => {
-    const full = namespace ? `${namespace}.${key}` : key;
-    return params ? `${full} ${JSON.stringify(params)}` : full;
+  useTranslations: (namespace?: string) => {
+    const t = (key: string, params?: Record<string, unknown>) => {
+      const full = namespace ? `${namespace}.${key}` : key;
+      return params ? `${full} ${JSON.stringify(params)}` : full;
+    };
+    t.has = (key: string) => translatedTiers.has(namespace ? `${namespace}.${key}` : key);
+    return t;
   },
 }));
 

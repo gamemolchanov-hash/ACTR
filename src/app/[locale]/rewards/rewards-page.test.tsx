@@ -22,10 +22,16 @@ const authState = vi.hoisted(() => ({
   loading: false,
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, params?: Record<string, unknown>) =>
-    params ? `${key} ${JSON.stringify(params)}` : key,
-}));
+// Tier names resolve through `loyalty.tierNames.<code>` when the catalogue has
+// the key; `translatedTiers` lets a test switch that on for a given code.
+const translatedTiers = vi.hoisted(() => new Set<string>());
+
+vi.mock('next-intl', () => {
+  const t = (key: string, params?: Record<string, unknown>) =>
+    params ? `${key} ${JSON.stringify(params)}` : key;
+  t.has = (key: string) => translatedTiers.has(key);
+  return { useTranslations: () => t };
+});
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, ...props }: { children?: ReactNode; [k: string]: unknown }) => (
@@ -73,6 +79,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  translatedTiers.clear();
 });
 
 describe('RewardsPage — launch gate', () => {
@@ -264,6 +271,25 @@ describe('RewardsPage — tier cards and rules modal', () => {
     expect(await screen.findByText('rewards.earnTitle')).toBeTruthy();
     expect(document.body.textContent).toContain('rewards.earnShoppingDesc {"rate":"3,5"}');
     expect(document.body.textContent).toContain('rewards.spendWalletDesc {"percent":"32,5"}');
+  });
+
+  // Tier codes are the only thing the BFF sends — the page must show the
+  // localised catalogue name everywhere it prints one (FBG-469 review).
+  it('shows localised tier names on the cards, the modal and the wallet card', async () => {
+    translatedTiers.add('loyalty.tierNames.silver');
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    asMember({ wallet_balance: 0, xp_active: 150, tier_code: 'silver' });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    // Card + wallet card both read the catalogue name, never the derived "Silver".
+    expect(screen.getAllByText('loyalty.tierNames.silver').length).toBeGreaterThan(1);
+    expect(screen.queryByText('Silver')).toBeNull();
+    // Untranslated codes still render (a newly configured tier is not blank).
+    expect(screen.getAllByText('Welcome').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'loyalty.tierNames.silver' }));
+    expect(await screen.findByText('rewards.earnTitle')).toBeTruthy();
   });
 
   it('tells a visitor the first tier needs no XP (no bogus "0 XP" rule)', async () => {

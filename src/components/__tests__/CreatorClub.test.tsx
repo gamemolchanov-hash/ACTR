@@ -12,10 +12,16 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import type { LoyaltyTier } from '@/lib/loyalty';
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, params?: Record<string, unknown>) =>
-    params ? `${key} ${JSON.stringify(params)}` : key,
-}));
+// Tier names resolve through `loyalty.tierNames.<code>` when the catalogue has
+// the key; `translatedTiers` lets a test switch that on for a given code.
+const translatedTiers = vi.hoisted(() => new Set<string>());
+
+vi.mock('next-intl', () => {
+  const t = (key: string, params?: Record<string, unknown>) =>
+    params ? `${key} ${JSON.stringify(params)}` : key;
+  t.has = (key: string) => translatedTiers.has(key);
+  return { useTranslations: () => t };
+});
 
 vi.mock('@/providers/CurrencyProvider', () => ({
   useCurrency: () => 'TRY',
@@ -32,6 +38,30 @@ const TIERS: LoyaltyTier[] = [
 
 afterEach(() => {
   cleanup();
+  translatedTiers.clear();
+});
+
+// The BFF sends no display name, only a code — a TR shopper must not read
+// "Silver"/"Gold" derived from it (FBG-469 review).
+describe('tier names are localised', () => {
+  it('renders the catalogue name for a configured tier code', () => {
+    translatedTiers.add('loyalty.tierNames.silver').add('loyalty.tierNames.gold');
+    render(<CreatorTierBar tiers={TIERS} xpActive={150} tierCode="silver" />);
+
+    expect(screen.getByText('loyalty.tierNames.silver')).toBeTruthy();
+    expect(screen.queryByText('Silver')).toBeNull();
+    // ...including inside the interpolated "next tier" caption.
+    expect(document.body.textContent).toContain('"tier":"loyalty.tierNames.gold"');
+  });
+
+  it('falls back to the derived label for a tier code the catalogue does not know', () => {
+    translatedTiers.add('loyalty.tierNames.silver');
+    render(<CreatorTierBar tiers={TIERS} xpActive={0} />);
+
+    // 'welcome' has no key here → the /config-derived label still renders.
+    expect(screen.getByText('Welcome')).toBeTruthy();
+    expect(screen.getByText('loyalty.tierNames.silver')).toBeTruthy();
+  });
 });
 
 describe('CreatorWalletCard', () => {

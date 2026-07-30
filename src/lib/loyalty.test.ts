@@ -386,6 +386,17 @@ describe('fetchLoyaltyLedger (two-source merge + resilience)', () => {
   });
 });
 
+// The BFF sends tier codes only, so every code it can ship by default needs a
+// localised name — otherwise the TR page falls back to an English-looking label
+// derived from the code (FBG-469 review).
+describe('tier name catalogue', () => {
+  it.each(['base', 'welcome', 'silver', 'gold'])('has EN + TR copy for the %s tier', (code) => {
+    const key = `loyalty.tierNames.${code}`;
+    expect((enMessages as Record<string, string>)[key]).toBeTruthy();
+    expect((trMessages as Record<string, string>)[key]).toBeTruthy();
+  });
+});
+
 describe.each([['loyalty.'], ['rewards.']])('%s i18n key parity (EN + TR)', (prefix) => {
   const enKeys = Object.keys(enMessages).filter((k) => k.startsWith(prefix));
   const trKeys = Object.keys(trMessages).filter((k) => k.startsWith(prefix));

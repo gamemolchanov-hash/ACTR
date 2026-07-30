@@ -10,6 +10,8 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
  * with an empty body. The programme state is public config, independent of the
  * session, so it can — and must — be decided on the server; the sign-in check
  * stays client-side (the token lives in localStorage).
+ *
+ * A failed `/config` is NOT a dormant answer — see the `available` check below.
  */
 
 // Live backend state → evaluate per request instead of freezing the build-time
@@ -24,8 +26,13 @@ export default async function AccountLoyaltyLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const { loyaltyProgram } = await getStorefrontConfig();
-  if (loyaltyProgram !== CASHBACK_WALLET_PROGRAM) redirect({ href: '/account', locale });
+  const { loyaltyProgram, available } = await getStorefrontConfig();
+  // Redirect only on a CONFIRMED other programme. An unreadable /config is
+  // "unknown", not "off": bouncing the member here would also cut them off from
+  // the page's own error/retry state (FBG-469 review).
+  if (available && loyaltyProgram !== CASHBACK_WALLET_PROGRAM) {
+    redirect({ href: '/account', locale });
+  }
 
   return children;
 }

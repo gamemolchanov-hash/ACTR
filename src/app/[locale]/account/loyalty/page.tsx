@@ -22,7 +22,12 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
-import { CreatorClubError, CreatorTierBar, CreatorWalletCard } from '@/components/CreatorClub';
+import {
+  CreatorClubError,
+  CreatorTierBar,
+  CreatorWalletCard,
+  useTierLabel,
+} from '@/components/CreatorClub';
 import {
   CASHBACK_WALLET_PROGRAM,
   expiringSoon,
@@ -46,6 +51,7 @@ export default function LoyaltyPage() {
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
   const tRewards = useTranslations('rewards');
+  const tierLabel = useTierLabel();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
@@ -122,9 +128,9 @@ export default function LoyaltyPage() {
   // Real BFF shape: {amount, expires_at} — the day count is derived client-side.
   const expiring = expiringSoon(loyalty?.xp_expiring_soon);
   const cashbackPct = ratePercent(loyalty?.cashback_rate ?? progress.current?.cashback_rate);
-  const tierLabel =
-    progress.current?.name ??
-    loyalty?.tier_code ??
+  // Localised label — the BFF sends no display name, only a code (FBG-469 review).
+  const tierName =
+    tierLabel(progress.current, loyalty?.tier_code) ||
     t('tierFallback', { n: loyalty?.loyalty_tier ?? 1 });
 
   const nfXp = new Intl.NumberFormat(formatLocale);
@@ -176,7 +182,7 @@ export default function LoyaltyPage() {
           <CreatorWalletCard
             balance={balance}
             xpActive={xpActive}
-            tierName={tierLabel}
+            tierName={tierName}
             cashbackPct={cashbackPct}
             expiring={expiring}
           />

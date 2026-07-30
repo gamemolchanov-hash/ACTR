@@ -50,6 +50,31 @@ const overlineSx = {
   fontWeight: 600,
 };
 
+/**
+ * Localised tier label resolver.
+ *
+ * The BFF sends only `code`/`min_xp`/`cashback_rate` — `adaptTier()` derives an
+ * English-looking label from the code, which must never reach the UI on the TR
+ * storefront. Configured codes are translated through `loyalty.tierNames.<code>`
+ * (EN+TR); a code the catalogue does not know yet (tiers are configurable in
+ * ARM) falls back to the derived label so a new tier still renders (FBG-469
+ * review).
+ */
+export function useTierLabel(): (
+  tier?: { code: string; name: string } | null,
+  code?: string,
+) => string {
+  const t = useTranslations();
+  return (tier, code) => {
+    const tierCode = tier?.code ?? code;
+    if (tierCode) {
+      const key = `loyalty.tierNames.${tierCode}`;
+      if (t.has(key)) return t(key);
+    }
+    return tier?.name ?? tierCode ?? '';
+  };
+}
+
 export interface CreatorWalletCardProps {
   /** Wallet balance in store currency, or null for the guest promo view. */
   balance: number | null;
@@ -242,6 +267,7 @@ export interface CreatorTierBarProps {
  */
 export function CreatorTierBar({ tiers, xpActive, tierCode }: CreatorTierBarProps) {
   const t = useTranslations();
+  const tierLabel = useTierLabel();
   const formatLocale = useFormatLocale();
   const nf = new Intl.NumberFormat(formatLocale);
 
@@ -343,7 +369,7 @@ export function CreatorTierBar({ tiers, xpActive, tierCode }: CreatorTierBarProp
                   maxWidth: '100%',
                 }}
               >
-                {seg.tier.name}
+                {tierLabel(seg.tier)}
               </Typography>
               {rate != null && (
                 <Typography sx={{ fontFamily: fontBody, fontSize: 10, color: palette.primaryLight }}>
@@ -368,7 +394,7 @@ export function CreatorTierBar({ tiers, xpActive, tierCode }: CreatorTierBarProp
           {progress.next && progress.xpToNext != null
             ? t('loyalty.nextTier', {
                 xp: nf.format(progress.xpToNext),
-                tier: progress.next.name,
+                tier: tierLabel(progress.next),
               })
             : t('loyalty.maxTier')}
         </Typography>

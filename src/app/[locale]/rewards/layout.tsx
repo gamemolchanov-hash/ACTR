@@ -24,10 +24,18 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 // programme (and vice versa). `/config` itself stays fetch-cached (300s).
 export const dynamic = 'force-dynamic';
 
-async function isProgrammeLive(): Promise<boolean> {
+/**
+ * Three states, deliberately NOT two: the programme is live, the storefront
+ * confirmed another programme (→ close the route), or `/config` could not be
+ * read at all. A failed read must never masquerade as "dormant" — that would
+ * bounce shoppers off a live page during a BFF blip and put the page's own
+ * error/retry out of reach (FBG-469 review).
+ */
+async function readProgramme(): Promise<'live' | 'dormant' | 'unknown'> {
   // Same already-cached /config call the locale layout makes — no extra request.
-  const { loyaltyProgram } = await getStorefrontConfig();
-  return loyaltyProgram === CASHBACK_WALLET_PROGRAM;
+  const { loyaltyProgram, available } = await getStorefrontConfig();
+  if (!available) return 'unknown';
+  return loyaltyProgram === CASHBACK_WALLET_PROGRAM ? 'live' : 'dormant';
 }
 
 export async function generateMetadata({
@@ -37,7 +45,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'rewards' });
-  const live = await isProgrammeLive();
+  // Anything but a confirmed live programme stays out of the index — an
+  // unlaunched programme leaves no trace, and neither does an error page.
+  const live = (await readProgramme()) === 'live';
 
   return {
     title: t('metaTitle'),
@@ -61,9 +71,10 @@ export default async function RewardsLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  // An unreadable /config leaves the programme unproven → treat it as dormant
-  // (getStorefrontConfig never throws; it degrades to loyaltyProgram: null).
-  if (!(await isProgrammeLive())) redirect({ href: '/', locale });
+  // Only a storefront that CONFIRMS another programme closes the route. When
+  // /config is unreadable the page renders and handles it client-side (its own
+  // fetch either succeeds, or shows the error + retry).
+  if ((await readProgramme()) === 'dormant') redirect({ href: '/', locale });
 
   return children;
 }

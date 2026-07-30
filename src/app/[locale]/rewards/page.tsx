@@ -42,6 +42,7 @@ import {
   CreatorTierBar,
   CreatorWalletCard,
   TierStateIcon,
+  useTierLabel,
 } from '@/components/CreatorClub';
 import {
   CASHBACK_WALLET_PROGRAM,
@@ -62,6 +63,7 @@ const TIER_ICONS = [Star, WorkspacePremium, EmojiEvents, MilitaryTech];
 
 export default function RewardsPage() {
   const t = useTranslations();
+  const tierLabel = useTierLabel();
   const formatLocale = useFormatLocale();
   const router = useRouter();
   const { customer, loyalty, loading: authLoading } = useAuth();
@@ -103,7 +105,7 @@ export default function RewardsPage() {
   if (configError && !config) {
     return (
       <Box sx={{ overflow: 'hidden' }}>
-        <PageHeader />
+        <PageHeader compact />
         <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2.5, md: 2 }, mb: { xs: 5, md: 8 } }}>
           <CreatorClubError onRetry={() => setConfigAttempt((n) => n + 1)} />
         </Box>
@@ -121,7 +123,8 @@ export default function RewardsPage() {
   const cashbackPct = isMember
     ? ratePercent(loyalty?.cashback_rate ?? progress.current?.cashback_rate)
     : null;
-  const tierName = isMember ? (progress.current?.name ?? loyalty?.tier_code ?? null) : null;
+  // Localised label — the BFF sends no display name, only a code (FBG-469 review).
+  const tierName = isMember ? tierLabel(progress.current, loyalty?.tier_code) || null : null;
 
   const expiring = isMember ? expiringSoon(loyalty?.xp_expiring_soon) : null;
 
@@ -216,7 +219,7 @@ export default function RewardsPage() {
                     component="button"
                     type="button"
                     onClick={() => setSelected(i)}
-                    aria-label={seg.tier.name}
+                    aria-label={tierLabel(seg.tier)}
                     aria-haspopup="dialog"
                     sx={{
                       textAlign: 'center',
@@ -316,7 +319,7 @@ export default function RewardsPage() {
                         color: isCurrent ? palette.white : palette.primary,
                       }}
                     >
-                      {seg.tier.name}
+                      {tierLabel(seg.tier)}
                     </Typography>
                     {rate != null && (
                       <Typography
@@ -479,7 +482,7 @@ export default function RewardsPage() {
                   textTransform: 'uppercase',
                 }}
               >
-                {selectedSeg.tier.name}
+                {tierLabel(selectedSeg.tier)}
               </Typography>
             </Box>
 
@@ -527,8 +530,14 @@ export default function RewardsPage() {
   );
 }
 
-/** Breadcrumb + hero — shared by the loaded page and its load-error state. */
-function PageHeader() {
+/**
+ * Breadcrumb + hero, shared by the loaded page and its load-error state.
+ *
+ * `compact` drops the marketing lines (overline + subtitle): when `/config`
+ * could not be read we cannot prove the programme is live, so the page shows its
+ * name and the retry — never the promise of cashback (FBG-469 review).
+ */
+function PageHeader({ compact = false }: { compact?: boolean }) {
   const t = useTranslations();
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2.5, md: 2 }, mt: { xs: 2, md: 3 } }}>
@@ -540,18 +549,20 @@ function PageHeader() {
       </Typography>
 
       <Box sx={{ textAlign: 'center', mt: { xs: 2, md: 4 }, mb: { xs: 3, md: 4 } }}>
-        <Typography
-          sx={{
-            fontFamily: fontBody,
-            fontSize: 11,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            color: palette.primaryLight,
-          }}
-        >
-          {t('rewards.programLabel')}
-        </Typography>
+        {!compact && (
+          <Typography
+            sx={{
+              fontFamily: fontBody,
+              fontSize: 11,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              fontWeight: 600,
+              color: palette.primaryLight,
+            }}
+          >
+            {t('rewards.programLabel')}
+          </Typography>
+        )}
         <Typography
           variant="h1"
           sx={{
@@ -563,18 +574,20 @@ function PageHeader() {
         >
           {t('loyalty.title')}
         </Typography>
-        <Typography
-          sx={{
-            fontFamily: fontBody,
-            fontSize: { xs: 14, md: 16 },
-            color: palette.primaryLight,
-            maxWidth: 520,
-            mx: 'auto',
-            mt: 1.5,
-          }}
-        >
-          {t('rewards.subtitle')}
-        </Typography>
+        {!compact && (
+          <Typography
+            sx={{
+              fontFamily: fontBody,
+              fontSize: { xs: 14, md: 16 },
+              color: palette.primaryLight,
+              maxWidth: 520,
+              mx: 'auto',
+              mt: 1.5,
+            }}
+          >
+            {t('rewards.subtitle')}
+          </Typography>
+        )}
       </Box>
     </Box>
   );

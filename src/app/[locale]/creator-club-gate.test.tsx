@@ -30,12 +30,25 @@ import AccountLoyaltyLayout from './account/loyalty/layout';
 
 const params = Promise.resolve({ locale: 'tr' });
 
+/** A storefront that answered `/config`. */
 function config(loyaltyProgram: string | null) {
   getStorefrontConfig.mockResolvedValue({
     currency: 'TRY',
     country: 'TR',
     locale: 'tr-TR',
     loyaltyProgram,
+    available: true,
+  });
+}
+
+/** `/config` could not be read (dead BFF / 5xx) — programme unknown, not off. */
+function configUnavailable() {
+  getStorefrontConfig.mockResolvedValue({
+    currency: 'TRY',
+    country: null,
+    locale: null,
+    loyaltyProgram: null,
+    available: false,
   });
 }
 
@@ -51,10 +64,25 @@ describe('/rewards — server dormant gate', () => {
     expect(redirect).toHaveBeenCalledWith({ href: '/', locale: 'tr' });
   });
 
-  it('redirects when /config carries no programme at all (BFF blip)', async () => {
+  it('redirects when the storefront answers with no programme configured', async () => {
     config(null);
     await expect(RewardsLayout({ children: 'page', params })).rejects.toThrow('NEXT_REDIRECT');
     expect(redirect).toHaveBeenCalledWith({ href: '/', locale: 'tr' });
+  });
+
+  // A dead BFF is "unknown", not "off": redirecting here would hide a live
+  // programme and cut the page off from its own error/retry (FBG-469 review).
+  it('renders the page (no redirect) when /config cannot be read at all', async () => {
+    configUnavailable();
+    await expect(RewardsLayout({ children: 'page', params })).resolves.toBe('page');
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unreadable-config page out of the index', async () => {
+    configUnavailable();
+    expect(await generateMetadata({ params })).toMatchObject({
+      robots: { index: false, follow: false },
+    });
   });
 
   it('renders the page once the cashback wallet programme is live', async () => {
@@ -85,6 +113,12 @@ describe('/account/loyalty — server dormant gate', () => {
 
   it('renders the page once the cashback wallet programme is live', async () => {
     config('cashback_wallet');
+    await expect(AccountLoyaltyLayout({ children: 'page', params })).resolves.toBe('page');
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it('renders the page (no redirect) when /config cannot be read at all', async () => {
+    configUnavailable();
     await expect(AccountLoyaltyLayout({ children: 'page', params })).resolves.toBe('page');
     expect(redirect).not.toHaveBeenCalled();
   });

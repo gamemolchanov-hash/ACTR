@@ -6,7 +6,12 @@ export default defineConfig({
   // Next.js tsconfig sets "jsx": "preserve" — plugin-react compiles JSX for tests
   plugins: [react()],
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      // `server-only` is resolved by Next itself (not a real dependency), so
+      // Vitest needs a stub to load server-only modules such as storefront-config.
+      'server-only': path.resolve(__dirname, 'tools/server-only-stub.ts'),
+    },
   },
   test: {
     environment: 'jsdom',
