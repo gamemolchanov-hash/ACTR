@@ -31,6 +31,10 @@ export default function AccountPage() {
       .then((cfg) => {
         if (!cancelled) setLoyaltyProgram(cfg.program);
       })
+      // Deliberately fail-closed: a failed request means "programme unknown", so
+      // the entry stays hidden rather than linking to a page that may not exist.
+      // Unlike the Creator Club pages themselves nothing is blanked or redirected
+      // here — the rest of the menu renders and the next load re-asks (FBG-469).
       .catch(() => {});
     return () => {
       cancelled = true;

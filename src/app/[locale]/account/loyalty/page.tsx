@@ -22,7 +22,7 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
-import { CreatorTierBar, CreatorWalletCard } from '@/components/CreatorClub';
+import { CreatorClubError, CreatorTierBar, CreatorWalletCard } from '@/components/CreatorClub';
 import {
   CASHBACK_WALLET_PROGRAM,
   expiringSoon,
@@ -54,6 +54,8 @@ export default function LoyaltyPage() {
 
   const [tiers, setTiers] = useState<LoyaltyTier[]>([]);
   const [program, setProgram] = useState<string | null>(null);
+  const [configError, setConfigError] = useState(false);
+  const [configAttempt, setConfigAttempt] = useState(0);
   const [entries, setEntries] = useState<LoyaltyLedgerEntry[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -66,14 +68,24 @@ export default function LoyaltyPage() {
 
   useEffect(() => {
     if (!customer) return;
-    // Tier thresholds are public config; a failure just hides the progress bar.
+    let cancelled = false;
     fetchLoyaltyConfig()
       .then((cfg) => {
+        if (cancelled) return;
         setProgram(cfg.program);
         setTiers(cfg.tiers);
+        setConfigError(false);
       })
-      .catch(() => setTiers([]));
-  }, [customer]);
+      // A failed request is NOT a dormant answer: leaving `program` null used to
+      // blank the whole page for ever. Flag it and offer a retry instead — the
+      // wallet figures from /me still render (FBG-469 review).
+      .catch(() => {
+        if (!cancelled) setConfigError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer, configAttempt]);
 
   // Dormant until the storefront runs cashback_wallet: the page must not exist
   // for shoppers before the programme launches (FBG-384 review). Backstop only —
@@ -99,7 +111,10 @@ export default function LoyaltyPage() {
   }, [customer, page]);
 
   if (authLoading || !customer) return null;
-  if (program !== CASHBACK_WALLET_PROGRAM) return null;
+  // Dormant (a successful non-cashback answer) → the effect above is redirecting.
+  if (program != null && program !== CASHBACK_WALLET_PROGRAM) return null;
+  // Still loading the descriptor — but a failed load falls through to the retry.
+  if (program == null && !configError) return null;
 
   const xpActive = loyalty?.xp_active ?? 0;
   const progress = tierProgress(xpActive, tiers, loyalty?.tier_code);
@@ -166,7 +181,11 @@ export default function LoyaltyPage() {
             expiring={expiring}
           />
 
-          <CreatorTierBar tiers={tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
+          {configError ? (
+            <CreatorClubError onRetry={() => setConfigAttempt((n) => n + 1)} />
+          ) : (
+            <CreatorTierBar tiers={tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
+          )}
 
           <Box>
             <Button

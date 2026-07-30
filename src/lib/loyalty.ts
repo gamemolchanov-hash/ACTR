@@ -86,10 +86,20 @@ export interface LedgerPage {
 // Defensive coercion (BFF numeric fields may be strings)
 // ---------------------------------------------------------------------------
 
+/**
+ * Coerce an ARM numeric field (may be a string) to a finite number, or null when
+ * it is absent/unparseable. Keeps "0" (a meaningful backend answer for rates and
+ * caps) apart from "no value" — collapsing the two advertises terms the backend
+ * never sent (FBG-469 review).
+ */
+function toFiniteNum(v: unknown): number | null {
+  const n = typeof v === 'string' ? parseFloat(v) : (v as number);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Coerce an ARM numeric field (may be a string) to a finite number; else 0. */
 function toNum(v: unknown): number {
-  const n = typeof v === 'string' ? parseFloat(v) : (v as number);
-  return Number.isFinite(n) ? n : 0;
+  return toFiniteNum(v) ?? 0;
 }
 
 /** Epoch millis for sorting; unparseable/empty dates sink to the bottom. */
@@ -116,7 +126,10 @@ export function adaptTier(raw: unknown): LoyaltyTier | null {
   // openapi.yaml LoyaltyProgramPublic) — derive a label from the code.
   const name = r.name != null ? String(r.name) : code.charAt(0).toUpperCase() + code.slice(1);
   const tier: LoyaltyTier = { code, name, min_xp: minXp };
-  if (r.cashback_rate != null) tier.cashback_rate = toNum(r.cashback_rate);
+  // A configured 0 means "this tier earns nothing" and must survive; only an
+  // absent or unparseable rate is dropped (→ the UI shows no rate at all).
+  const rate = toFiniteNum(r.cashback_rate);
+  if (rate != null) tier.cashback_rate = rate;
   return tier;
 }
 
@@ -184,8 +197,10 @@ function resolveCurrentIndex(xp: number, sorted: LoyaltyTier[], currentCode?: st
 
 /**
  * Normalise an ARM rate to percent: the spec sends a fraction (0.05 → 5), but a
- * percent (5) is tolerated too. Returns null for absent/zero/junk rates so
- * callers hide the badge instead of rendering "0%".
+ * percent (5) is tolerated too. Returns null only for an absent or nonsensical
+ * rate (junk/negative) so callers hide the badge; a configured 0 comes back as 0,
+ * because "this tier earns nothing" is a real answer and hiding it would imply an
+ * unknown-but-nonzero rate (FBG-469 review).
  *
  * The BFF allows ANY finite fraction, so the fractional part is kept: rounding
  * 0.035 to "4%" would advertise financial terms the backend never granted. Only
@@ -195,7 +210,7 @@ function resolveCurrentIndex(xp: number, sorted: LoyaltyTier[], currentCode?: st
  * format locale (3,5 in tr-TR / 3.5 in en-US).
  */
 export function ratePercent(rate?: number | null): number | null {
-  if (rate == null || !Number.isFinite(rate) || rate <= 0) return null;
+  if (rate == null || !Number.isFinite(rate) || rate < 0) return null;
   const percent = rate <= 1 ? rate * 100 : rate;
   return Math.round(percent * 100) / 100;
 }
@@ -314,10 +329,13 @@ export interface LoyaltyConfig {
   program: string;
   tiers: LoyaltyTier[];
   /**
-   * Share of an order the wallet may cover at checkout (fraction, e.g. 0.4), or
-   * null when the BFF omits it — the copy then drops the percent rather than
-   * inventing one. The authoritative per-order cap still comes from
-   * /wallet/validate (FBG-438); this is the advertised headline only.
+   * Share of an order the wallet may cover at checkout — a fraction in [0, 1]
+   * (e.g. 0.4), or null when the BFF omits it (the copy then drops the percent
+   * rather than inventing one). A configured **0 is preserved**: it means wallet
+   * spending is switched off, which the page must say out loud instead of
+   * degrading to the vague "covers part of the order" line (FBG-469 review).
+   * The authoritative per-order cap still comes from /wallet/validate (FBG-438);
+   * this is the advertised headline only.
    */
   walletCap: number | null;
 }
@@ -334,13 +352,16 @@ export async function fetchLoyaltyConfig(): Promise<LoyaltyConfig> {
   const cfg = data?.data ?? data ?? {};
   const descriptor = cfg?.loyalty_program ?? {};
   const rawTiers = Array.isArray(descriptor?.tiers) ? descriptor.tiers : [];
-  const cap = descriptor?.wallet_cap != null ? toNum(descriptor.wallet_cap) : 0;
+  // `wallet_cap` is a fraction in [0, 1] (BFF `fraction` validator). 0 is valid
+  // ("no wallet spending"); only an absent, unparseable or out-of-range value
+  // means "unknown".
+  const cap = toFiniteNum(descriptor?.wallet_cap);
   return {
     program: descriptor?.program != null ? String(descriptor.program) : '',
     tiers: rawTiers
       .map(adaptTier)
       .filter((t: LoyaltyTier | null): t is LoyaltyTier => t !== null),
-    walletCap: cap > 0 ? cap : null,
+    walletCap: cap != null && cap >= 0 && cap <= 1 ? cap : null,
   };
 }
 

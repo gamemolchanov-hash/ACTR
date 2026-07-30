@@ -14,7 +14,7 @@
  * pattern) because they mix the shared `loyalty.*` copy with `rewards.*` copy.
  */
 
-import { Box, Chip, Typography } from '@mui/material';
+import { Box, Button, Chip, Typography } from '@mui/material';
 import {
   AccountBalanceWallet,
   Check,
@@ -373,6 +373,39 @@ export function CreatorTierBar({ tiers, xpActive, tierCode }: CreatorTierBarProp
             : t('loyalty.maxTier')}
         </Typography>
       )}
+    </Box>
+  );
+}
+
+/**
+ * "Couldn't load the programme" panel with a retry.
+ *
+ * A failed `/config` must never be stored as a valid answer: it may not redirect
+ * a shopper away from a live programme, nor leave the page blank for ever. Both
+ * Creator Club pages render this instead and let the visitor try again
+ * (FBG-469 review).
+ */
+export function CreatorClubError({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations();
+  return (
+    <Box sx={{ bgcolor: palette.bgLight, borderRadius: '20px', p: 4, textAlign: 'center' }}>
+      <Typography sx={{ fontFamily: fontMain, fontSize: 18, color: palette.primary }}>
+        {t('loyalty.error')}
+      </Typography>
+      <Button
+        onClick={onRetry}
+        variant="outlined"
+        sx={{
+          mt: 2,
+          borderRadius: 40,
+          borderColor: palette.primary,
+          color: palette.primary,
+          fontFamily: fontMain,
+          fontSize: 15,
+        }}
+      >
+        {t('errors.retry')}
+      </Button>
     </Box>
   );
 }

@@ -169,10 +169,16 @@ describe('ratePercent', () => {
     expect(ratePercent(0.05)).toBe(5);
     expect(ratePercent(1)).toBe(100);
     expect(ratePercent(8)).toBe(8);
-    expect(ratePercent(0)).toBeNull();
     expect(ratePercent(undefined)).toBeNull();
     expect(ratePercent(null)).toBeNull();
     expect(ratePercent(Number.NaN)).toBeNull();
+    expect(ratePercent(-0.1)).toBeNull();
+  });
+
+  // "This tier earns nothing" is a real answer — hiding it would read as an
+  // unknown-but-nonzero rate (FBG-469 review).
+  it('keeps a configured zero as 0, not as "no rate"', () => {
+    expect(ratePercent(0)).toBe(0);
   });
 
   // The BFF allows any finite fraction — rounding 0.035 to 4% would advertise
@@ -248,6 +254,25 @@ describe('fetchLoyaltyConfig', () => {
     const cfg = await fetchLoyaltyConfig();
     expect(cfg).toEqual({ program: '', tiers: [], walletCap: null });
   });
+
+  // wallet_cap is a fraction in [0,1]; 0 ("no wallet spending") is a real answer
+  // and must not collapse into "unknown" (FBG-469 review).
+  it.each([
+    [0, 0],
+    ['0', 0],
+    [1, 1],
+    [0.325, 0.325],
+    [undefined, null],
+    [null, null],
+    ['nonsense', null],
+    [1.5, null],
+    [-0.1, null],
+  ])('parses wallet_cap %p as %p', async (raw, expected) => {
+    mockGet.mockResolvedValue({
+      data: { data: { loyalty_program: { program: 'cashback_wallet', wallet_cap: raw } } },
+    });
+    expect((await fetchLoyaltyConfig()).walletCap).toBe(expected);
+  });
 });
 
 describe('mergeLedger', () => {
@@ -316,6 +341,10 @@ describe('ARM adapters (defensive coercion)', () => {
       name: 'Gold',
       min_xp: 300,
     });
+    // A configured 0 survives ("earns nothing"); junk is dropped as "no rate".
+    expect(adaptTier({ code: 'base', min_xp: 0, cashback_rate: 0 })?.cashback_rate).toBe(0);
+    expect(adaptTier({ code: 'base', min_xp: 0, cashback_rate: '0' })?.cashback_rate).toBe(0);
+    expect(adaptTier({ code: 'base', min_xp: 0, cashback_rate: 'x' })?.cashback_rate).toBeUndefined();
     expect(adaptTier({ code: 'g' })).toBeNull(); // no min_xp
     expect(adaptTier({ name: 'Gold', min_xp: 1 })).toBeNull();
     expect(adaptTier(null)).toBeNull();

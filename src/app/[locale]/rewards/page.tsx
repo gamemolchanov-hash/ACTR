@@ -37,7 +37,12 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
-import { CreatorTierBar, CreatorWalletCard, TierStateIcon } from '@/components/CreatorClub';
+import {
+  CreatorClubError,
+  CreatorTierBar,
+  CreatorWalletCard,
+  TierStateIcon,
+} from '@/components/CreatorClub';
 import {
   CASHBACK_WALLET_PROGRAM,
   expiringSoon,
@@ -55,9 +60,6 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 /** Neutral tier medallions in brand palette — cycled so any tier count works. */
 const TIER_ICONS = [Star, WorkspacePremium, EmojiEvents, MilitaryTech];
 
-/** Config shape used when `/config` is unreachable: dormant, so the page hides. */
-const UNKNOWN_CONFIG: LoyaltyConfig = { program: '', tiers: [], walletCap: null };
-
 export default function RewardsPage() {
   const t = useTranslations();
   const formatLocale = useFormatLocale();
@@ -65,24 +67,28 @@ export default function RewardsPage() {
   const { customer, loyalty, loading: authLoading } = useAuth();
 
   const [config, setConfig] = useState<LoyaltyConfig | null>(null);
+  const [configError, setConfigError] = useState(false);
+  const [configAttempt, setConfigAttempt] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetchLoyaltyConfig()
       .then((cfg) => {
-        if (!cancelled) setConfig(cfg);
+        if (cancelled) return;
+        setConfig(cfg);
+        setConfigError(false);
       })
-      // An unreadable /config means we cannot prove the programme is live, and a
-      // storefront must never advertise an unlaunched one — fall through to the
-      // dormant redirect rather than rendering a half-empty page.
+      // A failed request is NOT an answer: storing a dormant config here would
+      // throw the visitor off a page the server layout just confirmed is live,
+      // with no way back. Surface a retry instead (FBG-469 review).
       .catch(() => {
-        if (!cancelled) setConfig(UNKNOWN_CONFIG);
+        if (!cancelled) setConfigError(true);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [configAttempt]);
 
   // Backstop only — the authoritative gate is the server redirect in layout.tsx.
   const program = config?.program ?? null;
@@ -92,7 +98,20 @@ export default function RewardsPage() {
 
   // Wait for the session to resolve: rendering the guest view for a member whose
   // token is still being validated would push them to registration (FBG-198).
-  if (authLoading || !config || config.program !== CASHBACK_WALLET_PROGRAM) return null;
+  if (authLoading) return null;
+
+  if (configError && !config) {
+    return (
+      <Box sx={{ overflow: 'hidden' }}>
+        <PageHeader />
+        <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2.5, md: 2 }, mb: { xs: 5, md: 8 } }}>
+          <CreatorClubError onRetry={() => setConfigAttempt((n) => n + 1)} />
+        </Box>
+      </Box>
+    );
+  }
+
+  if (!config || config.program !== CASHBACK_WALLET_PROGRAM) return null;
 
   const isMember = !!customer;
   const xpActive = isMember ? (loyalty?.xp_active ?? 0) : null;
@@ -107,7 +126,17 @@ export default function RewardsPage() {
   const expiring = isMember ? expiringSoon(loyalty?.xp_expiring_soon) : null;
 
   const capPct = ratePercent(config.walletCap);
+  // wallet_cap: 0 is a real answer — the server forbids spending the wallet, so
+  // say that instead of "covers part of the order" (FBG-469 review).
+  const walletSpendOff = config.walletCap === 0;
   const nf = new Intl.NumberFormat(formatLocale);
+
+  const spendCopy = (withCap: string, noCap: string, off: string): string => {
+    if (walletSpendOff) return t(off);
+    return capPct != null
+      ? t(withCap, { percent: formatPercent(capPct, formatLocale) })
+      : t(noCap);
+  };
 
   const steps = [
     { icon: Bolt, title: t('rewards.step1Title'), desc: t('rewards.step1Desc') },
@@ -115,10 +144,7 @@ export default function RewardsPage() {
     {
       icon: AccountBalanceWallet,
       title: t('rewards.step3Title'),
-      desc:
-        capPct != null
-          ? t('rewards.step3Desc', { percent: formatPercent(capPct, formatLocale) })
-          : t('rewards.step3DescNoCap'),
+      desc: spendCopy('rewards.step3Desc', 'rewards.step3DescNoCap', 'rewards.step3DescNoSpend'),
     },
   ];
 
@@ -127,55 +153,7 @@ export default function RewardsPage() {
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
-      <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2.5, md: 2 }, mt: { xs: 2, md: 3 } }}>
-        <Typography
-          sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
-        >
-          <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            {t('common.home')}
-          </Link>
-          {` / ${t('loyalty.breadcrumb')}`}
-        </Typography>
-
-        {/* ── Hero ── */}
-        <Box sx={{ textAlign: 'center', mt: { xs: 2, md: 4 }, mb: { xs: 3, md: 4 } }}>
-          <Typography
-            sx={{
-              fontFamily: fontBody,
-              fontSize: 11,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              color: palette.primaryLight,
-            }}
-          >
-            {t('rewards.programLabel')}
-          </Typography>
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: 32, md: 52 },
-              lineHeight: { xs: '38px', md: '58px' },
-              fontWeight: 450,
-              mt: 1,
-            }}
-          >
-            {t('loyalty.title')}
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: fontBody,
-              fontSize: { xs: 14, md: 16 },
-              color: palette.primaryLight,
-              maxWidth: 520,
-              mx: 'auto',
-              mt: 1.5,
-            }}
-          >
-            {t('rewards.subtitle')}
-          </Typography>
-        </Box>
-      </Box>
+      <PageHeader />
 
       <Box
         sx={{
@@ -536,15 +514,68 @@ export default function RewardsPage() {
             </Typography>
             <Rule
               title={t('rewards.spendWalletTitle')}
-              detail={
-                capPct != null
-                  ? t('rewards.spendWalletDesc', { percent: formatPercent(capPct, formatLocale) })
-                  : t('rewards.spendWalletNoCap')
-              }
+              detail={spendCopy(
+                'rewards.spendWalletDesc',
+                'rewards.spendWalletNoCap',
+                'rewards.spendWalletNoSpend',
+              )}
             />
           </DialogContent>
         )}
       </Dialog>
+    </Box>
+  );
+}
+
+/** Breadcrumb + hero — shared by the loaded page and its load-error state. */
+function PageHeader() {
+  const t = useTranslations();
+  return (
+    <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2.5, md: 2 }, mt: { xs: 2, md: 3 } }}>
+      <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}>
+        <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
+          {t('common.home')}
+        </Link>
+        {` / ${t('loyalty.breadcrumb')}`}
+      </Typography>
+
+      <Box sx={{ textAlign: 'center', mt: { xs: 2, md: 4 }, mb: { xs: 3, md: 4 } }}>
+        <Typography
+          sx={{
+            fontFamily: fontBody,
+            fontSize: 11,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            color: palette.primaryLight,
+          }}
+        >
+          {t('rewards.programLabel')}
+        </Typography>
+        <Typography
+          variant="h1"
+          sx={{
+            fontSize: { xs: 32, md: 52 },
+            lineHeight: { xs: '38px', md: '58px' },
+            fontWeight: 450,
+            mt: 1,
+          }}
+        >
+          {t('loyalty.title')}
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: fontBody,
+            fontSize: { xs: 14, md: 16 },
+            color: palette.primaryLight,
+            maxWidth: 520,
+            mx: 'auto',
+            mt: 1.5,
+          }}
+        >
+          {t('rewards.subtitle')}
+        </Typography>
+      </Box>
     </Box>
   );
 }

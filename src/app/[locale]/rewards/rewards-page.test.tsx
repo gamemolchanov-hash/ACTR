@@ -85,12 +85,27 @@ describe('RewardsPage — launch gate', () => {
     expect(document.body.textContent).not.toContain('rewards.');
   });
 
-  it('redirects home when /config cannot be read (never advertise an unproven programme)', async () => {
+  // A failed request is not a dormant answer: the server layout already proved
+  // the programme is live, so the visitor must be able to retry, not be thrown
+  // out (FBG-469 review).
+  it('offers a retry — and never redirects — when the /config request fails', async () => {
     fetchLoyaltyConfig.mockRejectedValue(new Error('BFF down'));
-    const { container } = render(<RewardsPage />);
+    render(<RewardsPage />);
 
-    await waitFor(() => expect(routerSpy.replace).toHaveBeenCalledWith('/'));
-    expect(container.firstChild).toBeNull();
+    expect(await screen.findByText('loyalty.error')).toBeTruthy();
+    expect(screen.getByText('errors.retry')).toBeTruthy();
+    expect(routerSpy.replace).not.toHaveBeenCalled();
+  });
+
+  it('renders the programme after a successful retry', async () => {
+    fetchLoyaltyConfig.mockRejectedValueOnce(new Error('BFF down')).mockResolvedValue(ACTIVE);
+    render(<RewardsPage />);
+
+    fireEvent.click(await screen.findByText('errors.retry'));
+
+    expect(await screen.findByText('rewards.tiersTitle')).toBeTruthy();
+    expect(screen.queryByText('loyalty.error')).toBeNull();
+    expect(routerSpy.replace).not.toHaveBeenCalled();
   });
 
   it('renders nothing (and does not redirect) while the session is still loading', async () => {
@@ -152,6 +167,27 @@ describe('RewardsPage — member', () => {
     await screen.findByText('rewards.programLabel');
     expect(document.body.textContent).toContain('0,00');
     expect(screen.getByText('rewards.ctaMember')).toBeTruthy();
+  });
+
+  // wallet_cap: 0 is a valid server answer — it must read as "spending is off",
+  // not as the vague "covers part of the order" line (FBG-469 review).
+  it('says wallet spending is off when the server caps it at 0', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({
+      program: 'cashback_wallet',
+      walletCap: 0,
+      tiers: [{ code: 'base', name: 'Base', min_xp: 0, cashback_rate: 0.03 }],
+    } satisfies LoyaltyConfig);
+    asMember({ wallet_balance: 500, xp_active: 0 });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    expect(screen.getByText('rewards.step3DescNoSpend')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('rewards.step3Desc {');
+    expect(screen.queryByText('rewards.step3DescNoCap')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Base' }));
+    expect(await screen.findByText('rewards.spendWalletNoSpend')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('rewards.spendWalletDesc {');
   });
 
   it('renders the page when the programme has no tiers at all', async () => {
