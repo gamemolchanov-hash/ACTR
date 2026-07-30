@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
+import { useLoyaltyProgram } from '@/providers/LoyaltyProgramProvider';
 import { useConsent } from '@/providers/CookieConsentProvider';
 
 const SOCIALS = [
@@ -51,14 +52,12 @@ function SocialIcons() {
   );
 }
 
-/**
- * @param loyaltyProgram - active `/config` loyalty programme, resolved server-side
- *   in the locale layout. The Creator Club link is rendered ONLY for
- *   `cashback_wallet` — the dormant programme stays invisible (FBG-469).
- */
-export function Footer({ loyaltyProgram }: { loyaltyProgram?: string | null }) {
+export function Footer() {
   const t = useTranslations();
   const { openPreferences } = useConsent();
+  // Live programme (uncached /config, see LoyaltyProgramProvider): the Creator
+  // Club link is rendered ONLY for a confirmed `cashback_wallet` (FBG-469).
+  const loyaltyProgram = useLoyaltyProgram();
 
   // Cookie preferences is a button (opens the Tercih Merkezi dialog), not a route,
   // so it lives outside NAV_COL_LEGAL — but shares the footer link styling.

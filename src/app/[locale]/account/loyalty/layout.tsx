@@ -1,5 +1,5 @@
 import { redirect } from '@/i18n/navigation';
-import { getStorefrontConfig } from '@/lib/storefront-config';
+import { getLoyaltyProgram } from '@/lib/storefront-config';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 
 /**
@@ -15,7 +15,8 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
  */
 
 // Live backend state → evaluate per request instead of freezing the build-time
-// answer into the full-route cache (`/config` stays fetch-cached for 300s).
+// answer into the full-route cache; `getLoyaltyProgram()` also skips the data
+// cache, so the gate follows the ARM switch with no TTL (FBG-469 review).
 export const dynamic = 'force-dynamic';
 
 export default async function AccountLoyaltyLayout({
@@ -26,11 +27,11 @@ export default async function AccountLoyaltyLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const { loyaltyProgram, available } = await getStorefrontConfig();
+  const { program, available } = await getLoyaltyProgram();
   // Redirect only on a CONFIRMED other programme. An unreadable /config is
   // "unknown", not "off": bouncing the member here would also cut them off from
   // the page's own error/retry state (FBG-469 review).
-  if (available && loyaltyProgram !== CASHBACK_WALLET_PROGRAM) {
+  if (available && program !== CASHBACK_WALLET_PROGRAM) {
     redirect({ href: '/account', locale });
   }
 

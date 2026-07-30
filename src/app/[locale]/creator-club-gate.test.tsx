@@ -6,20 +6,23 @@
  * a page for a programme that has not launched. Both route layouts now redirect
  * from the server, and /rewards is additionally noindex while dormant.
  *
- * `@/lib/storefront-config` is `server-only`, so it is mocked wholesale (the real
- * module cannot be imported outside a React Server Component). `redirect` throws
- * like the real next-intl/Next implementation, proving rendering actually stops.
+ * The gate reads `getLoyaltyProgram()` — the UNCACHED `/config` reader — so the
+ * route opens and closes the moment the owner flips the programme in ARM; the
+ * 5-minute cached `getStorefrontConfig()` must never drive it (FBG-469 review).
+ * That module is mocked wholesale here (`server-only` cannot load outside an
+ * RSC), and `redirect` throws like the real implementation, proving rendering
+ * actually stops.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const getStorefrontConfig = vi.hoisted(() => vi.fn());
+const getLoyaltyProgram = vi.hoisted(() => vi.fn());
 const redirect = vi.hoisted(() =>
   vi.fn(() => {
     throw new Error('NEXT_REDIRECT');
   }),
 );
 
-vi.mock('@/lib/storefront-config', () => ({ getStorefrontConfig }));
+vi.mock('@/lib/storefront-config', () => ({ getLoyaltyProgram }));
 vi.mock('@/i18n/navigation', () => ({ redirect }));
 vi.mock('next-intl/server', () => ({
   getTranslations: async () => (key: string) => key,
@@ -30,31 +33,19 @@ import AccountLoyaltyLayout from './account/loyalty/layout';
 
 const params = Promise.resolve({ locale: 'tr' });
 
-/** A storefront that answered `/config`. */
-function config(loyaltyProgram: string | null) {
-  getStorefrontConfig.mockResolvedValue({
-    currency: 'TRY',
-    country: 'TR',
-    locale: 'tr-TR',
-    loyaltyProgram,
-    available: true,
-  });
+/** A storefront that answered `/config` (uncached gate read). */
+function config(program: string | null) {
+  getLoyaltyProgram.mockResolvedValue({ program, available: true });
 }
 
 /** `/config` could not be read (dead BFF / 5xx) — programme unknown, not off. */
 function configUnavailable() {
-  getStorefrontConfig.mockResolvedValue({
-    currency: 'TRY',
-    country: null,
-    locale: null,
-    loyaltyProgram: null,
-    available: false,
-  });
+  getLoyaltyProgram.mockResolvedValue({ program: null, available: false });
 }
 
 beforeEach(() => {
   redirect.mockClear();
-  getStorefrontConfig.mockReset();
+  getLoyaltyProgram.mockReset();
 });
 
 describe('/rewards — server dormant gate', () => {

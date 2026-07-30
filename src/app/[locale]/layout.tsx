@@ -9,6 +9,7 @@ import { QueryProvider } from '@/providers/QueryProvider';
 import { CartProvider } from '@/providers/CartProvider';
 import { CookieConsentProvider } from '@/providers/CookieConsentProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
+import { LoyaltyProgramProvider } from '@/providers/LoyaltyProgramProvider';
 import { AuthProvider } from '@/lib/auth-context';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -86,7 +87,6 @@ export default async function LocaleLayout({
     currency,
     country,
     locale: configLocale,
-    loyaltyProgram,
   } = await getStorefrontConfig();
   const formatLocale = formatLocaleFromCountry(country, configLocale ?? undefined);
 
@@ -116,11 +116,13 @@ export default async function LocaleLayout({
                     <CartProvider>
                       <CookieConsentProvider>
                         <GeoLocaleInit currentLocale={locale} />
-                        <Suspense>
-                          <Header loyaltyProgram={loyaltyProgram} />
-                        </Suspense>
-                        <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
-                        <Footer loyaltyProgram={loyaltyProgram} />
+                        <LoyaltyProgramProvider>
+                          <Suspense>
+                            <Header />
+                          </Suspense>
+                          <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
+                          <Footer />
+                        </LoyaltyProgramProvider>
                       </CookieConsentProvider>
                     </CartProvider>
                   </AuthProvider>

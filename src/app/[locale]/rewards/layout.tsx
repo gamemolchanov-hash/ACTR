@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from '@/i18n/navigation';
 import { SITE_URL } from '@/lib/seo';
-import { getStorefrontConfig } from '@/lib/storefront-config';
+import { getLoyaltyProgram } from '@/lib/storefront-config';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 
 /**
@@ -21,7 +21,8 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 // The gate depends on live backend state, so it must be evaluated per request:
 // a build-time prerender would freeze today's dormant answer into the full-route
 // cache and keep redirecting for up to `expire` after the owner launches the
-// programme (and vice versa). `/config` itself stays fetch-cached (300s).
+// programme (and vice versa). `getLoyaltyProgram()` skips the data cache too, so
+// there is no TTL between the ARM switch and this route opening/closing.
 export const dynamic = 'force-dynamic';
 
 /**
@@ -32,10 +33,10 @@ export const dynamic = 'force-dynamic';
  * error/retry out of reach (FBG-469 review).
  */
 async function readProgramme(): Promise<'live' | 'dormant' | 'unknown'> {
-  // Same already-cached /config call the locale layout makes — no extra request.
-  const { loyaltyProgram, available } = await getStorefrontConfig();
+  // Uncached read: the gate must follow the ARM switch immediately (FBG-469 review).
+  const { program, available } = await getLoyaltyProgram();
   if (!available) return 'unknown';
-  return loyaltyProgram === CASHBACK_WALLET_PROGRAM ? 'live' : 'dormant';
+  return program === CASHBACK_WALLET_PROGRAM ? 'live' : 'dormant';
 }
 
 export async function generateMetadata({

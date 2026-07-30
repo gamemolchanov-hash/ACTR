@@ -4,9 +4,10 @@
  *
  * The storefront runs `points_discount` until the owner launches Creator Club,
  * and a visible link to a dormant programme is the bug class FBG-384 was
- * reopened for. `loyaltyProgram` is resolved server-side in the locale layout,
- * so the header/footer must render the link ONLY for `cashback_wallet` — and
- * never when the prop is missing (BFF blip → no descriptor).
+ * reopened for. The programme comes from `LoyaltyProgramProvider` (an uncached
+ * `/config` read — a 5-minute cached value kept advertising a switched-off
+ * programme, FBG-469 review), so the header/footer render the link ONLY for
+ * `cashback_wallet` — never while it is unknown.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -41,6 +42,13 @@ vi.mock('@/providers/CurrencyProvider', () => ({
 vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ customer: null, signOut: vi.fn() }) }));
 vi.mock('@/lib/api', () => ({ fetchProducts: vi.fn().mockResolvedValue({ data: [] }) }));
 
+// The chrome reads the LIVE programme through the provider (uncached /config),
+// not a cached server value — see LoyaltyProgramProvider.
+const program = vi.hoisted(() => ({ value: null as string | null }));
+vi.mock('@/providers/LoyaltyProgramProvider', () => ({
+  useLoyaltyProgram: () => program.value,
+}));
+
 import { Header } from '../Header';
 import { Footer } from '../Footer';
 
@@ -49,26 +57,30 @@ const rewardsLinks = () =>
 
 afterEach(() => {
   cleanup();
+  program.value = null;
 });
 
 describe.each([
-  ['Header', (program?: string | null) => <Header loyaltyProgram={program} />],
-  ['Footer', (program?: string | null) => <Footer loyaltyProgram={program} />],
+  ['Header', () => <Header />],
+  ['Footer', () => <Footer />],
 ])('%s — /rewards link gate', (_name, renderChrome) => {
   it('links to /rewards when the cashback wallet programme is live', () => {
-    render(renderChrome('cashback_wallet'));
+    program.value = 'cashback_wallet';
+    render(renderChrome());
     expect(rewardsLinks().length).toBeGreaterThan(0);
     expect(screen.getAllByText('rewards.navLabel').length).toBeGreaterThan(0);
   });
 
   it('renders no /rewards link for the dormant points_discount programme', () => {
-    render(renderChrome('points_discount'));
+    program.value = 'points_discount';
+    render(renderChrome());
     expect(rewardsLinks()).toHaveLength(0);
     expect(screen.queryByText('rewards.navLabel')).toBeNull();
   });
 
-  it('renders no /rewards link when the programme is unknown', () => {
-    render(renderChrome(null));
+  it('renders no /rewards link while the programme is unknown (loading / failed)', () => {
+    program.value = null;
+    render(renderChrome());
     expect(rewardsLinks()).toHaveLength(0);
   });
 });
