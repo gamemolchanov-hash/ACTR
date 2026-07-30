@@ -2,28 +2,40 @@
  * FBG-472 — the Creator Club entry and the header's Suspense boundary.
  *
  * The locale layout renders `<Suspense><Header/></Suspense>` (the header needs a
- * boundary for `useSearchParams`) but the `<Footer/>` bare. The programme they
- * both gate on is fetched, so it is never in the server HTML — it is published
- * by `LoyaltyProgramProvider` about a second into the page's life. Two things
- * follow, and this file pins both against the REAL header/footer, because
- * `render()` cannot see either: it mounts on the client, where there is no
- * server HTML to disagree with and no boundary to hydrate late.
+ * boundary for `useSearchParams`) but the `<Footer/>` bare, and the programme
+ * they both gate on is fetched, so it is never in the server HTML — it is
+ * published by `LoyaltyProgramProvider` about a second into the page's life.
  *
- *  1. While the boundary is dehydrated the header is inert server HTML. React
- *     cannot render into a subtree it has not hydrated, so the entry the footer
- *     already shows cannot reach the header — and no client navigation, tab
- *     refocus or revalidation changes that, which is exactly how the reported
- *     "header stuck without the entry, footer fine" state looks and why it looks
- *     permanent. It lasts as long as the header's chunk does. (This is a
- *     property of the boundary, not of the fix: it holds before and after.)
+ * What `next dev` actually serves for that layout, measured on /en:
  *
- *  2. When the boundary finally hydrates it does so against HTML written before
- *     the answer arrived. Ungated, the header renders the entry the server never
+ *     <!--$?--><template id="B:0"></template><!--/$-->     <- header boundary
+ *     ...<footer …>…</footer>…                             <- inline, no boundary
+ *     <div hidden id="S:0"><header class="…MuiAppBar…">…    <- streamed later
+ *
+ * The header is a *pending* streamed boundary: its markup is not where the
+ * header goes, it arrives at the end of the document and React splices it in.
+ * So the header's subtree is dehydrated for as long as that takes and hydrates
+ * in its own later pass, while the footer hydrates with the provider. That is
+ * the shape these tests reproduce — the boundary's content withheld until the
+ * test releases it — against the REAL header/footer, because `render()` cannot
+ * see any of it: it mounts on the client, with no server HTML to disagree with.
+ *
+ * Two consequences, both pinned below:
+ *
+ *  1. While the boundary is dehydrated the header is inert markup. React cannot
+ *     render into a subtree it has not hydrated, so the entry the footer already
+ *     shows cannot reach the header, and no client navigation, tab refocus or
+ *     revalidation changes that. This is a property of the boundary, not of the
+ *     gate — it holds before and after the fix.
+ *  2. When the boundary does hydrate it hydrates against markup written before
+ *     the answer arrived. Ungated, the header renders an entry the server never
  *     wrote — "server rendered text didn't match the client" on the nav item —
- *     and React throws the boundary away and rebuilds it. React does recover the
- *     entry afterwards (verified against the pre-fix provider), so the tear is
- *     the defect here, not a second cause of (1). Gating the programme on the
- *     consumer's own hydration removes it: test 2 is what fails without the fix.
+ *     and React throws the boundary away and rebuilds it. Measured against the
+ *     pre-fix provider, that rebuild RESTORES the entry (test 2 asserts the
+ *     post-`onRecoverableError` state, and it holds with and without the fix),
+ *     so the tear does not leave the header permanently without the entry. The
+ *     tear itself is the defect, and the hydration gate is what removes it:
+ *     test 3 is the one that fails without the fix.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -187,6 +199,33 @@ describe('Creator Club entry — /config resolving mid-hydration (FBG-472)', () 
     // Only hydrating the boundary can move it.
     landHeaderChunk();
     await until('the header entry to appear', () => headerEntries() > 0);
+  });
+
+  it('keeps the entry once the boundary has hydrated, rebuilt or not', async () => {
+    answers(CASHBACK_WALLET_PROGRAM);
+    const { landHeaderChunk, navigate } = hydrateChromeWithPendingHeader();
+
+    await until('the footer to show the entry', () => footerEntries() > 0);
+    landHeaderChunk();
+    await until('the header entry to appear', () => headerEntries() > 0);
+
+    // The state the report called permanent, asserted directly: once the header
+    // has hydrated — without the gate that means after React reported the
+    // mismatch and regenerated the boundary — the entry IS there. So the tear
+    // does not strand the header without it; this assertion holds both with and
+    // without the fix, which is why the tear is treated as the defect and not as
+    // a cause of a permanently entry-less header.
+    expect(headerEntries()).toBeGreaterThan(0);
+
+    // And it survives client navigations, whose revalidations write the same
+    // programme string back (an identical state React does not re-render for).
+    for (const next of ['/catalog', '/contacts', '/']) {
+      pathname.value = next;
+      pastThrottle();
+      navigate();
+      for (let i = 0; i < 5; i++) await macrotask();
+      expect(headerEntries()).toBeGreaterThan(0);
+    }
   });
 
   it('hydrates the header without tearing when /config answered first', async () => {

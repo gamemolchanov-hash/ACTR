@@ -120,20 +120,20 @@ function useHydrated(): boolean {
  * The programme arrives from a fetch, so it is never known during the server
  * render: the HTML always carries the no-link variant, and it is published about
  * a second into the page's life. `<Footer>` hydrates with this provider and
- * follows it immediately. `<Header>` does not — it sits inside a Suspense
- * boundary (it needs one for `useSearchParams`), so its subtree hydrates in a
- * separate, later pass, and until it does it is inert server HTML that no
- * context update, client navigation or revalidation can render into. That gap is
- * the reported "footer has the entry, header does not", and it lasts as long as
- * the header's chunk does.
+ * follows it immediately. `<Header>` does not: `next dev` serves it as a pending
+ * streamed Suspense boundary (`<!--$?--><template id="B:0">`, content spliced in
+ * from the end of the document — see CreatorClubLinks.hydration.test.tsx for the
+ * measurement), so its subtree hydrates in its own later pass. Until it does it
+ * is inert markup that no context update, navigation or revalidation can render
+ * into, which is why the entry reaches the footer well before the header.
  *
  * Publishing the programme to the hydration render on top of that makes the
- * header tear when the gap closes: it hydrates against HTML written before the
+ * header TEAR when its turn comes: it hydrates against markup written before the
  * answer, React reports "server rendered text didn't match the client" on the
- * nav entry and throws the boundary away to rebuild it. (It does recover the
- * entry afterwards — measured against the real header, see
- * CreatorClubLinks.hydration.test.tsx — so the tear is the defect, not a second
- * cause of the gap.)
+ * nav entry and throws the boundary away to rebuild it. That rebuild does put
+ * the entry back — measured against the real header both before and after this
+ * gate — so the tear is the defect to remove here, not a mechanism that strands
+ * the header without the entry.
  *
  * Gating on hydration removes the tear at its root: the first client render of
  * every consumer reproduces what the server rendered for the gated entry, so no
