@@ -82,6 +82,10 @@ afterEach(() => {
   cleanup();
 });
 
+/** Every anchor pointing at the public Creator Club page. */
+const rewardsLinks = () =>
+  Array.from(document.querySelectorAll('a')).filter((a) => a.getAttribute('href') === '/rewards');
+
 describe('LoyaltyPage — /config failure', () => {
   it('keeps the page usable with a retry instead of blanking it', async () => {
     fetchLoyaltyConfig.mockRejectedValue(new Error('BFF down'));
@@ -94,6 +98,9 @@ describe('LoyaltyPage — /config failure', () => {
     expect(routerSpy.replace).not.toHaveBeenCalled();
     // The ledger below is a separate request and still renders its own state.
     expect(screen.getByText('loyalty.historyTitle')).toBeTruthy();
+    // ...but the programme is unconfirmed, so nothing links to /rewards.
+    expect(rewardsLinks()).toHaveLength(0);
+    expect(screen.queryByText('rewards.accountLink')).toBeNull();
   });
 
   it('loads the tier ladder after a successful retry', async () => {
@@ -106,6 +113,8 @@ describe('LoyaltyPage — /config failure', () => {
     expect(await screen.findByRole('progressbar')).toBeTruthy();
     expect(screen.getByText('Welcome')).toBeTruthy();
     expect(screen.queryByText('loyalty.error')).toBeNull();
+    // The programme is confirmed now → the /rewards link appears.
+    expect(rewardsLinks()).toHaveLength(1);
   });
 });
 
@@ -129,5 +138,15 @@ describe('LoyaltyPage — launch gate backstop', () => {
     expect(await screen.findByText('Welcome')).toBeTruthy();
     expect(screen.queryByText('loyalty.error')).toBeNull();
     expect(routerSpy.replace).not.toHaveBeenCalled();
+    expect(rewardsLinks()).toHaveLength(1);
+  });
+
+  it('renders no /rewards link while the descriptor is still loading', async () => {
+    // A pending request is "unknown" too — the page waits instead of linking.
+    fetchLoyaltyConfig.mockReturnValue(new Promise(() => {}));
+    render(<LoyaltyPage />);
+
+    await waitFor(() => expect(fetchLoyaltyConfig).toHaveBeenCalled());
+    expect(rewardsLinks()).toHaveLength(0);
   });
 });

@@ -193,16 +193,21 @@ export default function LoyaltyPage() {
             <CreatorTierBar tiers={tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
           )}
 
-          <Box>
-            <Button
-              component={Link}
-              href="/rewards"
-              endIcon={<ArrowForward />}
-              sx={{ fontFamily: fontMain, fontSize: 15, color: palette.primary, px: 0 }}
-            >
-              {tRewards('accountLink')}
-            </Button>
-          </Box>
+          {/* Only a CONFIRMED live programme may link to /rewards. In the
+              config-error state the programme is unknown, and /rewards would
+              then be a link to a route that may redirect away (FBG-469 review). */}
+          {program === CASHBACK_WALLET_PROGRAM && (
+            <Box>
+              <Button
+                component={Link}
+                href="/rewards"
+                endIcon={<ArrowForward />}
+                sx={{ fontFamily: fontMain, fontSize: 15, color: palette.primary, px: 0 }}
+              >
+                {tRewards('accountLink')}
+              </Button>
+            </Box>
+          )}
         </Box>
 
         {/* Activity ledger */}

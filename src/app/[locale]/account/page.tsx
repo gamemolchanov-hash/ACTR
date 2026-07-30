@@ -7,7 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { fetchLoyaltyConfig } from '@/lib/loyalty';
+import { CASHBACK_WALLET_PROGRAM, fetchLoyaltyConfig } from '@/lib/loyalty';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
@@ -42,7 +42,10 @@ export default function AccountPage() {
   }, [customer]);
 
   const menuItems = [
-    ...(loyaltyProgram === 'cashback_wallet'
+    // Confirmed live programme only: null covers both "another programme" and
+    // "could not ask" (initial state / failed request), so the entry stays hidden
+    // until Creator Club is proven active (FBG-469 review).
+    ...(loyaltyProgram === CASHBACK_WALLET_PROGRAM
       ? [
           {
             label: t('loyalty'),
