@@ -18,10 +18,14 @@ vi.mock('axios', () => ({
 
 import {
   tierProgress,
+  tierSegments,
+  ratePercent,
   mergeLedger,
   adaptTier,
   adaptWalletEntry,
   adaptLoyaltyEntry,
+  expiringSoon,
+  fetchLoyaltyConfig,
   fetchLoyaltyLedger,
   type LoyaltyTier,
   type LoyaltyLedgerEntry,
@@ -84,6 +88,146 @@ describe('tierProgress', () => {
     const p = tierProgress(Number.NaN, TIERS);
     expect(p.current?.code).toBe('welcome');
     expect(p.percent).toBe(0);
+  });
+});
+
+describe('tierSegments (FBG-469 — segmented bar, any tier count)', () => {
+  it('renders one preview segment per tier for a guest (no fill, no lock/current)', () => {
+    const segs = tierSegments(null, TIERS);
+    expect(segs.map((s) => s.state)).toEqual(['preview', 'preview', 'preview']);
+    expect(segs.every((s) => s.fillPercent === 0)).toBe(true);
+  });
+
+  it('fills passed tiers fully and the current tier partially', () => {
+    const segs = tierSegments(150, TIERS);
+    expect(segs.map((s) => s.state)).toEqual(['unlocked', 'current', 'locked']);
+    // welcome→silver is behind (100%), silver→gold is a quarter done, gold untouched.
+    expect(segs.map((s) => s.fillPercent)).toEqual([100, 25, 0]);
+  });
+
+  it('marks the top tier current and full once its threshold is reached', () => {
+    const segs = tierSegments(500, TIERS);
+    expect(segs.map((s) => s.state)).toEqual(['unlocked', 'unlocked', 'current']);
+    expect(segs.map((s) => s.fillPercent)).toEqual([100, 100, 100]);
+  });
+
+  it('starts a fresh member on the first tier with an empty bar', () => {
+    const segs = tierSegments(0, TIERS);
+    expect(segs.map((s) => s.state)).toEqual(['current', 'locked', 'locked']);
+    expect(segs.map((s) => s.fillPercent)).toEqual([0, 0, 0]);
+  });
+
+  it('pins the current tier by /me tier_code even when XP lags behind', () => {
+    const segs = tierSegments(50, TIERS, 'gold');
+    expect(segs.map((s) => s.state)).toEqual(['unlocked', 'unlocked', 'current']);
+  });
+
+  // Acceptance criterion 3: the bar is built from the /config array — a 2- or
+  // 4-tier programme must work with no code change.
+  it('works with a 2-tier programme', () => {
+    const two: LoyaltyTier[] = [
+      { code: 'base', name: 'Base', min_xp: 0 },
+      { code: 'pro', name: 'Pro', min_xp: 50 },
+    ];
+    const segs = tierSegments(25, two);
+    expect(segs).toHaveLength(2);
+    expect(segs.map((s) => s.state)).toEqual(['current', 'locked']);
+    expect(segs.map((s) => s.fillPercent)).toEqual([50, 0]);
+  });
+
+  it('works with a 4-tier programme', () => {
+    const four: LoyaltyTier[] = [
+      { code: 'a', name: 'A', min_xp: 0 },
+      { code: 'b', name: 'B', min_xp: 100 },
+      { code: 'c', name: 'C', min_xp: 200 },
+      { code: 'd', name: 'D', min_xp: 400 },
+    ];
+    const segs = tierSegments(300, four);
+    expect(segs).toHaveLength(4);
+    expect(segs.map((s) => s.state)).toEqual(['unlocked', 'unlocked', 'current', 'locked']);
+    expect(segs.map((s) => s.fillPercent)).toEqual([100, 100, 50, 0]);
+  });
+
+  it('sorts unsorted config tiers before computing the bar', () => {
+    const segs = tierSegments(150, [TIERS[2], TIERS[0], TIERS[1]]);
+    expect(segs.map((s) => s.tier.code)).toEqual(['welcome', 'silver', 'gold']);
+  });
+
+  it('returns no segments without usable tiers, and never crashes on junk XP', () => {
+    expect(tierSegments(100, [])).toEqual([]);
+    expect(tierSegments(Number.NaN, TIERS).map((s) => s.state)).toEqual([
+      'current',
+      'locked',
+      'locked',
+    ]);
+  });
+});
+
+describe('ratePercent', () => {
+  it('normalises a fraction, tolerates a percent and rejects junk', () => {
+    expect(ratePercent(0.05)).toBe(5);
+    expect(ratePercent(1)).toBe(100);
+    expect(ratePercent(8)).toBe(8);
+    expect(ratePercent(0)).toBeNull();
+    expect(ratePercent(undefined)).toBeNull();
+    expect(ratePercent(null)).toBeNull();
+    expect(ratePercent(Number.NaN)).toBeNull();
+  });
+});
+
+describe('expiringSoon', () => {
+  const NOW = Date.parse('2026-07-30T00:00:00Z');
+
+  it('coerces a string amount and rounds the remaining days up', () => {
+    expect(
+      expiringSoon({ amount: '120', expires_at: '2026-08-13T00:00:00Z' }, NOW),
+    ).toEqual({ xp: 120, days: 14 });
+  });
+
+  it('never reports negative days for XP that already lapsed', () => {
+    expect(expiringSoon({ amount: 5, expires_at: '2026-07-01T00:00:00Z' }, NOW)).toEqual({
+      xp: 5,
+      days: 0,
+    });
+  });
+
+  it('returns null when nothing is expiring, and tolerates a junk date', () => {
+    expect(expiringSoon(null, NOW)).toBeNull();
+    expect(expiringSoon(undefined, NOW)).toBeNull();
+    expect(expiringSoon({ amount: 0, expires_at: '2026-08-13T00:00:00Z' }, NOW)).toBeNull();
+    expect(expiringSoon({ amount: 10, expires_at: 'not-a-date' }, NOW)).toEqual({ xp: 10, days: 0 });
+  });
+});
+
+describe('fetchLoyaltyConfig', () => {
+  it('reads program, tiers and wallet_cap from the /config descriptor', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          loyalty_program: {
+            program: 'cashback_wallet',
+            wallet_cap: 0.4,
+            tiers: [
+              { code: 'base', min_xp: 0, cashback_rate: 0.03 },
+              { code: 'gold', min_xp: '500' },
+              { code: 'broken' },
+            ],
+          },
+        },
+      },
+    });
+
+    const cfg = await fetchLoyaltyConfig();
+    expect(cfg.program).toBe('cashback_wallet');
+    expect(cfg.walletCap).toBe(0.4);
+    // The tier without a threshold is dropped rather than rendered as 0 XP.
+    expect(cfg.tiers.map((t) => t.code)).toEqual(['base', 'gold']);
+  });
+
+  it('degrades to an empty dormant config when the descriptor is missing', async () => {
+    mockGet.mockResolvedValue({ data: { data: {} } });
+    const cfg = await fetchLoyaltyConfig();
+    expect(cfg).toEqual({ program: '', tiers: [], walletCap: null });
   });
 });
 
@@ -194,23 +338,40 @@ describe('fetchLoyaltyLedger (two-source merge + resilience)', () => {
   });
 });
 
-describe('loyalty i18n key parity (EN + TR)', () => {
-  const enKeys = Object.keys(enMessages).filter((k) => k.startsWith('loyalty.'));
-  const trKeys = Object.keys(trMessages).filter((k) => k.startsWith('loyalty.'));
+describe.each([['loyalty.'], ['rewards.']])('%s i18n key parity (EN + TR)', (prefix) => {
+  const enKeys = Object.keys(enMessages).filter((k) => k.startsWith(prefix));
+  const trKeys = Object.keys(trMessages).filter((k) => k.startsWith(prefix));
 
-  it('has loyalty.* keys in en.json', () => {
+  it('has keys in en.json', () => {
     expect(enKeys.length).toBeGreaterThan(0);
   });
 
-  it('EN and TR have identical loyalty.* key sets', () => {
+  it('EN and TR have identical key sets', () => {
     expect(enKeys.filter((k) => !(k in (trMessages as Record<string, string>)))).toHaveLength(0);
     expect(trKeys.filter((k) => !(k in (enMessages as Record<string, string>)))).toHaveLength(0);
   });
 
-  it('no loyalty.* value is empty in either locale', () => {
+  it('no value is empty in either locale', () => {
     for (const k of enKeys) {
       expect((enMessages as Record<string, string>)[k]).toBeTruthy();
       expect((trMessages as Record<string, string>)[k]).toBeTruthy();
     }
+  });
+
+  // Guards against EN copy pasted into tr.json (the failure mode that made the
+  // Tolgee round-trip mandatory). Brand names and pure-number formats are the
+  // only legitimately identical values — extend the allow-list, never the test.
+  it('EN and TR copy actually differ (no untranslated leftovers beyond brand names)', () => {
+    const BRAND = new Set(
+      ['navLabel', 'breadcrumb', 'title', 'metaTitle', 'xpUnit', 'xpThreshold'].map(
+        (k) => `${prefix}${k}`,
+      ),
+    );
+    const same = enKeys.filter(
+      (k) =>
+        !BRAND.has(k) &&
+        (enMessages as Record<string, string>)[k] === (trMessages as Record<string, string>)[k],
+    );
+    expect(same).toEqual([]);
   });
 });

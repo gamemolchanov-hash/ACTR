@@ -86,6 +86,7 @@ export default async function LocaleLayout({
     currency,
     country,
     locale: configLocale,
+    loyaltyProgram,
   } = await getStorefrontConfig();
   const formatLocale = formatLocaleFromCountry(country, configLocale ?? undefined);
 
@@ -116,10 +117,10 @@ export default async function LocaleLayout({
                       <CookieConsentProvider>
                         <GeoLocaleInit currentLocale={locale} />
                         <Suspense>
-                          <Header />
+                          <Header loyaltyProgram={loyaltyProgram} />
                         </Suspense>
                         <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
-                        <Footer />
+                        <Footer loyaltyProgram={loyaltyProgram} />
                       </CookieConsentProvider>
                     </CartProvider>
                   </AuthProvider>

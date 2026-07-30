@@ -30,6 +30,7 @@ import { fetchProducts, type Product } from '@/lib/api';
 import { imgThumb } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
+import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 import { persistLocalePreference } from '@/lib/consent';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
@@ -37,7 +38,13 @@ function productHref(p: Product) {
   return `/catalog/${p.category?.slug ?? 'all'}/${p.slug ?? p.id}`;
 }
 
-export function Header() {
+/**
+ * @param loyaltyProgram - active `/config` loyalty programme, resolved server-side
+ *   in the locale layout. The Creator Club nav entry appears ONLY for
+ *   `cashback_wallet`; while the programme is dormant the storefront must not
+ *   link to /rewards at all (FBG-469).
+ */
+export function Header({ loyaltyProgram }: { loyaltyProgram?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const nextRouter = useNextRouter();
@@ -62,6 +69,9 @@ export function Header() {
   const NAV_ITEMS = [
     { label: t('nav.catalog'), href: '/catalog' },
     { label: t('nav.new'), href: '/catalog?sort=-date_created' },
+    ...(loyaltyProgram === CASHBACK_WALLET_PROGRAM
+      ? [{ label: t('rewards.navLabel'), href: '/rewards' }]
+      : []),
     { label: t('nav.contacts'), href: '/contacts' },
   ];
 

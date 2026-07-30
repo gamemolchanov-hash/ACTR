@@ -5,11 +5,8 @@ import {
   Box,
   Typography,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
-  LinearProgress,
   Table,
   TableBody,
   TableCell,
@@ -18,16 +15,20 @@ import {
   TableRow,
   Paper,
 } from '@mui/material';
-import { ArrowBack, Whatshot } from '@mui/icons-material';
+import { ArrowBack, ArrowForward } from '@mui/icons-material';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
+import { CreatorTierBar, CreatorWalletCard } from '@/components/CreatorClub';
 import {
+  CASHBACK_WALLET_PROGRAM,
+  expiringSoon,
   fetchLoyaltyConfig,
   fetchLoyaltyLedger,
+  ratePercent,
   tierProgress,
   type LoyaltyTier,
   type LoyaltyLedgerEntry,
@@ -44,6 +45,7 @@ export default function LoyaltyPage() {
   const t = useTranslations('loyalty');
   const tAccount = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tRewards = useTranslations('rewards');
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
@@ -76,7 +78,7 @@ export default function LoyaltyPage() {
   // Dormant until the storefront runs cashback_wallet: the page must not exist
   // for shoppers before the programme launches (FBG-384 review).
   useEffect(() => {
-    if (program != null && program !== 'cashback_wallet') router.replace('/account');
+    if (program != null && program !== CASHBACK_WALLET_PROGRAM) router.replace('/account');
   }, [program, router]);
 
   useEffect(() => {
@@ -96,21 +98,14 @@ export default function LoyaltyPage() {
   }, [customer, page]);
 
   if (authLoading || !customer) return null;
-  if (program !== 'cashback_wallet') return null;
+  if (program !== CASHBACK_WALLET_PROGRAM) return null;
 
   const xpActive = loyalty?.xp_active ?? 0;
   const progress = tierProgress(xpActive, tiers, loyalty?.tier_code);
   const balance = loyalty?.wallet_balance ?? 0;
-  const rawExpiring = loyalty?.xp_expiring_soon;
-  // Real BFF shape: {amount, expires_at} — derive the day count client-side.
-  const expiringXp = rawExpiring ? Number(rawExpiring.amount) || 0 : 0;
-  const expiringDays = rawExpiring?.expires_at
-    ? Math.max(0, Math.ceil((Date.parse(rawExpiring.expires_at) - Date.now()) / 86_400_000))
-    : 0;
-  const rawRate = loyalty?.cashback_rate ?? progress.current?.cashback_rate;
-  // Rate is a fraction (0.05) per the vault spec; tolerate a percent (5) too.
-  const cashbackPct =
-    rawRate != null && rawRate > 0 ? Math.round(rawRate <= 1 ? rawRate * 100 : rawRate) : null;
+  // Real BFF shape: {amount, expires_at} — the day count is derived client-side.
+  const expiring = expiringSoon(loyalty?.xp_expiring_soon);
+  const cashbackPct = ratePercent(loyalty?.cashback_rate ?? progress.current?.cashback_rate);
   const tierLabel =
     progress.current?.name ??
     loyalty?.tier_code ??
@@ -160,101 +155,28 @@ export default function LoyaltyPage() {
       </Box>
 
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: { xs: 2.5, md: 2 }, mb: { xs: 4, md: 7 } }}>
-        {/* Tier + wallet summary */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          <Card
-            sx={{ bgcolor: palette.bgLight, borderRadius: '20px', boxShadow: 'none', border: 'none' }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography
-                sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
-              >
-                {t('tierLabel')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                <Typography
-                  sx={{ fontFamily: fontMain, fontSize: 26, fontWeight: 500, color: palette.primary }}
-                >
-                  {tierLabel}
-                </Typography>
-                {cashbackPct != null && (
-                  <Chip
-                    label={t('cashback', { rate: cashbackPct })}
-                    size="small"
-                    sx={{ bgcolor: palette.primary, color: 'white', fontFamily: fontBody }}
-                  />
-                )}
-              </Box>
+        {/* Tier + wallet summary — same visuals as the public /rewards page (FBG-469) */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+          <CreatorWalletCard
+            balance={balance}
+            xpActive={xpActive}
+            tierName={tierLabel}
+            cashbackPct={cashbackPct}
+            expiring={expiring}
+          />
 
-              {progress.current && (
-                <Box sx={{ mt: 2 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={progress.percent}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      bgcolor: palette.primaryLight,
-                      '& .MuiLinearProgress-bar': { bgcolor: palette.primary, borderRadius: 4 },
-                    }}
-                  />
-                  <Typography
-                    sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mt: 1 }}
-                  >
-                    {progress.next && progress.xpToNext != null
-                      ? t('nextTier', {
-                          xp: nfXp.format(progress.xpToNext),
-                          tier: progress.next.name,
-                        })
-                      : t('maxTier')}
-                  </Typography>
-                </Box>
-              )}
+          <CreatorTierBar tiers={tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
 
-              {expiringXp > 0 && (
-                <Chip
-                  icon={<Whatshot sx={{ color: `${DEBIT} !important` }} />}
-                  label={t('expiringBadge', { xp: nfXp.format(expiringXp), days: expiringDays })}
-                  sx={{
-                    mt: 2,
-                    bgcolor: 'transparent',
-                    border: `1px solid ${DEBIT}`,
-                    color: DEBIT,
-                    fontFamily: fontBody,
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card
-            sx={{ bgcolor: palette.bgLight, borderRadius: '20px', boxShadow: 'none', border: 'none' }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography
-                sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 0.5 }}
-              >
-                {t('walletLabel')}
-              </Typography>
-              <Typography
-                sx={{ fontFamily: fontMain, fontSize: 34, fontWeight: 500, color: palette.primary }}
-              >
-                {fmtMoney(balance, currency, formatLocale)}
-              </Typography>
-              <Typography
-                sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mt: 0.5 }}
-              >
-                {t('walletHint')}
-              </Typography>
-            </CardContent>
-          </Card>
+          <Box>
+            <Button
+              component={Link}
+              href="/rewards"
+              endIcon={<ArrowForward />}
+              sx={{ fontFamily: fontMain, fontSize: 15, color: palette.primary, px: 0 }}
+            >
+              {tRewards('accountLink')}
+            </Button>
+          </Box>
         </Box>
 
         {/* Activity ledger */}

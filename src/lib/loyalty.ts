@@ -14,7 +14,7 @@
  * endpoints; callers must treat a 404/empty response as "no data", never a crash.
  */
 import { api } from './api';
-import { bearerHeader } from './auth';
+import { bearerHeader, type XpExpiringSoon } from './auth';
 import { ENDPOINTS, currencyHeader } from './arm-contract';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +31,14 @@ export interface LoyaltyTier {
   cashback_rate?: number;
 }
 
+/**
+ * The one program code that switches Creator Club UI on. Every Creator Club
+ * surface (the /rewards page, the account page entry, the header/footer links)
+ * is gated on it — the live storefront runs `points_discount` until the owner
+ * launches the programme, and an unlaunched programme must stay invisible.
+ */
+export const CASHBACK_WALLET_PROGRAM = 'cashback_wallet';
+
 /** Progress of the member toward the next tier. */
 export interface TierProgress {
   current: LoyaltyTier | null;
@@ -39,6 +47,17 @@ export interface TierProgress {
   percent: number;
   /** XP remaining to reach `next`, or null at the top tier / with no config. */
   xpToNext: number | null;
+}
+
+/** How one tier reads for the viewer (drives the lock / check / "you are here"). */
+export type TierState = 'preview' | 'locked' | 'unlocked' | 'current';
+
+/** One tier's slice of the segmented progress bar (FBG-469). */
+export interface TierSegment {
+  tier: LoyaltyTier;
+  state: TierState;
+  /** 0..100 fill of THIS tier's own segment (100 once the next tier is reached). */
+  fillPercent: number;
 }
 
 /** One merged ledger row (a wallet money movement OR a loyalty XP movement). */
@@ -138,6 +157,104 @@ export function mergeLedger(entries: LoyaltyLedgerEntry[]): LoyaltyLedgerEntry[]
   return [...entries].sort((a, b) => ts(b.date) - ts(a.date));
 }
 
+/** Σ active-XP, clamped to a usable number (BFF may omit it / send junk). */
+function safeXp(xpActive: number): number {
+  return Number.isFinite(xpActive) ? Math.max(0, xpActive) : 0;
+}
+
+/** Configured tiers, lowest threshold first (junk thresholds dropped). */
+function sortTiers(tiers: LoyaltyTier[]): LoyaltyTier[] {
+  return [...tiers].filter((t) => Number.isFinite(t.min_xp)).sort((a, b) => a.min_xp - b.min_xp);
+}
+
+/**
+ * Index of the member's current tier in `sorted`: pinned by `currentCode` (from
+ * /me `tier_code`) when it matches a configured code, else the highest tier
+ * whose threshold the member has reached (never below the first tier).
+ */
+function resolveCurrentIndex(xp: number, sorted: LoyaltyTier[], currentCode?: string): number {
+  const pinned = currentCode ? sorted.findIndex((t) => t.code === currentCode) : -1;
+  if (pinned !== -1) return pinned;
+  let idx = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    if (xp >= sorted[i].min_xp) idx = i;
+  }
+  return idx;
+}
+
+/**
+ * Normalise an ARM rate to whole percent: the spec sends a fraction (0.05 → 5),
+ * but a percent (5) is tolerated too. Returns null for absent/zero/junk rates so
+ * callers hide the badge instead of rendering "0%".
+ */
+export function ratePercent(rate?: number | null): number | null {
+  if (rate == null || !Number.isFinite(rate) || rate <= 0) return null;
+  return Math.round(rate <= 1 ? rate * 100 : rate);
+}
+
+/**
+ * Shape the `/me` `xp_expiring_soon` descriptor for the burn badge: XP amount
+ * (may arrive as a string) plus whole days left, never negative. Returns null
+ * when nothing is expiring, so callers simply skip the badge.
+ */
+export function expiringSoon(
+  raw?: XpExpiringSoon | null,
+  now: number = Date.now(),
+): { xp: number; days: number } | null {
+  const xp = raw ? toNum(raw.amount) : 0;
+  if (xp <= 0) return null;
+  const expiresAt = raw?.expires_at ? Date.parse(raw.expires_at) : Number.NaN;
+  const days = Number.isFinite(expiresAt)
+    ? Math.max(0, Math.ceil((expiresAt - now) / 86_400_000))
+    : 0;
+  return { xp, days };
+}
+
+/**
+ * Split the configured tiers into the segments of the Creator Club progress bar
+ * (FBG-469). Purely derived from `/config` — the number of tiers, their names and
+ * their thresholds all come from the backend, so a 2- or 4-tier programme renders
+ * without a code change.
+ *
+ * `xpActive === null` means "no member in context" (guest): every segment is a
+ * `preview` with no fill, so the public page teases the tiers without implying
+ * the visitor has failed to unlock them.
+ */
+export function tierSegments(
+  xpActive: number | null,
+  tiers: LoyaltyTier[],
+  currentCode?: string,
+): TierSegment[] {
+  const sorted = sortTiers(tiers);
+  if (sorted.length === 0) return [];
+
+  if (xpActive === null) {
+    return sorted.map((tier) => ({ tier, state: 'preview' as const, fillPercent: 0 }));
+  }
+
+  const xp = safeXp(xpActive);
+  const currentIdx = resolveCurrentIndex(xp, sorted, currentCode);
+
+  return sorted.map((tier, i) => {
+    const nextMin = sorted[i + 1]?.min_xp;
+    let fillPercent: number;
+    if (nextMin == null) {
+      // Top tier: no upper bound to fill against — full once reached.
+      fillPercent = xp >= tier.min_xp ? 100 : 0;
+    } else {
+      const span = nextMin - tier.min_xp;
+      fillPercent =
+        span > 0
+          ? Math.min(100, Math.max(0, ((xp - tier.min_xp) / span) * 100))
+          : xp >= nextMin
+            ? 100
+            : 0;
+    }
+    const state: TierState = i < currentIdx ? 'unlocked' : i === currentIdx ? 'current' : 'locked';
+    return { tier, state, fillPercent };
+  });
+}
+
 /**
  * Compute tier progress from Σ active-XP and the configured tiers.
  *
@@ -151,21 +268,12 @@ export function tierProgress(
   tiers: LoyaltyTier[],
   currentCode?: string,
 ): TierProgress {
-  const xp = Number.isFinite(xpActive) ? Math.max(0, xpActive) : 0;
-  const sorted = [...tiers]
-    .filter((t) => Number.isFinite(t.min_xp))
-    .sort((a, b) => a.min_xp - b.min_xp);
+  const xp = safeXp(xpActive);
+  const sorted = sortTiers(tiers);
 
   if (sorted.length === 0) return { current: null, next: null, percent: 0, xpToNext: null };
 
-  let currentIdx = currentCode ? sorted.findIndex((t) => t.code === currentCode) : -1;
-  if (currentIdx === -1) {
-    // Highest tier the member has actually reached (fallback: the first tier).
-    currentIdx = 0;
-    for (let i = 0; i < sorted.length; i++) {
-      if (xp >= sorted[i].min_xp) currentIdx = i;
-    }
-  }
+  const currentIdx = resolveCurrentIndex(xp, sorted, currentCode);
 
   const current = sorted[currentIdx] ?? null;
   const next = sorted[currentIdx + 1] ?? null;
@@ -187,6 +295,13 @@ export interface LoyaltyConfig {
   /** 'cashback_wallet' | 'points_discount' | 'none' | '' (unknown). */
   program: string;
   tiers: LoyaltyTier[];
+  /**
+   * Share of an order the wallet may cover at checkout (fraction, e.g. 0.4), or
+   * null when the BFF omits it — the copy then drops the percent rather than
+   * inventing one. The authoritative per-order cap still comes from
+   * /wallet/validate (FBG-438); this is the advertised headline only.
+   */
+  walletCap: number | null;
 }
 
 /**
@@ -201,11 +316,13 @@ export async function fetchLoyaltyConfig(): Promise<LoyaltyConfig> {
   const cfg = data?.data ?? data ?? {};
   const descriptor = cfg?.loyalty_program ?? {};
   const rawTiers = Array.isArray(descriptor?.tiers) ? descriptor.tiers : [];
+  const cap = descriptor?.wallet_cap != null ? toNum(descriptor.wallet_cap) : 0;
   return {
     program: descriptor?.program != null ? String(descriptor.program) : '',
     tiers: rawTiers
       .map(adaptTier)
       .filter((t: LoyaltyTier | null): t is LoyaltyTier => t !== null),
+    walletCap: cap > 0 ? cap : null,
   };
 }
 

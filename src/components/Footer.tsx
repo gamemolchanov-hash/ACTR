@@ -4,6 +4,7 @@ import { Box, Typography, Link as MuiLink } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
+import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 import { useConsent } from '@/providers/CookieConsentProvider';
 
 const SOCIALS = [
@@ -50,7 +51,12 @@ function SocialIcons() {
   );
 }
 
-export function Footer() {
+/**
+ * @param loyaltyProgram - active `/config` loyalty programme, resolved server-side
+ *   in the locale layout. The Creator Club link is rendered ONLY for
+ *   `cashback_wallet` — the dormant programme stays invisible (FBG-469).
+ */
+export function Footer({ loyaltyProgram }: { loyaltyProgram?: string | null }) {
   const t = useTranslations();
   const { openPreferences } = useConsent();
 
@@ -81,6 +87,9 @@ export function Footer() {
   const NAV_COL1 = [
     { label: t('nav.catalog'), href: '/catalog' },
     { label: t('nav.new'), href: '/catalog?sort=-date_created' },
+    ...(loyaltyProgram === CASHBACK_WALLET_PROGRAM
+      ? [{ label: t('rewards.navLabel'), href: '/rewards' }]
+      : []),
   ];
 
   const NAV_COL2 = [

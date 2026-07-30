@@ -1,0 +1,225 @@
+/**
+ * FBG-469 — the public Creator Club page.
+ *
+ * Covers the launch gate (the page must not exist while the storefront runs a
+ * program other than cashback_wallet, including when /config is unreadable), the
+ * guest vs member views, the config-driven tier cards (any tier count) and the
+ * per-tier rules modal.
+ *
+ * next-intl is mocked to echo `key {params}`, so copy is asserted by key name and
+ * interpolated figures prove the numbers come from /config, not from constants.
+ */
+import type { ReactNode } from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import type { LoyaltyConfig } from '@/lib/loyalty';
+
+const fetchLoyaltyConfig = vi.hoisted(() => vi.fn());
+const routerSpy = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
+const authState = vi.hoisted(() => ({
+  customer: null as { id: string; name: string } | null,
+  loyalty: null as Record<string, unknown> | null,
+  loading: false,
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, params?: Record<string, unknown>) =>
+    params ? `${key} ${JSON.stringify(params)}` : key,
+}));
+
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, ...props }: { children?: ReactNode; [k: string]: unknown }) => (
+    <a {...props}>{children}</a>
+  ),
+  useRouter: () => routerSpy,
+}));
+
+vi.mock('@/lib/auth-context', () => ({ useAuth: () => authState }));
+
+vi.mock('@/providers/CurrencyProvider', () => ({
+  useCurrency: () => 'TRY',
+  useFormatLocale: () => 'tr-TR',
+}));
+
+vi.mock('@/lib/loyalty', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/loyalty')>()),
+  fetchLoyaltyConfig,
+}));
+
+import RewardsPage from './page';
+
+const ACTIVE: LoyaltyConfig = {
+  program: 'cashback_wallet',
+  walletCap: 0.4,
+  tiers: [
+    { code: 'welcome', name: 'Welcome', min_xp: 0, cashback_rate: 0.03 },
+    { code: 'silver', name: 'Silver', min_xp: 100, cashback_rate: 0.05 },
+    { code: 'gold', name: 'Gold', min_xp: 300, cashback_rate: 0.08 },
+  ],
+};
+
+function asMember(loyalty: Record<string, unknown> | null) {
+  authState.customer = { id: 'c1', name: 'Ada' };
+  authState.loyalty = loyalty;
+}
+
+beforeEach(() => {
+  routerSpy.replace.mockReset();
+  fetchLoyaltyConfig.mockReset();
+  authState.customer = null;
+  authState.loyalty = null;
+  authState.loading = false;
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+describe('RewardsPage — launch gate', () => {
+  it('redirects home and renders nothing while the programme is dormant', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({ program: 'points_discount', tiers: [], walletCap: null });
+    const { container } = render(<RewardsPage />);
+
+    await waitFor(() => expect(routerSpy.replace).toHaveBeenCalledWith('/'));
+    expect(container.firstChild).toBeNull();
+    expect(document.body.textContent).not.toContain('rewards.');
+  });
+
+  it('redirects home when /config cannot be read (never advertise an unproven programme)', async () => {
+    fetchLoyaltyConfig.mockRejectedValue(new Error('BFF down'));
+    const { container } = render(<RewardsPage />);
+
+    await waitFor(() => expect(routerSpy.replace).toHaveBeenCalledWith('/'));
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renders nothing (and does not redirect) while the session is still loading', async () => {
+    authState.loading = true;
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    const { container } = render(<RewardsPage />);
+
+    await waitFor(() => expect(fetchLoyaltyConfig).toHaveBeenCalled());
+    expect(container.firstChild).toBeNull();
+    expect(routerSpy.replace).not.toHaveBeenCalled();
+  });
+});
+
+describe('RewardsPage — guest', () => {
+  it('shows the promo wallet card with no figures and a registration CTA', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    render(<RewardsPage />);
+
+    expect(await screen.findByText('rewards.guestWalletHint')).toBeTruthy();
+    const cta = screen.getByText('rewards.ctaGuest').closest('a');
+    expect(cta?.getAttribute('href')).toBe('/login/register');
+    expect(document.body.textContent).not.toContain('₺');
+    expect(document.body.textContent).not.toContain('rewards.ctaMember');
+    expect(routerSpy.replace).not.toHaveBeenCalled();
+  });
+
+  it('still lists every configured tier so the programme can be evaluated', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.guestWalletHint');
+    for (const name of ['Welcome', 'Silver', 'Gold']) {
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('RewardsPage — member', () => {
+  it('shows the wallet balance, XP, tier and a catalog CTA', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    asMember({ wallet_balance: 1250, xp_active: 150, tier_code: 'silver', cashback_rate: 0.05 });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.programLabel');
+    expect(document.body.textContent).toContain('1.250,00');
+    expect(document.body.textContent).toContain('150');
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":5}');
+    const cta = screen.getByText('rewards.ctaMember').closest('a');
+    expect(cta?.getAttribute('href')).toBe('/catalog');
+    // The member's tier is flagged on the ladder.
+    expect(screen.getByText('rewards.youBadge')).toBeTruthy();
+  });
+
+  it('renders a member whose Creator Club fields are absent without crashing', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    asMember(null);
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.programLabel');
+    expect(document.body.textContent).toContain('0,00');
+    expect(screen.getByText('rewards.ctaMember')).toBeTruthy();
+  });
+
+  it('renders the page when the programme has no tiers at all', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({ program: 'cashback_wallet', tiers: [], walletCap: null });
+    asMember({ wallet_balance: 10, xp_active: 0 });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.programLabel');
+    expect(screen.queryByText('rewards.tiersTitle')).toBeNull();
+    // No wallet cap in config → the copy drops the percent instead of inventing one.
+    expect(screen.getByText('rewards.step3DescNoCap')).toBeTruthy();
+  });
+});
+
+describe('RewardsPage — tier cards and rules modal', () => {
+  it('builds the cards from /config (4 tiers here) and marks locked ones', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({
+      program: 'cashback_wallet',
+      walletCap: 0.25,
+      tiers: [
+        { code: 'a', name: 'Alpha', min_xp: 0, cashback_rate: 0.02 },
+        { code: 'b', name: 'Beta', min_xp: 100 },
+        { code: 'c', name: 'Gamma', min_xp: 200 },
+        { code: 'd', name: 'Delta', min_xp: 400 },
+      ],
+    } satisfies LoyaltyConfig);
+    asMember({ wallet_balance: 0, xp_active: 250, tier_code: 'c' });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    for (const name of ['Alpha', 'Beta', 'Gamma', 'Delta']) {
+      expect(screen.getByRole('button', { name })).toBeTruthy();
+    }
+    // Delta is still out of reach → shown with the lock marker.
+    expect(screen.getByLabelText('rewards.lockedLabel')).toBeTruthy();
+    // The advertised cap comes from wallet_cap (0.25), not a hardcoded 40%.
+    expect(document.body.textContent).toContain('rewards.step3Desc {"percent":25}');
+  });
+
+  it('opens the earn/spend rules modal for the clicked tier and closes it again', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    asMember({ wallet_balance: 0, xp_active: 0 });
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    expect(screen.queryByText('rewards.earnTitle')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gold' }));
+
+    expect(await screen.findByText('rewards.earnTitle')).toBeTruthy();
+    expect(screen.getByText('rewards.spendTitle')).toBeTruthy();
+    // Rules are the clicked tier's own numbers, straight from /config.
+    expect(document.body.textContent).toContain('rewards.earnShoppingDesc {"rate":8}');
+    expect(document.body.textContent).toContain('rewards.earnUnlockDesc {"xp":"300"}');
+    expect(document.body.textContent).toContain('rewards.spendWalletDesc {"percent":40}');
+
+    fireEvent.click(screen.getByLabelText('rewards.close'));
+    await waitFor(() => expect(screen.queryByText('rewards.earnTitle')).toBeNull());
+  });
+
+  it('tells a visitor the first tier needs no XP (no bogus "0 XP" rule)', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    fireEvent.click(screen.getByRole('button', { name: 'Welcome' }));
+
+    expect(await screen.findByText('rewards.earnUnlockStart')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('rewards.earnUnlockDesc');
+  });
+});

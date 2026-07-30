@@ -21,6 +21,14 @@ export type StorefrontConfig = {
   currency: string;
   country: string | null;
   locale: string | null;
+  /**
+   * Active loyalty programme code (`config.loyalty_program.program`), or null
+   * when the BFF omits the descriptor. Read here rather than client-side so the
+   * Creator Club links in the header/footer are decided during SSR — one already
+   * cached `/config` call, no extra request and no link flashing in and out
+   * (FBG-469). The programme is dormant (`points_discount`) on the live store.
+   */
+  loyaltyProgram: string | null;
 };
 
 const BFF = (process.env.BFF_INTERNAL_URL || 'http://localhost:4000').replace(/\/+$/, '');
@@ -37,6 +45,7 @@ export async function getStorefrontConfig(): Promise<StorefrontConfig> {
     });
 
     const data = await res.json();
+    const program = data?.data?.loyalty_program?.program ?? data?.loyalty_program?.program;
     return {
       currency:
         data?.data?.currency ??
@@ -45,12 +54,14 @@ export async function getStorefrontConfig(): Promise<StorefrontConfig> {
         'TRY',
       country: data?.data?.country ?? data?.country ?? null,
       locale: data?.data?.locale ?? data?.locale ?? null,
+      loyaltyProgram: program != null ? String(program) : null,
     };
   } catch {
     return {
       currency: process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY',
       country: null,
       locale: null,
+      loyaltyProgram: null,
     };
   }
 }
