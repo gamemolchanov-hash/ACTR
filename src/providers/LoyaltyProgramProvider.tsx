@@ -132,9 +132,10 @@ function useHydrated(): boolean {
  * header TEAR when its turn comes: it hydrates against markup written before the
  * answer, React reports "server rendered text didn't match the client" on the
  * nav entry and throws the boundary away to rebuild it. That rebuild does put
- * the entry back — measured against the real header both before and after this
- * gate — so the tear is the defect to remove here, not a mechanism that strands
- * the header without the entry.
+ * the entry back, and it stays through three client navigations after it —
+ * measured against the real header on the pre-fix provider — so the tear is the
+ * defect to remove here, not a mechanism that strands the header without the
+ * entry.
  *
  * Gating on hydration removes the tear at its root: the first client render of
  * every consumer reproduces what the server rendered for the gated entry, so no

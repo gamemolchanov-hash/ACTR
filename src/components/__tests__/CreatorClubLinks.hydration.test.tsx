@@ -35,8 +35,13 @@
  *  - when the segment lands, React hydrates it against markup written before
  *    `/config` answered and reports "Hydration failed because the server
  *    rendered text didn't match the client" — the error from the report — then
- *    rebuilds the boundary and the entry IS restored (test 2). So the tear does
- *    not strand the header without the entry; the tear is itself the defect.
+ *    rebuilds the boundary and the entry IS restored. Test 2 replays the
+ *    reported sequence end to end on top of that: answer first, boundary
+ *    completes (tearing, on the pre-fix provider), then three client navigations
+ *    that each re-render the layout and re-read `/config`. The entry is present
+ *    after every one, with the pre-fix provider too — so "gone for good after
+ *    the mismatch and ≥3 navigations" does not reproduce, and the tear is not
+ *    what strands the header. The tear is itself the defect.
  *
  * The hydration gate removes it: test 3 is the one that fails without the fix.
  * `render()` can see none of this — it mounts on the client, with no server
@@ -277,28 +282,37 @@ describe('Creator Club entry — streamed header boundary (FBG-472)', () => {
     await until('the navigation to client-render the header', () => headerEntries() > 0);
   });
 
-  it('restores the entry when the boundary completes, torn or not', async () => {
+  it('keeps the entry through the reported sequence, tear and navigations included', async () => {
     answers(CASHBACK_WALLET_PROGRAM);
-    const { completeBoundary } = await hydrateStreamedShell();
-    await until('the footer to show the entry', () => footerEntries() > 0);
+    const { completeBoundary, navigate } = await hydrateStreamedShell();
 
+    // The reported order: /config answers first, the header's segment lands
+    // after — which is where the pre-fix provider tears the boundary.
+    await until('the footer to show the entry', () => footerEntries() > 0);
     await completeBoundary();
     await until('the header entry to appear', () => headerEntries() > 0);
-
-    // The state the report called permanent, asserted directly. Without the gate
-    // React reports the mismatch here and regenerates the boundary; either way
-    // the entry ends up in the header, so the tear does not strand it.
     expect(headerEntries()).toBeGreaterThan(0);
 
-    // And it survives client navigations, whose revalidations write the same
-    // programme string back (an identical state React does not re-render for).
+    // Then the rest of the report: three client navigations in a row. Each one
+    // re-renders the layout and re-reads /config, which answers with the SAME
+    // programme string — a state React does not re-render for. The entry is
+    // still expected after every one of them (acceptance criterion 2).
+    const errorsBeforeNavigating = recoverableErrors.length;
     for (const next of ['/catalog', '/contacts', '/']) {
+      const readsBefore = fetchLoyaltyConfig.mock.calls.length;
       pathname.value = next;
       pastThrottle();
-      window.dispatchEvent(new Event('focus'));
-      for (let i = 0; i < 5; i++) await macrotask();
+      navigate();
+      await until(
+        `the navigation to ${next} to re-read /config`,
+        () => fetchLoyaltyConfig.mock.calls.length > readsBefore,
+      );
       expect(headerEntries()).toBeGreaterThan(0);
     }
+    // Navigating must not introduce a tear of its own either. (Scoped to the
+    // loop, so the assertion holds with and without the gate: the pre-fix tear
+    // happens above, at completeBoundary.)
+    expect(recoverableErrors).toHaveLength(errorsBeforeNavigating);
   });
 
   it('completes the boundary without tearing when /config answered first', async () => {
