@@ -20,6 +20,8 @@ const authState = vi.hoisted(() => ({
   customer: null as { id: string; name: string } | null,
   loyalty: null as Record<string, unknown> | null,
   loading: false,
+  // Creator Club pages re-read the /me snapshot on entry (FBG-469 review).
+  refreshProfile: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Tier names resolve through `loyalty.tierNames.<code>` when the catalogue has
@@ -72,6 +74,7 @@ function asMember(loyalty: Record<string, unknown> | null) {
 beforeEach(() => {
   routerSpy.replace.mockReset();
   fetchLoyaltyConfig.mockReset();
+  authState.refreshProfile.mockClear();
   authState.customer = null;
   authState.loyalty = null;
   authState.loading = false;
@@ -164,6 +167,16 @@ describe('RewardsPage — member', () => {
     expect(cta?.getAttribute('href')).toBe('/catalog');
     // The member's tier is flagged on the ladder.
     expect(screen.getByText('rewards.youBadge')).toBeTruthy();
+  });
+
+  // The /me snapshot is loaded once per page load, so a balance spent at checkout
+  // earlier in the session must be re-read when this page is opened.
+  it('re-reads the profile snapshot on entry', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    asMember({ wallet_balance: 1250, xp_active: 150 });
+    render(<RewardsPage />);
+
+    await waitFor(() => expect(authState.refreshProfile).toHaveBeenCalled());
   });
 
   it('renders a member whose Creator Club fields are absent without crashing', async () => {

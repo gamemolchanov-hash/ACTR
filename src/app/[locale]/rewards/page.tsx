@@ -66,12 +66,19 @@ export default function RewardsPage() {
   const tierLabel = useTierLabel();
   const formatLocale = useFormatLocale();
   const router = useRouter();
-  const { customer, loyalty, loading: authLoading } = useAuth();
+  const { customer, loyalty, loading: authLoading, refreshProfile } = useAuth();
 
   const [config, setConfig] = useState<LoyaltyConfig | null>(null);
   const [configError, setConfigError] = useState(false);
   const [configAttempt, setConfigAttempt] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+
+  // The wallet figures live in the /me snapshot that AuthProvider loads once per
+  // page load; re-read them whenever this page is opened, so a balance spent at
+  // checkout earlier in the session is not still shown here (FBG-469 review).
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
 
   useEffect(() => {
     let cancelled = false;

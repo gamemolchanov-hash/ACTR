@@ -21,6 +21,8 @@ const authState = vi.hoisted(() => ({
   customer: { id: 'c1', name: 'Ada' } as { id: string; name: string } | null,
   loyalty: null as Record<string, unknown> | null,
   loading: false,
+  // Creator Club pages re-read the /me snapshot on entry (FBG-469 review).
+  refreshProfile: vi.fn().mockResolvedValue(undefined),
 }));
 
 // See rewards-page.test.tsx: tier codes are localised through
@@ -73,6 +75,7 @@ beforeEach(() => {
   routerSpy.replace.mockReset();
   fetchLoyaltyConfig.mockReset();
   fetchLoyaltyLedger.mockReset().mockResolvedValue({ entries: [], totalPages: 1 });
+  authState.refreshProfile.mockClear();
   authState.customer = { id: 'c1', name: 'Ada' };
   authState.loyalty = { wallet_balance: 1250, xp_active: 150, tier_code: 'silver' };
   authState.loading = false;
@@ -139,6 +142,13 @@ describe('LoyaltyPage — launch gate backstop', () => {
     expect(screen.queryByText('loyalty.error')).toBeNull();
     expect(routerSpy.replace).not.toHaveBeenCalled();
     expect(rewardsLinks()).toHaveLength(1);
+  });
+
+  it('re-reads the profile snapshot on entry (no session-old wallet figures)', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    render(<LoyaltyPage />);
+
+    await waitFor(() => expect(authState.refreshProfile).toHaveBeenCalled());
   });
 
   it('renders no /rewards link while the descriptor is still loading', async () => {

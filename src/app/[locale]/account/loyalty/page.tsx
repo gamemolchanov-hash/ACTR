@@ -55,7 +55,7 @@ export default function LoyaltyPage() {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
-  const { customer, loyalty, loading: authLoading } = useAuth();
+  const { customer, loyalty, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
 
   const [tiers, setTiers] = useState<LoyaltyTier[]>([]);
@@ -71,6 +71,12 @@ export default function LoyaltyPage() {
   useEffect(() => {
     if (!authLoading && !customer) router.replace('/login');
   }, [authLoading, customer, router]);
+
+  // Same as /rewards: the wallet/XP snapshot from /me is loaded once per page
+  // load, so re-read it on entry instead of showing session-old money.
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
 
   useEffect(() => {
     if (!customer) return;
