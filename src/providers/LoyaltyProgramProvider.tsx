@@ -118,28 +118,30 @@ function useHydrated(): boolean {
  * and during hydration — see below).
  *
  * The programme arrives from a fetch, so it is never known during the server
- * render: the HTML always carries the no-link variant. Publishing it to the
- * hydration render too would make the client markup differ from that HTML, and
- * the chrome is where that goes wrong twice over (FBG-472):
+ * render: the HTML always carries the no-link variant, and it is published about
+ * a second into the page's life. `<Footer>` hydrates with this provider and
+ * follows it immediately. `<Header>` does not — it sits inside a Suspense
+ * boundary (it needs one for `useSearchParams`), so its subtree hydrates in a
+ * separate, later pass, and until it does it is inert server HTML that no
+ * context update, client navigation or revalidation can render into. That gap is
+ * the reported "footer has the entry, header does not", and it lasts as long as
+ * the header's chunk does.
  *
- *  - `<Header>` sits inside a Suspense boundary (it needs one for
- *    `useSearchParams`), so its subtree hydrates in a *separate, later* pass
- *    than the provider. When `/config` answered in between, the header hydrated
- *    against HTML that no longer matched — "server rendered text didn't match" —
- *    on the nav entry itself, and React threw the boundary away and re-rendered
- *    it client-side. `<Footer>` has no boundary, hydrates with the provider, and
- *    was never affected: hence footer-with-link over header-without.
- *  - Worse, a subtree that misses that one `null` → programme transition never
- *    gets a second chance: every later revalidation writes the SAME string, and
- *    React bails out of an identical state, so nothing re-renders the chrome
- *    again. A transient race froze the header for the rest of the session.
+ * Publishing the programme to the hydration render on top of that makes the
+ * header tear when the gap closes: it hydrates against HTML written before the
+ * answer, React reports "server rendered text didn't match the client" on the
+ * nav entry and throws the boundary away to rebuild it. (It does recover the
+ * entry afterwards — measured against the real header, see
+ * CreatorClubLinks.hydration.test.tsx — so the tear is the defect, not a second
+ * cause of the gap.)
  *
- * Gating on hydration removes both: the first client render of every consumer
- * reproduces what the server rendered for the gated entry (so no mismatch is
- * possible, whenever that subtree hydrates), and the link is then driven by its OWN
- * hydration flip, which re-reads the context as it stands — no transition to
- * miss. Fail-closed is unchanged: unknown, dormant and not-yet-hydrated all
- * render no link, and the routes stay gated server-side regardless.
+ * Gating on hydration removes the tear at its root: the first client render of
+ * every consumer reproduces what the server rendered for the gated entry, so no
+ * mismatch is possible whenever that subtree hydrates, and the entry then
+ * arrives on the consumer's own hydration flip, which reads the context as it
+ * stands rather than having to catch it changing. Fail-closed is unchanged:
+ * unknown, dormant and not-yet-hydrated all render no link, and the routes stay
+ * gated server-side regardless.
  */
 export function useLoyaltyProgram(): string | null {
   const program = useContext(LoyaltyProgramContext);
