@@ -8,8 +8,10 @@
  * `palette`, LiraFix/Futura + Open Sans).
  *
  * DORMANT BY DEFAULT: everything below `/config`'s `loyalty_program` — while the
- * live storefront runs `points_discount` the page redirects home and no link to
- * it is rendered anywhere (same gate as /account/loyalty, FBG-384 review).
+ * live storefront runs `points_discount` no link to this page is rendered
+ * anywhere and the route redirects home. That redirect is owned by `layout.tsx`
+ * and happens ON THE SERVER (a plain GET must not answer 200); the check below
+ * is only the client-side backstop for a config change mid-session.
  *
  * Every figure (tier count, names, thresholds, cashback rates, wallet cap) comes
  * from `fetchLoyaltyConfig()` / `useAuth()` — nothing about the programme is
@@ -40,6 +42,7 @@ import {
   CASHBACK_WALLET_PROGRAM,
   expiringSoon,
   fetchLoyaltyConfig,
+  formatPercent,
   ratePercent,
   tierProgress,
   tierSegments,
@@ -81,6 +84,7 @@ export default function RewardsPage() {
     };
   }, []);
 
+  // Backstop only — the authoritative gate is the server redirect in layout.tsx.
   const program = config?.program ?? null;
   useEffect(() => {
     if (program != null && program !== CASHBACK_WALLET_PROGRAM) router.replace('/');
@@ -112,7 +116,9 @@ export default function RewardsPage() {
       icon: AccountBalanceWallet,
       title: t('rewards.step3Title'),
       desc:
-        capPct != null ? t('rewards.step3Desc', { percent: capPct }) : t('rewards.step3DescNoCap'),
+        capPct != null
+          ? t('rewards.step3Desc', { percent: formatPercent(capPct, formatLocale) })
+          : t('rewards.step3DescNoCap'),
     },
   ];
 
@@ -344,7 +350,7 @@ export default function RewardsPage() {
                           color: isCurrent ? palette.white : palette.primary,
                         }}
                       >
-                        {t('loyalty.cashback', { rate })}
+                        {t('loyalty.cashback', { rate: formatPercent(rate, formatLocale) })}
                       </Typography>
                     )}
                     <Typography
@@ -508,7 +514,7 @@ export default function RewardsPage() {
               title={t('rewards.earnShoppingTitle')}
               detail={
                 selectedRate != null
-                  ? t('rewards.earnShoppingDesc', { rate: selectedRate })
+                  ? t('rewards.earnShoppingDesc', { rate: formatPercent(selectedRate, formatLocale) })
                   : t('rewards.earnShoppingNoRate')
               }
             />
@@ -532,7 +538,7 @@ export default function RewardsPage() {
               title={t('rewards.spendWalletTitle')}
               detail={
                 capPct != null
-                  ? t('rewards.spendWalletDesc', { percent: capPct })
+                  ? t('rewards.spendWalletDesc', { percent: formatPercent(capPct, formatLocale) })
                   : t('rewards.spendWalletNoCap')
               }
             />

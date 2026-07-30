@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import { Box, Typography, Slider, TextField, Stack, Button } from '@mui/material';
 import { validateWallet } from '@/lib/api';
 import { walletCeiling, clampWalletAmount, WALLET_DEFAULT_RATIO } from '@/lib/wallet';
+import { formatPercent, ratePercent } from '@/lib/loyalty';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 import { palette } from '@/lib/theme';
@@ -154,7 +155,11 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
       ) : (
         <>
           <Typography sx={{ fontFamily: font, fontSize: 13, color: c.muted, mb: 1 }}>
-            {t('checkout.wallet.capHint', { percent: Math.round(cap * 100) })}{' '}
+            {/* Exact server cap: rounding 0.325 to "33%" would advertise a ceiling
+                the backend never grants (FBG-469 review). */}
+            {t('checkout.wallet.capHint', {
+              percent: formatPercent(ratePercent(cap) ?? 0, formatLocale),
+            })}{' '}
             {t('checkout.wallet.maxHint', { amount: fmtMoney(ceiling, currency, formatLocale) })}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">

@@ -26,7 +26,13 @@ import { useTranslations } from 'next-intl';
 import { palette } from '@/lib/theme';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
-import { ratePercent, tierProgress, tierSegments, type LoyaltyTier } from '@/lib/loyalty';
+import {
+  formatPercent,
+  ratePercent,
+  tierProgress,
+  tierSegments,
+  type LoyaltyTier,
+} from '@/lib/loyalty';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -189,7 +195,7 @@ export function CreatorWalletCard({
           {cashbackPct != null && (
             <Chip
               icon={<Bolt sx={{ color: `${CARD_TEXT} !important`, fontSize: 16 }} />}
-              label={t('loyalty.cashback', { rate: cashbackPct })}
+              label={t('loyalty.cashback', { rate: formatPercent(cashbackPct, formatLocale) })}
               sx={{
                 bgcolor: 'rgba(255,255,255,0.12)',
                 color: CARD_TEXT,
@@ -341,7 +347,7 @@ export function CreatorTierBar({ tiers, xpActive, tierCode }: CreatorTierBarProp
               </Typography>
               {rate != null && (
                 <Typography sx={{ fontFamily: fontBody, fontSize: 10, color: palette.primaryLight }}>
-                  {t('loyalty.cashback', { rate })}
+                  {t('loyalty.cashback', { rate: formatPercent(rate, formatLocale) })}
                 </Typography>
               )}
             </Box>

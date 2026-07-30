@@ -76,7 +76,8 @@ export default function LoyaltyPage() {
   }, [customer]);
 
   // Dormant until the storefront runs cashback_wallet: the page must not exist
-  // for shoppers before the programme launches (FBG-384 review).
+  // for shoppers before the programme launches (FBG-384 review). Backstop only —
+  // the authoritative redirect is server-side in layout.tsx (FBG-469 review).
   useEffect(() => {
     if (program != null && program !== CASHBACK_WALLET_PROGRAM) router.replace('/account');
   }, [program, router]);

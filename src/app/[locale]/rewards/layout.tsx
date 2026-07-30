@@ -1,18 +1,35 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { redirect } from '@/i18n/navigation';
 import { SITE_URL } from '@/lib/seo';
 import { getStorefrontConfig } from '@/lib/storefront-config';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 
 /**
- * Metadata wrapper for the public Creator Club page (FBG-469).
+ * Launch gate + metadata for the public Creator Club page (FBG-469).
  *
- * The page itself is a client component (it needs the session), so its title,
- * description and hreflang alternates live here. Crucially this is also where
- * the launch gate reaches robots: while the storefront runs anything other than
- * `cashback_wallet` the route only redirects home, so it must not be indexed —
- * an unlaunched programme should leave no trace in search results either.
+ * The gate is enforced HERE, on the server: while the storefront runs anything
+ * other than `cashback_wallet` a plain GET /rewards must answer with a redirect
+ * to the home page — not a 200 with an empty body that only navigates away once
+ * JS runs. Bots, curl and JS-less clients see the redirect too, and the route is
+ * additionally marked noindex while the programme is dormant.
+ *
+ * The page itself is a client component (it needs the session for the member
+ * view), so its title, description and hreflang alternates live here as well.
  */
+
+// The gate depends on live backend state, so it must be evaluated per request:
+// a build-time prerender would freeze today's dormant answer into the full-route
+// cache and keep redirecting for up to `expire` after the owner launches the
+// programme (and vice versa). `/config` itself stays fetch-cached (300s).
+export const dynamic = 'force-dynamic';
+
+async function isProgrammeLive(): Promise<boolean> {
+  // Same already-cached /config call the locale layout makes — no extra request.
+  const { loyaltyProgram } = await getStorefrontConfig();
+  return loyaltyProgram === CASHBACK_WALLET_PROGRAM;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -20,9 +37,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'rewards' });
-  // Same already-cached /config call the locale layout makes — no extra request.
-  const { loyaltyProgram } = await getStorefrontConfig();
-  const live = loyaltyProgram === CASHBACK_WALLET_PROGRAM;
+  const live = await isProgrammeLive();
 
   return {
     title: t('metaTitle'),
@@ -38,6 +53,17 @@ export async function generateMetadata({
   };
 }
 
-export default function RewardsLayout({ children }: { children: React.ReactNode }) {
+export default async function RewardsLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  // An unreadable /config leaves the programme unproven → treat it as dormant
+  // (getStorefrontConfig never throws; it degrades to loyaltyProgram: null).
+  if (!(await isProgrammeLive())) redirect({ href: '/', locale });
+
   return children;
 }

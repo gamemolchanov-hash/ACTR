@@ -183,13 +183,31 @@ function resolveCurrentIndex(xp: number, sorted: LoyaltyTier[], currentCode?: st
 }
 
 /**
- * Normalise an ARM rate to whole percent: the spec sends a fraction (0.05 → 5),
- * but a percent (5) is tolerated too. Returns null for absent/zero/junk rates so
+ * Normalise an ARM rate to percent: the spec sends a fraction (0.05 → 5), but a
+ * percent (5) is tolerated too. Returns null for absent/zero/junk rates so
  * callers hide the badge instead of rendering "0%".
+ *
+ * The BFF allows ANY finite fraction, so the fractional part is kept: rounding
+ * 0.035 to "4%" would advertise financial terms the backend never granted. Only
+ * the binary-floating-point tail is trimmed (0.035 × 100 = 3.5000000000000004),
+ * at two decimals — a hundredth of a percent is below the granularity the ARM
+ * admin exposes. Callers format the number for display with the storefront
+ * format locale (3,5 in tr-TR / 3.5 in en-US).
  */
 export function ratePercent(rate?: number | null): number | null {
   if (rate == null || !Number.isFinite(rate) || rate <= 0) return null;
-  return Math.round(rate <= 1 ? rate * 100 : rate);
+  const percent = rate <= 1 ? rate * 100 : rate;
+  return Math.round(percent * 100) / 100;
+}
+
+/**
+ * Render a percent from `ratePercent()` for display: no rounding beyond what the
+ * backend granted, separators from the storefront format locale (D1/D3 — "3,5"
+ * in tr-TR, "3.5" in en-US). Percent values reach i18n messages pre-formatted,
+ * exactly like the XP figures.
+ */
+export function formatPercent(percent: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(percent);
 }
 
 /**

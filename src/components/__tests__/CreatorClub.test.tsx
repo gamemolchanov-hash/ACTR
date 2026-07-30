@@ -43,7 +43,13 @@ describe('CreatorWalletCard', () => {
     expect(document.body.textContent).toContain('1.250,00');
     expect(document.body.textContent).toContain('480');
     expect(screen.getByText('Silver')).toBeTruthy();
-    expect(document.body.textContent).toContain('loyalty.cashback {"rate":5}');
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":"5"}');
+  });
+
+  it('shows a fractional cashback rate verbatim, in the storefront number format', () => {
+    // 3.5% must not be advertised as 4% (FBG-469 review); tr-TR uses a comma.
+    render(<CreatorWalletCard balance={0} xpActive={0} tierName="Silver" cashbackPct={3.5} />);
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":"3,5"}');
   });
 
   it('shows a promo line and no figures for a guest (balance === null)', () => {
@@ -108,7 +114,7 @@ describe('CreatorTierBar', () => {
     expect(screen.getByText('Base')).toBeTruthy();
     expect(screen.getByText('Pro')).toBeTruthy();
     expect(screen.queryByText('Gold')).toBeNull();
-    expect(document.body.textContent).toContain('loyalty.cashback {"rate":10}');
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":"10"}');
   });
 
   it('renders a 4-tier programme', () => {

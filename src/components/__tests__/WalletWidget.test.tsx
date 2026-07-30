@@ -56,7 +56,7 @@ describe('WalletWidget — server cap drives the slider/input', () => {
     // 30% of 1000 = 300 — not the 40% default (400).
     expect(slider.getAttribute('aria-valuemax')).toBe('300');
     // The cap hint reflects the live percent, not a hardcoded 40.
-    expect(document.body.textContent).toContain('"percent":30');
+    expect(document.body.textContent).toContain('"percent":"30"');
   });
 
   it('clamps a numeric-input request above the 30% cap down to the cap', async () => {
@@ -77,7 +77,7 @@ describe('WalletWidget — server cap drives the slider/input', () => {
 
     const slider = await screen.findByRole('slider');
     expect(slider.getAttribute('aria-valuemax')).toBe('500');
-    expect(document.body.textContent).toContain('"percent":50');
+    expect(document.body.textContent).toContain('"percent":"50"');
     // 450 is within the 500 ceiling → passes through unclamped.
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '450' } });
     expect(onChange).toHaveBeenLastCalledWith(450);

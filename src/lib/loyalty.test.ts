@@ -26,6 +26,7 @@ import {
   adaptLoyaltyEntry,
   expiringSoon,
   fetchLoyaltyConfig,
+  formatPercent,
   fetchLoyaltyLedger,
   type LoyaltyTier,
   type LoyaltyLedgerEntry,
@@ -172,6 +173,24 @@ describe('ratePercent', () => {
     expect(ratePercent(undefined)).toBeNull();
     expect(ratePercent(null)).toBeNull();
     expect(ratePercent(Number.NaN)).toBeNull();
+  });
+
+  // The BFF allows any finite fraction — rounding 0.035 to 4% would advertise
+  // terms the backend never granted (FBG-469 review).
+  it('keeps fractional rates instead of rounding them to whole percent', () => {
+    expect(ratePercent(0.035)).toBe(3.5);
+    expect(ratePercent(0.1275)).toBe(12.75);
+    expect(ratePercent(0.325)).toBe(32.5);
+    // ...while still trimming the binary floating-point tail (0.07 * 100).
+    expect(ratePercent(0.07)).toBe(7);
+  });
+});
+
+describe('formatPercent', () => {
+  it('formats a fractional percent with the storefront format locale', () => {
+    expect(formatPercent(3.5, 'tr-TR')).toBe('3,5');
+    expect(formatPercent(3.5, 'en-US')).toBe('3.5');
+    expect(formatPercent(40, 'tr-TR')).toBe('40');
   });
 });
 

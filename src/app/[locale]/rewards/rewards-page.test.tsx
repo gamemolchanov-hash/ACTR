@@ -137,7 +137,7 @@ describe('RewardsPage — member', () => {
     await screen.findByText('rewards.programLabel');
     expect(document.body.textContent).toContain('1.250,00');
     expect(document.body.textContent).toContain('150');
-    expect(document.body.textContent).toContain('loyalty.cashback {"rate":5}');
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":"5"}');
     const cta = screen.getByText('rewards.ctaMember').closest('a');
     expect(cta?.getAttribute('href')).toBe('/catalog');
     // The member's tier is flagged on the ladder.
@@ -188,7 +188,7 @@ describe('RewardsPage — tier cards and rules modal', () => {
     // Delta is still out of reach → shown with the lock marker.
     expect(screen.getByLabelText('rewards.lockedLabel')).toBeTruthy();
     // The advertised cap comes from wallet_cap (0.25), not a hardcoded 40%.
-    expect(document.body.textContent).toContain('rewards.step3Desc {"percent":25}');
+    expect(document.body.textContent).toContain('rewards.step3Desc {"percent":"25"}');
   });
 
   it('opens the earn/spend rules modal for the clicked tier and closes it again', async () => {
@@ -204,12 +204,30 @@ describe('RewardsPage — tier cards and rules modal', () => {
     expect(await screen.findByText('rewards.earnTitle')).toBeTruthy();
     expect(screen.getByText('rewards.spendTitle')).toBeTruthy();
     // Rules are the clicked tier's own numbers, straight from /config.
-    expect(document.body.textContent).toContain('rewards.earnShoppingDesc {"rate":8}');
+    expect(document.body.textContent).toContain('rewards.earnShoppingDesc {"rate":"8"}');
     expect(document.body.textContent).toContain('rewards.earnUnlockDesc {"xp":"300"}');
-    expect(document.body.textContent).toContain('rewards.spendWalletDesc {"percent":40}');
+    expect(document.body.textContent).toContain('rewards.spendWalletDesc {"percent":"40"}');
 
     fireEvent.click(screen.getByLabelText('rewards.close'));
     await waitFor(() => expect(screen.queryByText('rewards.earnTitle')).toBeNull());
+  });
+
+  it('advertises fractional config rates verbatim (0.035 → 3,5%, never 4%)', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({
+      program: 'cashback_wallet',
+      walletCap: 0.325,
+      tiers: [{ code: 'base', name: 'Base', min_xp: 0, cashback_rate: 0.035 }],
+    } satisfies LoyaltyConfig);
+    render(<RewardsPage />);
+
+    await screen.findByText('rewards.tiersTitle');
+    expect(document.body.textContent).toContain('loyalty.cashback {"rate":"3,5"}');
+    expect(document.body.textContent).toContain('rewards.step3Desc {"percent":"32,5"}');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Base' }));
+    expect(await screen.findByText('rewards.earnTitle')).toBeTruthy();
+    expect(document.body.textContent).toContain('rewards.earnShoppingDesc {"rate":"3,5"}');
+    expect(document.body.textContent).toContain('rewards.spendWalletDesc {"percent":"32,5"}');
   });
 
   it('tells a visitor the first tier needs no XP (no bogus "0 XP" rule)', async () => {
