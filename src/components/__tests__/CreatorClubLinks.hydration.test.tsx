@@ -1,5 +1,5 @@
 /**
- * FBG-472 — the Creator Club entry and the header's Suspense boundary.
+ * FBG-472 — the Creator Club entry and the header's streamed Suspense boundary.
  *
  * The locale layout renders `<Suspense><Header/></Suspense>` (the header needs a
  * boundary for `useSearchParams`) but the `<Footer/>` bare, and the programme
@@ -13,34 +13,39 @@
  *     <div hidden id="S:0"><header class="…MuiAppBar…">…    <- streamed later
  *
  * The header is a *pending* streamed boundary: its markup is not where the
- * header goes, it arrives at the end of the document and React splices it in.
- * So the header's subtree is dehydrated for as long as that takes and hydrates
- * in its own later pass, while the footer hydrates with the provider. That is
- * the shape these tests reproduce — the boundary's content withheld until the
- * test releases it — against the REAL header/footer, because `render()` cannot
- * see any of it: it mounts on the client, with no server HTML to disagree with.
+ * header goes, it arrives at the end of the document and React's own `$RC`
+ * runtime splices it in. These tests reproduce that mechanically rather than
+ * approximating it — the shell comes from `renderToReadableStream` with the
+ * header suspended server-side, so the DOM really does carry `<!--$?-->`; the
+ * client hydrates with the ordinary `Header` (its code is loaded, as in the
+ * browser); and the boundary is completed by appending React's streamed segment
+ * and executing React's own `$RC` script. `document.readyState` is 'loading'
+ * while the stream is open, because that is what tells React a pending boundary
+ * is still coming rather than lost (`isSuspenseInstanceFallback`).
  *
- * Two consequences, both pinned below:
+ * Measured that way, against the pre-fix provider:
  *
- *  1. While the boundary is dehydrated the header is inert markup. React cannot
- *     render into a subtree it has not hydrated, so the entry the footer already
- *     shows cannot reach the header, and no client navigation, tab refocus or
- *     revalidation changes that. This is a property of the boundary, not of the
- *     gate — it holds before and after the fix.
- *  2. When the boundary does hydrate it hydrates against markup written before
- *     the answer arrived. Ungated, the header renders an entry the server never
- *     wrote — "server rendered text didn't match the client" on the nav item —
- *     and React throws the boundary away and rebuilds it. Measured against the
- *     pre-fix provider, that rebuild RESTORES the entry (test 2 asserts the
- *     post-`onRecoverableError` state, and it holds with and without the fix),
- *     so the tear does not leave the header permanently without the entry. The
- *     tear itself is the defect, and the hydration gate is what removes it:
- *     test 3 is the one that fails without the fix.
+ *  - before the segment lands: footer has the entry, header does not, no errors.
+ *    A dehydrated subtree cannot be rendered into, and a revalidation returning
+ *    the same programme string re-renders nothing, so the header simply stays as
+ *    the server left it — the reported "footer fine, header without the entry".
+ *    It is not a trap, though: an update that does reach the boundary makes
+ *    React abandon the streamed markup and render the header on the client, entry
+ *    included, which test 1 also pins.
+ *  - when the segment lands, React hydrates it against markup written before
+ *    `/config` answered and reports "Hydration failed because the server
+ *    rendered text didn't match the client" — the error from the report — then
+ *    rebuilds the boundary and the entry IS restored (test 2). So the tear does
+ *    not strand the header without the entry; the tear is itself the defect.
+ *
+ * The hydration gate removes it: test 3 is the one that fails without the fix.
+ * `render()` can see none of this — it mounts on the client, with no server
+ * markup to disagree with and no boundary to complete.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Suspense, lazy, type ComponentType } from 'react';
-import { renderToString } from 'react-dom/server';
+import { Suspense, use, type ComponentType } from 'react';
+import { renderToReadableStream } from 'react-dom/server.browser';
 import { hydrateRoot, type Root } from 'react-dom/client';
 
 const fetchLoyaltyConfig = vi.hoisted(() => vi.fn());
@@ -82,16 +87,18 @@ import { LoyaltyProgramProvider } from '@/providers/LoyaltyProgramProvider';
 import { Header } from '../Header';
 import { Footer } from '../Footer';
 
-/** The locale layout's chrome: header behind a boundary, footer without one. */
+/** The locale layout's chrome, under a host element as it sits under <body>. */
 const Chrome = ({ header }: { header: ComponentType }) => {
   const HeaderSlot = header;
   return (
-    <LoyaltyProgramProvider>
-      <Suspense>
-        <HeaderSlot />
-      </Suspense>
-      <Footer />
-    </LoyaltyProgramProvider>
+    <div>
+      <LoyaltyProgramProvider>
+        <Suspense>
+          <HeaderSlot />
+        </Suspense>
+        <Footer />
+      </LoyaltyProgramProvider>
+    </div>
   );
 };
 
@@ -101,51 +108,114 @@ const rewardsIn = (scope: ParentNode | null) =>
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+let streamed: HTMLElement[] = [];
 let recoverableErrors: string[] = [];
 
 const headerEntries = () => rewardsIn(container?.querySelector('header') ?? null);
 const footerEntries = () => rewardsIn(container?.querySelector('footer') ?? null);
 const drawerEntries = () => rewardsIn(document.querySelector('.MuiDrawer-root'));
 
-/** Let React work through its queue until `done`, rather than for a fixed time. */
-async function until(what: string, done: () => boolean, ticks = 60) {
+async function until(what: string, done: () => boolean, ticks = 120) {
   for (let i = 0; i < ticks; i++) {
     if (done()) return;
-    await macrotask();
+    // Real time, not just a macrotask: React reveals a completed boundary on a
+    // timer (`$RV`), so a busy microtask loop would never see it.
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
   throw new Error(`timed out waiting for: ${what}`);
 }
 
+/** React's streamed-boundary runtime keeps state on the window (`$RC`/`$RB`). */
+function resetStreamingRuntime() {
+  for (const key of ['$RC', '$RB', '$RV', '$RT', '$RM', '$RX']) {
+    Reflect.deleteProperty(globalThis, key);
+  }
+}
+
+function setReadyState(value: 'loading' | 'complete') {
+  Object.defineProperty(document, 'readyState', { get: () => value, configurable: true });
+}
+
 const START = Date.parse('2026-07-30T10:00:00Z');
-/** Move past the provider's 30s revalidation throttle. */
 let elapsed = 0;
+/** Move past the provider's 30s revalidation throttle. */
 function pastThrottle() {
   elapsed += 31_000;
   vi.setSystemTime(new Date(START + elapsed));
 }
 
 /**
- * Server-render the chrome, then hydrate it with the header still behind a chunk
- * that has not arrived — so the boundary is provably dehydrated while `/config`
- * is answered, which is the race itself.
+ * Server-render the chrome with the header suspended, hydrate the streamed
+ * shell, and hand back the controls to finish the boundary the way React does.
  */
-function hydrateChromeWithPendingHeader() {
-  let landHeaderChunk: () => void = () => {};
-  const chunk = new Promise<void>((resolve) => {
-    landHeaderChunk = resolve;
+async function hydrateStreamedShell() {
+  let releaseServer: () => void = () => {};
+  const serverGate = new Promise<void>((resolve) => {
+    releaseServer = resolve;
   });
-  const LazyHeader = lazy(() => chunk.then(() => ({ default: Header })));
+  const StreamedHeader = () => {
+    use(serverGate);
+    return <Header />;
+  };
 
-  const html = renderToString(<Chrome header={Header} />);
+  const stream = await renderToReadableStream(<Chrome header={StreamedHeader} />);
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  // Pump continuously — racing read() against a timer silently drops chunks.
+  void (async () => {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      buffer += decoder.decode(value, { stream: true });
+    }
+  })();
+  const settle = async () => {
+    let seen = -1;
+    while (seen !== buffer.length) {
+      seen = buffer.length;
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    }
+    return buffer;
+  };
+
+  const shell = await settle();
+  // The browser is still parsing the streamed document at this point, which is
+  // what keeps React waiting for the boundary instead of writing it off.
+  setReadyState('loading');
   container = document.createElement('div');
-  container.innerHTML = html;
+  container.innerHTML = shell;
   document.body.appendChild(container);
 
-  root = hydrateRoot(container, <Chrome header={LazyHeader} />, {
+  root = hydrateRoot(container, <Chrome header={Header} />, {
     onRecoverableError: (error) => recoverableErrors.push(String((error as Error).message)),
   });
-  // Re-rendering the layout is what a client navigation does.
-  return { html, landHeaderChunk, navigate: () => root?.render(<Chrome header={LazyHeader} />) };
+
+  /** Deliver the streamed segment and run React's `$RC`, as the parser would. */
+  async function completeBoundary() {
+    releaseServer();
+    const completion = (await settle()).slice(shell.length);
+    const holder = document.createElement('div');
+    holder.innerHTML = completion;
+    const scripts = Array.from(holder.querySelectorAll('script')).map((el) => {
+      const code = el.textContent ?? '';
+      el.remove();
+      return code;
+    });
+    while (holder.firstChild) {
+      const node = document.body.appendChild(holder.firstChild);
+      if (node instanceof HTMLElement) streamed.push(node);
+    }
+    for (const code of scripts) new Function(code)();
+    setReadyState('complete');
+  }
+
+  return {
+    shell,
+    completeBoundary,
+    // Re-rendering the layout is what a client navigation does.
+    navigate: () => root?.render(<Chrome header={Header} />),
+  };
 }
 
 function answers(program: string) {
@@ -159,62 +229,65 @@ beforeEach(() => {
   fetchLoyaltyConfig.mockReset();
   pathname.value = '/';
   recoverableErrors = [];
+  streamed = [];
+  resetStreamingRuntime();
 });
 
 afterEach(() => {
   root?.unmount();
   container?.remove();
+  streamed.forEach((node) => node.remove());
   root = null;
   container = null;
+  Reflect.deleteProperty(document, 'readyState');
   vi.useRealTimers();
 });
 
-describe('Creator Club entry — /config resolving mid-hydration (FBG-472)', () => {
-  it('cannot reach the header while its boundary is dehydrated, by any route', async () => {
+describe('Creator Club entry — streamed header boundary (FBG-472)', () => {
+  it('leaves the entry out of the header while its boundary is still streaming', async () => {
     answers(CASHBACK_WALLET_PROGRAM);
-    const { html, landHeaderChunk, navigate } = hydrateChromeWithPendingHeader();
-    // The programme is never known server-side — the HTML is the no-link variant.
-    expect(html).not.toContain('/rewards');
+    const { shell, navigate } = await hydrateStreamedShell();
+
+    // The header really is a pending boundary, and the programme is never known
+    // server-side, so the shell carries neither the header nor the entry.
+    expect(shell).toContain('<!--$?-->');
+    expect(shell).not.toContain('/rewards');
 
     // The footer, hydrated with the provider, picks the entry up at once.
     await until('the footer to show the entry', () => footerEntries() > 0);
     expect(headerEntries()).toBe(0);
 
-    // A client navigation re-renders the layout and re-reads /config...
+    // Coming back to the tab re-reads /config, but the answer is the same string
+    // React already holds, so nothing re-renders and the header stays as it is:
+    // a dehydrated subtree cannot be rendered into. This is the reported state.
+    pastThrottle();
+    window.dispatchEvent(new Event('focus'));
+    await until('the refocus to be re-read', () => fetchLoyaltyConfig.mock.calls.length > 1);
+    expect(headerEntries()).toBe(0);
+    expect(footerEntries()).toBeGreaterThan(0);
+    // Nothing has torn: the boundary has not been hydrated at all.
+    expect(recoverableErrors).toEqual([]);
+
+    // An update that actually reaches the boundary is a different matter — React
+    // gives up on the streamed markup and renders the header on the client, entry
+    // included. So the state above is not a trap the page cannot leave.
     pathname.value = '/catalog';
     pastThrottle();
     navigate();
-    await until('the navigation to be re-read', () => fetchLoyaltyConfig.mock.calls.length > 1);
-    expect(headerEntries()).toBe(0);
-
-    // ...and so does coming back to the tab. Neither can render into a subtree
-    // React has not hydrated: this is the reported "stuck header" state, and it
-    // lasts exactly as long as the header's chunk does.
-    pastThrottle();
-    window.dispatchEvent(new Event('focus'));
-    await until('the refocus to be re-read', () => fetchLoyaltyConfig.mock.calls.length > 2);
-    expect(headerEntries()).toBe(0);
-    expect(footerEntries()).toBeGreaterThan(0);
-
-    // Only hydrating the boundary can move it.
-    landHeaderChunk();
-    await until('the header entry to appear', () => headerEntries() > 0);
+    await until('the navigation to client-render the header', () => headerEntries() > 0);
   });
 
-  it('keeps the entry once the boundary has hydrated, rebuilt or not', async () => {
+  it('restores the entry when the boundary completes, torn or not', async () => {
     answers(CASHBACK_WALLET_PROGRAM);
-    const { landHeaderChunk, navigate } = hydrateChromeWithPendingHeader();
-
+    const { completeBoundary } = await hydrateStreamedShell();
     await until('the footer to show the entry', () => footerEntries() > 0);
-    landHeaderChunk();
+
+    await completeBoundary();
     await until('the header entry to appear', () => headerEntries() > 0);
 
-    // The state the report called permanent, asserted directly: once the header
-    // has hydrated — without the gate that means after React reported the
-    // mismatch and regenerated the boundary — the entry IS there. So the tear
-    // does not strand the header without it; this assertion holds both with and
-    // without the fix, which is why the tear is treated as the defect and not as
-    // a cause of a permanently entry-less header.
+    // The state the report called permanent, asserted directly. Without the gate
+    // React reports the mismatch here and regenerates the boundary; either way
+    // the entry ends up in the header, so the tear does not strand it.
     expect(headerEntries()).toBeGreaterThan(0);
 
     // And it survives client navigations, whose revalidations write the same
@@ -222,24 +295,22 @@ describe('Creator Club entry — /config resolving mid-hydration (FBG-472)', () 
     for (const next of ['/catalog', '/contacts', '/']) {
       pathname.value = next;
       pastThrottle();
-      navigate();
+      window.dispatchEvent(new Event('focus'));
       for (let i = 0; i < 5; i++) await macrotask();
       expect(headerEntries()).toBeGreaterThan(0);
     }
   });
 
-  it('hydrates the header without tearing when /config answered first', async () => {
+  it('completes the boundary without tearing when /config answered first', async () => {
     answers(CASHBACK_WALLET_PROGRAM);
-    const { landHeaderChunk } = hydrateChromeWithPendingHeader();
-
-    // The answer is published while the header is still server HTML...
+    const { completeBoundary } = await hydrateStreamedShell();
     await until('the footer to show the entry', () => footerEntries() > 0);
-    // ...and only then does the boundary hydrate, against older markup.
-    landHeaderChunk();
+
+    await completeBoundary();
     await until('the header entry to appear', () => headerEntries() > 0);
 
-    // Without the hydration gate React reports "server rendered text didn't
-    // match the client" here and rebuilds the whole header.
+    // Without the hydration gate this is where React reports "server rendered
+    // text didn't match the client" on the nav entry and rebuilds the header.
     expect(recoverableErrors).toEqual([]);
 
     // The mobile drawer maps the same NAV_ITEMS, so it follows the desktop bar.
@@ -249,12 +320,11 @@ describe('Creator Club entry — /config resolving mid-hydration (FBG-472)', () 
 
   it('leaves header and footer link-free for a dormant programme (FBG-469)', async () => {
     answers('points_discount');
-    const { landHeaderChunk } = hydrateChromeWithPendingHeader();
-
+    const { completeBoundary } = await hydrateStreamedShell();
     await until('the dormant answer', () => fetchLoyaltyConfig.mock.calls.length > 0);
-    landHeaderChunk();
-    await until('the header to hydrate', () => !!container?.querySelector('header nav, header a'));
-    for (let i = 0; i < 5; i++) await macrotask();
+
+    await completeBoundary();
+    await until('the header to arrive', () => !!container?.querySelector('header'));
 
     expect(recoverableErrors).toEqual([]);
     expect(headerEntries()).toBe(0);
@@ -263,12 +333,11 @@ describe('Creator Club entry — /config resolving mid-hydration (FBG-472)', () 
 
   it('leaves header and footer link-free when /config is unreachable', async () => {
     fetchLoyaltyConfig.mockRejectedValue(new Error('BFF down'));
-    const { landHeaderChunk } = hydrateChromeWithPendingHeader();
-
+    const { completeBoundary } = await hydrateStreamedShell();
     await until('the failed read', () => fetchLoyaltyConfig.mock.calls.length > 0);
-    landHeaderChunk();
-    await until('the header to hydrate', () => !!container?.querySelector('header nav, header a'));
-    for (let i = 0; i < 5; i++) await macrotask();
+
+    await completeBoundary();
+    await until('the header to arrive', () => !!container?.querySelector('header'));
 
     expect(recoverableErrors).toEqual([]);
     expect(headerEntries()).toBe(0);

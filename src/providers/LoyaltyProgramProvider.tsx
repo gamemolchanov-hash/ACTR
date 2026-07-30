@@ -124,8 +124,9 @@ function useHydrated(): boolean {
  * streamed Suspense boundary (`<!--$?--><template id="B:0">`, content spliced in
  * from the end of the document — see CreatorClubLinks.hydration.test.tsx for the
  * measurement), so its subtree hydrates in its own later pass. Until it does it
- * is inert markup that no context update, navigation or revalidation can render
- * into, which is why the entry reaches the footer well before the header.
+ * is inert markup: publishing the programme does not put the entry there, and a
+ * revalidation that returns the same string re-renders nothing at all. That is
+ * why the entry reaches the footer well before the header.
  *
  * Publishing the programme to the hydration render on top of that makes the
  * header TEAR when its turn comes: it hydrates against markup written before the
