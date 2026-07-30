@@ -8,7 +8,8 @@ import PrelaunchNotice from '@/components/PrelaunchNotice';
 export default function HomePage() {
   /* ============ PRE-LAUNCH (FBG-416/FBG-426) ============ */
   // While the shop is getting ready, show the same notice as the basket and
-  // checkout instead of the banner. One constant (PRELAUNCH) opens it at launch.
+  // checkout instead of the banner. NEXT_PUBLIC_PRELAUNCH=false (build-time)
+  // opens it at launch — see src/lib/prelaunch.ts.
   if (PRELAUNCH) {
     return <PrelaunchNotice />;
   }

@@ -1,5 +1,5 @@
 /**
- * Pre-launch gate (FBG-416).
+ * Pre-launch gate (FBG-416; env-переключаемый с 2026-07-30).
  *
  * The storefront catalog is public, but ordering is not yet enabled while the
  * shop finishes its final preparations. While `PRELAUNCH` is on:
@@ -15,6 +15,14 @@
  * Client-safe module: NO `import 'server-only'`, so the `'use client'`
  * components (CartProvider, basket, checkout) can import it.
  *
- * To open the store for orders at launch, flip this single constant to `false`.
+ * Toggle via `NEXT_PUBLIC_PRELAUNCH`:
+ *   - unset / any other value → true  (safe default: заказы закрыты)
+ *   - `false` or `0`          → false (магазин открыт)
+ *
+ * ВАЖНО: переменная BUILD-time — Next инлайнит `NEXT_PUBLIC_*` в бандлы при
+ * сборке (страницы к тому же статически пререндерятся, generateStaticParams).
+ * Локально: правь `.env.local` + перезапусти `npm run dev`. Прод: задай env на
+ * этапе сборки и задеплой; смена env на сервере БЕЗ пересборки эффекта не даёт.
  */
-export const PRELAUNCH = true;
+const raw = process.env.NEXT_PUBLIC_PRELAUNCH;
+export const PRELAUNCH = raw !== 'false' && raw !== '0';
