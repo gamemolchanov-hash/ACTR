@@ -7,6 +7,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { usePathname } from '@/i18n/navigation';
@@ -92,7 +93,56 @@ export function LoyaltyProgramProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Active programme code, or null while unknown (loading / unreachable /config). */
+/** Never resubscribes: the snapshot only has to flip once, at hydration. */
+const noSubscribe = () => () => {};
+
+/**
+ * `false` on the server and throughout the hydration render of the *calling*
+ * component, `true` from its first client-only render on.
+ *
+ * `getServerSnapshot` is what React uses both when rendering the HTML and when
+ * hydrating it, and the check that flips to `getSnapshot` runs per fiber, right
+ * after that fiber's subtree commits — which is exactly the guarantee the
+ * programme gate needs (FBG-472).
+ */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
+/**
+ * Active programme code, or null while unknown (loading / unreachable /config,
+ * and during hydration — see below).
+ *
+ * The programme arrives from a fetch, so it is never known during the server
+ * render: the HTML always carries the no-link variant. Publishing it to the
+ * hydration render too would make the client markup differ from that HTML, and
+ * the chrome is where that goes wrong twice over (FBG-472):
+ *
+ *  - `<Header>` sits inside a Suspense boundary (it needs one for
+ *    `useSearchParams`), so its subtree hydrates in a *separate, later* pass
+ *    than the provider. When `/config` answered in between, the header hydrated
+ *    against HTML that no longer matched — "server rendered text didn't match" —
+ *    on the nav entry itself, and React threw the boundary away and re-rendered
+ *    it client-side. `<Footer>` has no boundary, hydrates with the provider, and
+ *    was never affected: hence footer-with-link over header-without.
+ *  - Worse, a subtree that misses that one `null` → programme transition never
+ *    gets a second chance: every later revalidation writes the SAME string, and
+ *    React bails out of an identical state, so nothing re-renders the chrome
+ *    again. A transient race froze the header for the rest of the session.
+ *
+ * Gating on hydration removes both: the first client render of every consumer
+ * reproduces what the server rendered for the gated entry (so no mismatch is
+ * possible, whenever that subtree hydrates), and the link is then driven by its OWN
+ * hydration flip, which re-reads the context as it stands — no transition to
+ * miss. Fail-closed is unchanged: unknown, dormant and not-yet-hydrated all
+ * render no link, and the routes stay gated server-side regardless.
+ */
 export function useLoyaltyProgram(): string | null {
-  return useContext(LoyaltyProgramContext);
+  const program = useContext(LoyaltyProgramContext);
+  const hydrated = useHydrated();
+  return hydrated ? program : null;
 }
