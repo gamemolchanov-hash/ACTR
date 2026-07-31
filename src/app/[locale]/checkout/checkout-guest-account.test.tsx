@@ -25,6 +25,7 @@ const apiMock = vi.hoisted(() => ({
 }));
 const assign = vi.hoisted(() => vi.fn());
 const query = vi.hoisted(() => ({ value: new URLSearchParams() }));
+const cart = vi.hoisted(() => ({ items: [] as { productId: string; quantity: number }[] }));
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
@@ -47,11 +48,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@/providers/CartProvider', () => ({
-  useCart: () => ({
-    items: [{ productId: 'dp1', quantity: 1 }],
-    removeItem: vi.fn(),
-    clearCart: vi.fn(),
-  }),
+  useCart: () => ({ items: cart.items, removeItem: vi.fn(), clearCart: vi.fn() }),
 }));
 vi.mock('@/providers/CurrencyProvider', () => ({
   useCurrency: () => 'TRY',
@@ -64,7 +61,7 @@ vi.mock('@/lib/api', () => apiMock);
 vi.mock('@/lib/prelaunch', () => ({ PRELAUNCH: false }));
 vi.mock('@/components/WalletWidget', () => ({ default: () => null }));
 
-import { readAccountNotice, saveAccountNotice } from '@/lib/checkout';
+import { readAccountNotice, readPendingOrderId, saveAccountNotice } from '@/lib/checkout';
 import CheckoutPage from './page';
 import CheckoutSuccessPage from './success/page';
 
@@ -120,6 +117,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   query.value = new URLSearchParams();
+  cart.items = [{ productId: 'dp1', quantity: 1 }];
   auth.value = { customer: null, loading: false };
   apiMock.validateCart.mockResolvedValue({
     data: {
@@ -304,6 +302,84 @@ describe('order creation is not repeated after a failed payment session', () => 
   });
 });
 
+describe('a booked order cannot be stranded by editing the basket', () => {
+  const placeOrderThenFailPayment = async () => {
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockRejectedValueOnce(new Error('gateway down'));
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
+  };
+
+  /** The summary's "Edit" link (the breadcrumb to /basket is plain navigation). */
+  const editBasketLink = () =>
+    Array.from(document.querySelectorAll('a[href="/basket"]')).find(
+      (a) => a.textContent === 'Edit',
+    ) ?? null;
+
+  it('hides the basket edit affordances once ARM has booked the order', async () => {
+    render(<CheckoutPage />);
+    await waitFor(() => expect(apiMock.validateCart).toHaveBeenCalled());
+    // Before the order: the shopper may still change the basket.
+    await waitFor(() =>
+      expect(document.querySelector('[data-testid="DeleteOutlineIcon"]')).not.toBeNull(),
+    );
+    expect(editBasketLink()).not.toBeNull();
+    cleanup();
+
+    await placeOrderThenFailPayment();
+
+    expect(document.querySelector('[data-testid="DeleteOutlineIcon"]')).toBeNull();
+    expect(editBasketLink()).toBeNull();
+  });
+
+  it('still offers the payment when the basket was emptied elsewhere', async () => {
+    await placeOrderThenFailPayment();
+
+    // Cleared from /basket or another tab, then back to checkout.
+    cleanup();
+    cart.items = [];
+    render(<CheckoutPage />);
+
+    // Not the "your cart is empty" dead end — the order exists and is unpaid.
+    await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
+    expect(screen.queryByText(/Your cart is empty/)).toBeNull();
+
+    apiMock.createPaymentSession.mockResolvedValue({ data: { type: 'manual' } });
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+    expect(apiMock.createPaymentSession.mock.calls.at(-1)![0]).toBe('ord-1');
+  });
+
+  it('keeps the draft and the pending marker until the buyer reaches success', async () => {
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
+    });
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    // A payment session is not a payment: cancelling at the provider brings the
+    // shopper back here, and a wiped draft would look like a fresh checkout.
+    expect(readPendingOrderId()).toBe('ord-1');
+    expect(sessionStorage.getItem('checkout_form')).not.toBeNull();
+
+    cleanup();
+    render(<CheckoutPage />);
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(2));
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('order linked to a registered account (phone match)', () => {
   /** ARM answers 404 to anyone without the owner's JWT — retrying is futile. */
   const ownership404 = Object.assign(new Error('Order not found'), {
@@ -399,6 +475,10 @@ describe('checkout → confirmation page, end to end', () => {
     await waitFor(() => expect(notice()).not.toBeNull());
     expect(notice()!.textContent).toContain('checkout.account.createdSent');
     expect(notice()!.textContent).toContain('ada@example.com');
+    // Terminal point: the draft and the duplicate guard are cleared only here.
+    await waitFor(() => expect(readPendingOrderId()).toBe(null));
+    expect(sessionStorage.getItem('checkout_form')).toBeNull();
+    expect(sessionStorage.getItem('checkout_step')).toBeNull();
   });
 
   it('shows the email_taken block with a standalone sign-in link', async () => {

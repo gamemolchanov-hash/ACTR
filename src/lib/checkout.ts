@@ -221,11 +221,32 @@ export function readPendingOrderId(): string | null {
   }
 }
 
-/** Called once the order has moved on — a session exists, or payment started. */
+/** Called at the terminal point of the checkout — see clearCheckoutDraft. */
 export function clearPendingOrderId(): void {
   try {
     sessionStorage.removeItem(PENDING_ORDER_KEY);
   } catch {}
+}
+
+/** sessionStorage keys of the checkout draft — one definition, two pages. */
+export const CHECKOUT_FORM_KEY = 'checkout_form';
+export const CHECKOUT_STEP_KEY = 'checkout_step';
+export const CHECKOUT_PROMO_KEY = 'checkout_promo';
+
+/**
+ * Drop everything this checkout left behind. Called ONLY from the confirmation
+ * page: creating a payment session is not paying for the order, and until the
+ * buyer actually lands on success, returning to /checkout (provider cancel,
+ * reload, back button) has to resume the booked order rather than look like a
+ * fresh basket and place a second one.
+ */
+export function clearCheckoutDraft(): void {
+  try {
+    sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+    sessionStorage.removeItem(CHECKOUT_STEP_KEY);
+    sessionStorage.removeItem(CHECKOUT_PROMO_KEY);
+  } catch {}
+  clearPendingOrderId();
 }
 
 // ---------------------------------------------------------------------------

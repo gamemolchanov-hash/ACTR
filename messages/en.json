@@ -179,6 +179,7 @@
   "checkout.errors.wallet_unavailable": "Wallet payment isn't available right now — you can pay the full amount by card.",
   "checkout.obf.close": "Close",
   "checkout.obf.title": "Agreements and Forms",
+  "checkout.pendingOrder.notice": "Your order has been placed and is waiting for payment. Complete the payment below to finish it — no second order will be created.",
   "checkout.shipping.invalid_postal_code": "We couldn't validate the postal code {zip}. Please double-check it and try again.",
   "checkout.shipping.network": "We couldn't reach the shipping service. Please check your connection and try again.",
   "checkout.shipping.not_configured": "Shipping to this address isn't available at the moment.",

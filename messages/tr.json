@@ -179,6 +179,7 @@
   "checkout.errors.wallet_unavailable": "Cüzdan ödemesi şu anda kullanılamıyor — tutarın tamamını kartla ödeyebilirsiniz.",
   "checkout.obf.close": "Kapat",
   "checkout.obf.title": "Sözleşmeler ve Formlar",
+  "checkout.pendingOrder.notice": "Siparişiniz oluşturuldu ve ödeme bekliyor. Tamamlamak için aşağıdan ödemeyi yapın — ikinci bir sipariş oluşturulmaz.",
   "checkout.shipping.invalid_postal_code": "{zip} posta kodunu doğrulayamadık. Lütfen kontrol edip tekrar deneyin.",
   "checkout.shipping.network": "Kargo servisine ulaşamadık. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
   "checkout.shipping.not_configured": "Bu adrese kargo şu anda kullanılamıyor.",

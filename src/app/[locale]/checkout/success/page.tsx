@@ -11,7 +11,12 @@ import { fetchOrder } from '@/lib/api';
 import { fmtMoney } from '@/lib/money';
 import { palette } from '@/lib/theme';
 import type { ArmOrder } from '@/lib/arm-types';
-import { readAccountNotice, resolveAccountNotice, type AccountNotice } from '@/lib/checkout';
+import {
+  clearCheckoutDraft,
+  readAccountNotice,
+  resolveAccountNotice,
+  type AccountNotice,
+} from '@/lib/checkout';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
 const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
@@ -30,12 +35,13 @@ function SuccessContent() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [notice, setNotice] = useState<AccountNotice | null>(null);
 
-  // Clear cart at the point of confirmed payment success
+  // Terminal point of the checkout: clear the cart and every draft it left
+  // behind. The checkout page keeps its draft and its pending-order marker right
+  // through the payment redirect on purpose — until the buyer lands here, going
+  // back to /checkout must resume THAT order, not start a second one.
   useEffect(() => {
     clearCart();
-    try {
-      sessionStorage.removeItem('checkout_promo');
-    } catch {}
+    clearCheckoutDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

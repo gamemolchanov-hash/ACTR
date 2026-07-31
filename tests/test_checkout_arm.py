@@ -23,6 +23,9 @@ import requests
 BASE = os.environ.get("STOREFRONT_BASE", "http://localhost:3000")
 TENANT = os.environ.get("NEXT_PUBLIC_TENANT_ID", "tenant_snailmarket")
 DEMO_PRODUCT_ID = os.environ.get("DEMO_PRODUCT_ID", "")
+# Keep in sync with TERMS_VERSION in src/lib/auth.ts — the BFF registerSchema
+# requires a non-empty value and records it as proof of what was shown.
+TERMS_VERSION = "2026-06-30"
 
 session = requests.Session()
 session.headers.update({"X-Tenant-ID": TENANT})
@@ -207,8 +210,12 @@ def test_repeat_guest_links() -> None:
             "locale": "tr",
         },
     )
-    if not first.ok or first.json().get("data", {}).get("account") is None:
-        print("  SKIP  auto_register_guests is off (or first order failed)")
+    # A failed request is a FAILURE; only a missing `account` is configuration.
+    check("first order accepted", first.ok, f"{first.status_code} {first.text[:200]}")
+    if not first.ok:
+        return
+    if first.json().get("data", {}).get("account") is None:
+        print("  SKIP  auto_register_guests is off for this storefront")
         return
 
     second = session.post(
@@ -253,6 +260,8 @@ def test_registered_phone_match() -> None:
     phone = f"+9055{tag[:8]}"
     password = f"Pw!{tag}"
 
+    # Mirrors what the storefront sends (src/lib/auth.ts): `terms_version` is a
+    # required field of the BFF registerSchema, not an optional extra.
     reg = session.post(
         f"{BASE}/api/storefront/auth/register",
         json={
@@ -261,10 +270,13 @@ def test_registered_phone_match() -> None:
             "phone": phone,
             "password": password,
             "terms_accepted": True,
+            "terms_version": TERMS_VERSION,
         },
     )
+    # A 4xx here means the request itself is wrong — that must fail the run, not
+    # skip it, or this whole ownership scenario silently stops being tested.
+    check("registration accepted", reg.ok, f"{reg.status_code} {reg.text[:200]}")
     if not reg.ok:
-        print(f"  SKIP  registration unavailable ({reg.status_code})")
         return
 
     order = session.post(
@@ -310,11 +322,12 @@ def test_registered_phone_match() -> None:
         str(anon.status_code),
     )
 
+    # BFF loginSchema takes `login` (email OR phone), not `email`.
     login = session.post(
-        f"{BASE}/api/storefront/auth/login", json={"email": email, "password": password}
+        f"{BASE}/api/storefront/auth/login", json={"login": email, "password": password}
     )
+    check("login accepted", login.ok, f"{login.status_code} {login.text[:200]}")
     if not login.ok:
-        print(f"  SKIP  login unavailable ({login.status_code}) — cannot verify the owner path")
         return
     token = login.json().get("token")
     owned = session.post(

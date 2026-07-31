@@ -50,10 +50,12 @@ import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
 import {
   blockReasonKey,
+  CHECKOUT_FORM_KEY,
+  CHECKOUT_PROMO_KEY,
+  CHECKOUT_STEP_KEY,
   checkoutAuthState,
   checkoutBlockReason,
   clearAccountNotice,
-  clearPendingOrderId,
   guestEmailRequired,
   looksLikeEmail,
   proceedButtonDisabled,
@@ -206,8 +208,6 @@ function formatObfAddress(f: FormData): string {
     .join(', ');
 }
 
-const STORAGE_KEY = 'checkout_form';
-const STORAGE_STEP_KEY = 'checkout_step';
 
 function loadFromSession<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -300,15 +300,15 @@ export default function CheckoutPage() {
 
   // Hydrate from sessionStorage on mount (client only)
   useEffect(() => {
-    const saved = loadFromSession<Partial<FormData>>(STORAGE_KEY, {});
+    const saved = loadFromSession<Partial<FormData>>(CHECKOUT_FORM_KEY, {});
     setForm((prev) => ({ ...prev, ...saved }));
-    setStep(loadFromSession(STORAGE_STEP_KEY, 1));
+    setStep(loadFromSession(CHECKOUT_STEP_KEY, 1));
     // An order booked before a reload must be picked up again, or this submit
     // would create a duplicate for the same basket (FBG-477 review).
     setPlacedOrderId(readPendingOrderId());
     // Restore promo code from basket page
     try {
-      const stored = sessionStorage.getItem('checkout_promo');
+      const stored = sessionStorage.getItem(CHECKOUT_PROMO_KEY);
       if (stored) setPromoResult(JSON.parse(stored));
     } catch {}
     setHydrated(true);
@@ -349,10 +349,10 @@ export default function CheckoutPage() {
 
   // Persist form to sessionStorage (only after hydration)
   useEffect(() => {
-    if (hydrated) saveToSession(STORAGE_KEY, form);
+    if (hydrated) saveToSession(CHECKOUT_FORM_KEY, form);
   }, [form, hydrated]);
   useEffect(() => {
-    if (hydrated) saveToSession(STORAGE_STEP_KEY, step);
+    if (hydrated) saveToSession(CHECKOUT_STEP_KEY, step);
   }, [step, hydrated]);
 
   // Validate cart on mount / items change
@@ -660,14 +660,12 @@ export default function CheckoutPage() {
         `${origin}/${locale}/checkout`,
       );
 
-      // Clear session storage (cart cleared on success page after payment).
-      // The order now has a payment session, so the duplicate guard has done its
-      // job and must not outlive this checkout.
-      sessionStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem(STORAGE_STEP_KEY);
-      sessionStorage.removeItem('checkout_promo');
-      clearPendingOrderId();
-
+      // NOTE: the draft and the pending-order marker are deliberately NOT cleared
+      // here. A payment session is not a payment: the shopper can still cancel at
+      // Stripe (cancelUrl brings them back to this page) or reload before paying,
+      // and a wiped draft would look like a fresh checkout — placing a SECOND
+      // order for a basket that already has an unpaid one. The success page is
+      // the terminal point and clears all of it (FBG-477 review).
       const session = sessionRes.data;
       if (session.type === 'manual') {
         // Offline payment (FBG-478): no session to run, the order is placed.
@@ -743,8 +741,10 @@ export default function CheckoutPage() {
     return <PrelaunchNotice />;
   }
 
-  /* ---- Empty cart ---- */
-  if (!loading && items.length === 0) {
+  /* ---- Empty cart. Not while an order is already booked: the basket no longer
+         decides anything then, and this screen is the only place the payment can
+         still be completed (FBG-477 review). ---- */
+  if (!loading && items.length === 0 && !placedOrderId) {
     return (
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
@@ -819,7 +819,10 @@ export default function CheckoutPage() {
         >
           Customer
         </Typography>
-        {step > 1 && (
+        {/* Hidden while the payload is frozen: step 1 holds only disabled fields
+            then, and leaving step 2 would hide the button that finishes the
+            payment. */}
+        {step > 1 && !inputsLocked && (
           <Typography
             onClick={() => setStep(1)}
             sx={{
@@ -894,6 +897,40 @@ export default function CheckoutPage() {
       )}
     </Alert>
   ) : null;
+
+  /* ---- Order booked, but the basket was emptied elsewhere (/basket, another
+         tab). The order still exists in ARM and is still unpaid, so the checkout
+         turns into a payment-retry screen instead of the "cart is empty" dead
+         end that would leave the shopper no way to finish (FBG-477 review). ---- */
+  if (placedOrderId && items.length === 0) {
+    return (
+      <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
+        {breadcrumbs}
+        <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 1.5 }}>
+          Checkout
+        </Typography>
+        <Typography sx={{ ...textSm, color: c.main, mb: 2, maxWidth: 660 }}>
+          {t('checkout.pendingOrder.notice')}
+        </Typography>
+        <Box sx={{ maxWidth: 660 }}>
+          {errorAlert}
+          <Button
+            variant="contained"
+            fullWidth
+            disabled={proceedButtonDisabled(gateOpts)}
+            onClick={handleSubmit}
+            sx={btnSx}
+          >
+            {submitting ? (
+              <CircularProgress size={24} sx={{ color: 'white' }} />
+            ) : (
+              'Proceed to Payment'
+            )}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   /* ---- Step 1: Contact & Address form ---- */
   const step1Content = (
@@ -1300,14 +1337,16 @@ export default function CheckoutPage() {
         <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase' }}>
           Your Order
         </Typography>
-        <MuiLink
-          component={Link}
-          href="/basket"
-          underline="none"
-          sx={{ color: c['40'], ...text, cursor: 'pointer' }}
-        >
-          Edit
-        </MuiLink>
+        {!inputsLocked && (
+          <MuiLink
+            component={Link}
+            href="/basket"
+            underline="none"
+            sx={{ color: c['40'], ...text, cursor: 'pointer' }}
+          >
+            Edit
+          </MuiLink>
+        )}
       </Stack>
 
       {loading ? (
@@ -1361,10 +1400,16 @@ export default function CheckoutPage() {
                     {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'} /pc
                   </Typography>
                 </Box>
-                <DeleteOutlineIcon
-                  onClick={() => removeItem(item.productId)}
-                  sx={{ color: c.main, fontSize: 28, cursor: 'pointer', flexShrink: 0 }}
-                />
+                {/* The basket is part of the order payload: it freezes with the
+                    rest of the form, and stays frozen once ARM has booked the
+                    order — removing a line then would only hide the items the
+                    shopper still owes for. */}
+                {!inputsLocked && (
+                  <DeleteOutlineIcon
+                    onClick={() => removeItem(item.productId)}
+                    sx={{ color: c.main, fontSize: 28, cursor: 'pointer', flexShrink: 0 }}
+                  />
+                )}
               </Stack>
             ))}
 
