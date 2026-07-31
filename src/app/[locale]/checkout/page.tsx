@@ -53,10 +53,13 @@ import {
   checkoutAuthState,
   checkoutBlockReason,
   clearAccountNotice,
+  clearPendingOrderId,
   guestEmailRequired,
   looksLikeEmail,
   proceedButtonDisabled,
+  readPendingOrderId,
   saveAccountNotice,
+  savePendingOrderId,
   shippingErrorKey,
   shippingPanelState,
   showUyelikConsent,
@@ -279,6 +282,11 @@ export default function CheckoutPage() {
   // new account — so everything after that point retries against THIS id and
   // never places a second order (FBG-477 review).
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  // ARM won't open a payment session for this order without its owner's JWT:
+  // the checkout phone belongs to a registered account, so ARM linked the order
+  // to it (`account.status: 'linked'`) and answers 404 to everyone else. Retrying
+  // can only start working after the shopper signs in.
+  const [ownerSignInRequired, setOwnerSignInRequired] = useState(false);
 
   // Ön Bilgilendirme Formu modal (FBG-401). `obfGeneratedAt` is stamped once on
   // first open (client-only) so the draft ref / date-time stay stable while the
@@ -295,6 +303,9 @@ export default function CheckoutPage() {
     const saved = loadFromSession<Partial<FormData>>(STORAGE_KEY, {});
     setForm((prev) => ({ ...prev, ...saved }));
     setStep(loadFromSession(STORAGE_STEP_KEY, 1));
+    // An order booked before a reload must be picked up again, or this submit
+    // would create a duplicate for the same basket (FBG-477 review).
+    setPlacedOrderId(readPendingOrderId());
     // Restore promo code from basket page
     try {
       const stored = sessionStorage.getItem('checkout_promo');
@@ -436,6 +447,22 @@ export default function CheckoutPage() {
   // anything the shop can still change (only the payment session is retried).
   const inputsLocked = submitting || placedOrderId !== null;
 
+  // Signing in clears the block by itself: the retry then carries the owner's
+  // Bearer token, which is exactly what ARM was asking for.
+  const ownerBlocked = ownerSignInRequired && authState !== 'member';
+
+  const gateOpts = {
+    submitting,
+    authState,
+    agreedKvkk,
+    agreedMesafeli,
+    agreedUyelik,
+    email: form.email,
+    selectedRateId,
+    orderPlaced: placedOrderId !== null,
+    ownerSignInRequired: ownerBlocked,
+  };
+
   const isStep1Valid = useMemo(() => {
     return !!(
       (!emailRequired || looksLikeEmail(form.email)) &&
@@ -546,15 +573,7 @@ export default function CheckoutPage() {
     // button reads, so the handler is never the weaker check: consents, the
     // guest email + üyelik agreement, an unresolved auth state, and the
     // selected-rate mirror of the ARM zero-shipping-cost guard (FBG-393).
-    const blockReason = checkoutBlockReason({
-      submitting,
-      authState,
-      agreedKvkk,
-      agreedMesafeli,
-      agreedUyelik,
-      email: form.email,
-      selectedRateId,
-    });
+    const blockReason = checkoutBlockReason(gateOpts);
     if (blockReason) {
       // The email field lives on step 1 — take the shopper back to it, or the
       // message would point at something they cannot see.
@@ -610,6 +629,8 @@ export default function CheckoutPage() {
         });
         orderId = orderRes.data.id;
         setPlacedOrderId(orderId);
+        // Survives the reload a shopper reaches for when payment fails.
+        savePendingOrderId(orderId);
 
         // What ARM did with the buyer's account is reported here and nowhere else
         // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
@@ -639,10 +660,13 @@ export default function CheckoutPage() {
         `${origin}/${locale}/checkout`,
       );
 
-      // Clear session storage (cart cleared on success page after payment)
+      // Clear session storage (cart cleared on success page after payment).
+      // The order now has a payment session, so the duplicate guard has done its
+      // job and must not outlive this checkout.
       sessionStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(STORAGE_STEP_KEY);
       sessionStorage.removeItem('checkout_promo');
+      clearPendingOrderId();
 
       const session = sessionRes.data;
       if (session.type === 'manual') {
@@ -669,10 +693,20 @@ export default function CheckoutPage() {
         err?.response?.data?.message ||
         err?.message ||
         'Error creating order';
-      // `orderId` set means the order is already booked and only the payment
-      // session failed — saying "error creating order" here would invite the
-      // shopper to place another one.
-      setError(orderId ? t('checkout.errors.paymentSessionFailed') : msg);
+      // A 404 on an order we just created is ARM's ownership gate, not a missing
+      // order: the checkout phone belongs to a registered account, so the order
+      // was linked to it and only that account's JWT can pay it. Repeating the
+      // request can never succeed, so stop offering a retry and send the shopper
+      // to sign in — after which the same button works, on the same order.
+      if (orderId && err?.response?.status === 404) {
+        setOwnerSignInRequired(true);
+        setError(t('checkout.errors.ownerSignInRequired'));
+      } else {
+        // `orderId` set means the order is already booked and only the payment
+        // session failed — saying "error creating order" here would invite the
+        // shopper to place another one.
+        setError(orderId ? t('checkout.errors.paymentSessionFailed') : msg);
+      }
       setSubmitting(false);
     }
   };
@@ -844,6 +878,20 @@ export default function CheckoutPage() {
   const errorAlert = error ? (
     <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
       {error}
+      {/* The only way out of the ownership block: sign in and press again — the
+          retry then carries the token ARM asked for, on the same order. */}
+      {ownerBlocked && (
+        <Box sx={{ mt: 1 }}>
+          <MuiLink
+            component={Link}
+            href="/login"
+            underline="always"
+            sx={{ color: 'inherit', ...textSm, fontWeight: 700 }}
+          >
+            {t('checkout.account.loginCta')}
+          </MuiLink>
+        </Box>
+      )}
     </Alert>
   ) : null;
 
@@ -1211,15 +1259,7 @@ export default function CheckoutPage() {
           <Button
             variant="contained"
             fullWidth
-            disabled={proceedButtonDisabled({
-              submitting,
-              authState,
-              agreedKvkk,
-              agreedMesafeli,
-              agreedUyelik,
-              email: form.email,
-              selectedRateId,
-            })}
+            disabled={proceedButtonDisabled(gateOpts)}
             onClick={handleSubmit}
             sx={btnSx}
           >

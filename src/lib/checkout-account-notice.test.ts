@@ -11,9 +11,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   clearAccountNotice,
+  clearPendingOrderId,
   readAccountNotice,
+  readPendingOrderId,
   resolveAccountNotice,
   saveAccountNotice,
+  savePendingOrderId,
   type AccountNotice,
 } from './checkout';
 
@@ -85,6 +88,32 @@ describe('account notice storage', () => {
     clearAccountNotice();
     clearAccountNotice();
     expect(readAccountNotice()).toBe(null);
+  });
+});
+
+describe('pending order marker', () => {
+  it('round-trips the booked order id', () => {
+    savePendingOrderId('ord-1');
+    expect(readPendingOrderId()).toBe('ord-1');
+  });
+
+  it('is absent before any order and after clearing', () => {
+    expect(readPendingOrderId()).toBe(null);
+    savePendingOrderId('ord-1');
+    clearPendingOrderId();
+    clearPendingOrderId();
+    expect(readPendingOrderId()).toBe(null);
+  });
+
+  it('survives a sessionStorage that throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => savePendingOrderId('ord-1')).not.toThrow();
+    expect(readPendingOrderId()).toBe(null);
   });
 });
 

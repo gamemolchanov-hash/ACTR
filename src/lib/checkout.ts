@@ -103,6 +103,7 @@ export function looksLikeEmail(value: string): boolean {
 /** Why the order can't be placed yet, in the order the user should fix it. */
 export type CheckoutBlockReason =
   | 'submitting'
+  | 'owner_sign_in'
   | 'auth_pending'
   | 'consent'
   | 'uyelik'
@@ -117,6 +118,20 @@ export interface CheckoutGateOpts {
   agreedUyelik: boolean;
   email: string;
   selectedRateId: string;
+  /**
+   * ARM has already answered 201 for this checkout. Everything below was
+   * validated when the order was created and the inputs are frozen since, so
+   * only the payment session is still outstanding — re-checking the consents
+   * would strand the shopper after a reload (the boxes are deliberately not
+   * persisted, but the order is).
+   */
+  orderPlaced: boolean;
+  /**
+   * ARM refuses to open a payment session for this order without its owner's
+   * JWT (the checkout phone belongs to a registered account — `linked`), so
+   * repeating the request is pointless until the shopper signs in.
+   */
+  ownerSignInRequired: boolean;
 }
 
 /**
@@ -137,6 +152,8 @@ export interface CheckoutGateOpts {
  */
 export function checkoutBlockReason(opts: CheckoutGateOpts): CheckoutBlockReason | null {
   if (opts.submitting) return 'submitting';
+  if (opts.ownerSignInRequired) return 'owner_sign_in';
+  if (opts.orderPlaced) return null;
   if (opts.authState === 'pending') return 'auth_pending';
   if (!opts.agreedKvkk || !opts.agreedMesafeli) return 'consent';
   if (showUyelikConsent(opts.authState) && !opts.agreedUyelik) return 'uyelik';
@@ -164,6 +181,8 @@ export function proceedButtonDisabled(opts: CheckoutGateOpts): boolean {
  */
 export function blockReasonKey(reason: CheckoutBlockReason | null): string | null {
   switch (reason) {
+    case 'owner_sign_in':
+      return 'checkout.errors.ownerSignInRequired';
     case 'consent':
       return 'checkout.consent.required';
     case 'uyelik':
@@ -173,6 +192,40 @@ export function blockReasonKey(reason: CheckoutBlockReason | null): string | nul
     default:
       return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Placed-order marker (FBG-477 review)
+// ---------------------------------------------------------------------------
+
+/**
+ * UUID of an order ARM has already booked but whose payment session hasn't been
+ * created yet. It lives beside the `checkout_form` draft (same store, same
+ * lifetime) because React state does not survive the reload a shopper reaches
+ * for when a payment fails — and without it the next submit would place a
+ * SECOND order for the same basket, with a live first one left behind.
+ */
+const PENDING_ORDER_KEY = 'checkout_pending_order';
+
+export function savePendingOrderId(orderId: string): void {
+  try {
+    sessionStorage.setItem(PENDING_ORDER_KEY, orderId);
+  } catch {}
+}
+
+export function readPendingOrderId(): string | null {
+  try {
+    return sessionStorage.getItem(PENDING_ORDER_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Called once the order has moved on — a session exists, or payment started. */
+export function clearPendingOrderId(): void {
+  try {
+    sessionStorage.removeItem(PENDING_ORDER_KEY);
+  } catch {}
 }
 
 // ---------------------------------------------------------------------------

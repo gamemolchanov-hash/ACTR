@@ -271,6 +271,98 @@ describe('order creation is not repeated after a failed payment session', () => 
       email: 'ada@example.com',
     });
   });
+
+  it('still resumes the same order after the shopper reloads the page', async () => {
+    apiMock.createOrder.mockResolvedValue({
+      data: {
+        id: 'ord-1',
+        number: 'N-1',
+        total: 150,
+        currency: 'TRY',
+        account: { status: 'created', welcome_email_sent: true },
+      },
+    });
+    apiMock.createPaymentSession.mockRejectedValueOnce(new Error('gateway down'));
+
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
+
+    // F5: React state is gone, only sessionStorage survives — and the consent
+    // boxes come back unticked, so the gate must not re-ask for them either.
+    cleanup();
+    render(<CheckoutPage />);
+    await waitFor(() => expect(apiMock.fetchShippingRates).toHaveBeenCalled());
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(2);
+    expect(apiMock.createPaymentSession.mock.calls[1][0]).toBe('ord-1');
+  });
+});
+
+describe('order linked to a registered account (phone match)', () => {
+  /** ARM answers 404 to anyone without the owner's JWT — retrying is futile. */
+  const ownership404 = Object.assign(new Error('Order not found'), {
+    response: { status: 404, data: { error: 'Order not found' } },
+  });
+
+  beforeEach(() => {
+    apiMock.createOrder.mockResolvedValue({
+      data: {
+        id: 'ord-1',
+        number: 'N-1',
+        total: 150,
+        currency: 'TRY',
+        account: { status: 'linked', welcome_email_sent: false },
+      },
+    });
+    apiMock.createPaymentSession.mockRejectedValue(ownership404);
+  });
+
+  it('tells the guest to sign in and stops repeating the doomed request', async () => {
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.ownerSignInRequired/)).toBeDefined(),
+    );
+    // No false "press again", and no second order.
+    expect(screen.queryByText('checkout.errors.paymentSessionFailed')).toBeNull();
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+
+    expect(proceedButton().disabled).toBe(true);
+    fireEvent.click(proceedButton());
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
+
+    // The way out is offered right there.
+    expect(document.querySelector('a[href="/login"]')).not.toBeNull();
+  });
+
+  it('lets the same order be paid once the buyer has signed in', async () => {
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.ownerSignInRequired/)).toBeDefined(),
+    );
+
+    // Signed in and back on this page: the retry now carries the owner's token.
+    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    apiMock.createPaymentSession.mockResolvedValue({ data: { type: 'manual' } });
+    cleanup();
+    render(<CheckoutPage />);
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+    expect(apiMock.createPaymentSession.mock.calls.at(-1)![0]).toBe('ord-1');
+  });
 });
 
 describe('checkout → confirmation page, end to end', () => {

@@ -28,6 +28,8 @@ const READY = {
   agreedUyelik: false,
   email: '',
   selectedRateId: 'economy',
+  orderPlaced: false,
+  ownerSignInRequired: false,
 };
 
 /** Same, for a guest: üyelik accepted and an email typed in. */
@@ -137,6 +139,32 @@ describe('checkoutBlockReason', () => {
 
   it('lets a fully-consenting guest through', () => {
     expect(checkoutBlockReason(GUEST_READY)).toBe(null);
+  });
+
+  it('stops re-checking preconditions once the order is booked', () => {
+    // After a reload the consent boxes come back unticked (they are deliberately
+    // not persisted) while the order is — re-asking would strand the shopper
+    // with an unpaid order and a permanently disabled button.
+    const placed = {
+      ...GUEST_READY,
+      orderPlaced: true,
+      agreedKvkk: false,
+      agreedMesafeli: false,
+      agreedUyelik: false,
+      email: '',
+      authState: 'pending' as const,
+    };
+    expect(checkoutBlockReason(placed)).toBe(null);
+    expect(proceedButtonDisabled(placed)).toBe(false);
+    // …but a submit already in flight still wins over it.
+    expect(checkoutBlockReason({ ...placed, submitting: true })).toBe('submitting');
+  });
+
+  it('blocks a retry ARM can only answer with 404 until the owner signs in', () => {
+    const blocked = { ...GUEST_READY, orderPlaced: true, ownerSignInRequired: true };
+    expect(checkoutBlockReason(blocked)).toBe('owner_sign_in');
+    expect(proceedButtonDisabled(blocked)).toBe(true);
+    expect(blockReasonKey('owner_sign_in')).toBe('checkout.errors.ownerSignInRequired');
   });
 });
 

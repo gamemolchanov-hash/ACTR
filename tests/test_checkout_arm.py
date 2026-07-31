@@ -234,6 +234,101 @@ def test_repeat_guest_links() -> None:
         )
 
 
+# ── 7. guest checkout on a REGISTERED phone → linked + owner-only payment ─────
+def test_registered_phone_match() -> None:
+    """The one guest flow that is NOT payable without signing in.
+
+    ARM treats the phone as the checkout identity: a guest typing a registered
+    customer's number gets `account.status='linked'` and the order is attached to
+    that account. `orderRequiresOwnerJwt` then closes both GET /orders/:id and
+    create-session to everyone but the owner, so the storefront must stop
+    retrying and send the buyer to sign in (checkout.errors.ownerSignInRequired).
+    """
+    print("\n[7] guest checkout on a registered phone")
+    if not DEMO_PRODUCT_ID:
+        print("  SKIP  no DEMO_PRODUCT_ID set")
+        return
+    tag = uuid.uuid4().hex[:10]
+    email = f"member.{tag}@example.com"
+    phone = f"+9055{tag[:8]}"
+    password = f"Pw!{tag}"
+
+    reg = session.post(
+        f"{BASE}/api/storefront/auth/register",
+        json={
+            "name": "Member User",
+            "email": email,
+            "phone": phone,
+            "password": password,
+            "terms_accepted": True,
+        },
+    )
+    if not reg.ok:
+        print(f"  SKIP  registration unavailable ({reg.status_code})")
+        return
+
+    order = session.post(
+        f"{BASE}/api/storefront/orders",
+        json={
+            # Guest checkout (no Authorization) reusing the registered phone.
+            "customer": {"name": "Member User", "phone": phone, "email": email},
+            "shipping": {
+                "city": "Istanbul",
+                "zip": "34000",
+                "country": "TR",
+                "street": "Istiklal Cad",
+                "building": "1",
+            },
+            "items": [{"distributorProductId": DEMO_PRODUCT_ID, "quantity": 1}],
+            "locale": "tr",
+        },
+    )
+    check("status 201 or 200", order.status_code in (200, 201), str(order.status_code))
+    if not order.ok:
+        return
+    data = order.json().get("data", {})
+    order_id = data.get("id")
+    account = data.get("account")
+    if account is None:
+        print("  SKIP  auto_register_guests is off for this storefront")
+    else:
+        check(
+            "registered phone → account.status == 'linked'",
+            account.get("status") == "linked",
+            str(account),
+        )
+
+    body = {
+        "orderId": order_id,
+        "successUrl": f"{BASE}/tr/checkout/success?order={order_id}",
+        "cancelUrl": f"{BASE}/tr/checkout",
+    }
+    anon = session.post(f"{BASE}/api/storefront/payment/create-session", json=body)
+    check(
+        "without the owner JWT create-session is refused (404)",
+        anon.status_code == 404,
+        str(anon.status_code),
+    )
+
+    login = session.post(
+        f"{BASE}/api/storefront/auth/login", json={"email": email, "password": password}
+    )
+    if not login.ok:
+        print(f"  SKIP  login unavailable ({login.status_code}) — cannot verify the owner path")
+        return
+    token = login.json().get("token")
+    owned = session.post(
+        f"{BASE}/api/storefront/payment/create-session",
+        json=body,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    check(
+        "with the owner JWT the SAME order becomes payable",
+        owned.status_code == 200,
+        str(owned.status_code),
+    )
+
+
 if __name__ == "__main__":
     print(f"Storefront base: {BASE}")
     print(f"Tenant: {TENANT}")
@@ -245,6 +340,7 @@ if __name__ == "__main__":
     order_id = test_create_order()
     test_guest_order_access(order_id)
     test_repeat_guest_links()
+    test_registered_phone_match()
 
     print(f"\n{'='*50}")
     print(f"Results: {PASS} passed, {FAIL} failed")
