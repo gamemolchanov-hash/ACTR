@@ -237,6 +237,41 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
     expect(screen.queryByText(/Registration failed/i)).toBeNull();
   });
 
+  it('freezes the form while the request is in flight, so ARM cannot record a stale choice', async () => {
+    // The whole register → login → reconcile chain reads the form once, up
+    // front; if a box stayed clickable the shopper could untick a consent that
+    // is already on its way to ARM (or tick one that will never be sent).
+    let finishRegister: (v: unknown) => void = () => {};
+    authApi.register.mockReturnValue(
+      new Promise((resolve) => {
+        finishRegister = resolve;
+      }),
+    );
+    authApi.getConsents.mockResolvedValue({
+      text_version: 'KK-ET-TEI-2026-V2',
+      consents: { ...EMPTY_STATE, email: 'onay' },
+    });
+    render(<RegisterPage />);
+    fireEvent.click(consentBox('email'));
+    submit();
+
+    await waitFor(() => expect(authApi.register).toHaveBeenCalled());
+    // Every consent box — and the rest of the form it was given alongside — is
+    // inoperable until the chain finishes.
+    expect(consentBoxes().every((el) => el.disabled)).toBe(true);
+    expect(input('input[type="email"]').disabled).toBe(true);
+    expect(input('input[placeholder="+90 (5__) ___ __ __"]').disabled).toBe(true);
+
+    finishRegister({ message: 'ok' });
+    await waitFor(() => expect(routerSpy.push).toHaveBeenCalledWith('/'));
+    expect(consentBoxes().some((el) => el.disabled)).toBe(false);
+    // What ARM got is exactly what was on screen at submit time.
+    expect(authApi.register).toHaveBeenCalledWith(
+      expect.objectContaining({ consents: [{ channel: 'email', status: 'onay' }] }),
+    );
+    expect(authApi.updateConsents).not.toHaveBeenCalled();
+  });
+
   it('drops phone grants on an incomplete number instead of failing registration', async () => {
     render(<RegisterPage />);
     fillRequiredFields('555');

@@ -72,6 +72,9 @@ function ResetPasswordInner() {
       return;
     }
 
+    // `password` is captured before the await and is what actually becomes the
+    // account password — the fields freeze so the shopper cannot end up believing
+    // they set the value they typed afterwards.
     setLoading(true);
     try {
       await resetPassword(token, password);
@@ -173,6 +176,7 @@ function ResetPasswordInner() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('newPasswordPlaceholder')}
+                disabled={loading}
                 sx={inputSx}
                 endAdornment={
                   <InputAdornment position="end">
@@ -206,6 +210,7 @@ function ResetPasswordInner() {
                 type={showPassword ? 'text' : 'password'}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
+                disabled={loading}
                 sx={inputSx}
               />
             </Box>

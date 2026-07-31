@@ -43,9 +43,17 @@ interface WalletWidgetProps {
   onChange: (amount: number) => void;
   /** XOR backstop: an active promo disables the wallet (owner rule §10). */
   promoActive: boolean;
+  /** Frozen while the order is in flight — the amount is already in the payload. */
+  disabled?: boolean;
 }
 
-export default function WalletWidget({ total, applied, onChange, promoActive }: WalletWidgetProps) {
+export default function WalletWidget({
+  total,
+  applied,
+  onChange,
+  promoActive,
+  disabled = false,
+}: WalletWidgetProps) {
   const t = useTranslations();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
@@ -169,6 +177,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
               max={ceiling}
               step={1}
               onChange={(_, v) => commit(Array.isArray(v) ? v[0] : v)}
+              disabled={disabled}
               sx={{ color: c.main, flex: 1 }}
               aria-label={t('checkout.wallet.applyLabel')}
             />
@@ -180,6 +189,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
                 commit(parseFloat(digits) || 0);
               }}
               inputProps={{ inputMode: 'decimal', 'aria-label': t('checkout.wallet.applyLabel') }}
+              disabled={disabled}
               size="small"
               sx={{ width: 120, bgcolor: 'white', '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
@@ -188,6 +198,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
             <Button
               size="small"
               onClick={() => commit(ceiling)}
+              disabled={disabled}
               sx={{ fontFamily: font, textTransform: 'none', color: c.main, minWidth: 0 }}
             >
               {t('checkout.wallet.useMax')}
@@ -196,6 +207,7 @@ export default function WalletWidget({ total, applied, onChange, promoActive }: 
               <Button
                 size="small"
                 onClick={() => commit(0)}
+                disabled={disabled}
                 sx={{ fontFamily: font, textTransform: 'none', color: c.muted, minWidth: 0 }}
               >
                 {t('checkout.wallet.reset')}

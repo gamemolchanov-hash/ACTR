@@ -111,4 +111,24 @@ describe('WalletWidget — server cap drives the slider/input', () => {
     expect(screen.queryByRole('slider')).toBeNull();
     expect(container.firstChild).toBeNull();
   });
+
+  // FBG-410 review: checkout captures the applied amount before createOrder, so
+  // the widget freezes while the order is in flight — otherwise the shopper
+  // could move the slider and the order would still carry the old amount.
+  it('freezes every control while the parent reports the order in flight', async () => {
+    const onChange = vi.fn();
+    mockPreview({ cap: 0.3, applicable: 300 });
+    render(
+      <WalletWidget total={1000} applied={100} onChange={onChange} promoActive={false} disabled />,
+    );
+
+    const slider = await screen.findByRole('slider');
+    expect((slider as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole('textbox') as HTMLInputElement).disabled).toBe(true);
+    // "Use max" and "Reset" both commit an amount too.
+    expect(screen.getAllByRole('button').every((b) => (b as HTMLButtonElement).disabled)).toBe(
+      true,
+    );
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

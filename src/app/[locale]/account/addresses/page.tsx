@@ -101,6 +101,8 @@ export default function AddressesPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  // The payload is read from `form` before the first await — the dialog freezes
+  // for that window so the address ARM stores is the one that was on screen.
   const handleAdd = async () => {
     if (!form.city && !form.address) {
       setSnack({ open: true, message: 'Please enter at least a city or address.', severity: 'error' });
@@ -321,6 +323,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('label')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 50 }}
               />
             </Grid>
@@ -331,6 +334,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('contact_name')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 100 }}
               />
             </Grid>
@@ -341,6 +345,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('contact_phone')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 30 }}
               />
             </Grid>
@@ -351,6 +356,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('city')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 100 }}
               />
             </Grid>
@@ -361,6 +367,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('address')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 200 }}
               />
             </Grid>
@@ -371,6 +378,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('building')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 20 }}
               />
             </Grid>
@@ -381,6 +389,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('apartment')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 20 }}
               />
             </Grid>
@@ -391,6 +400,7 @@ export default function AddressesPage() {
                 onChange={handleFormChange('postal_code')}
                 fullWidth
                 size="small"
+                disabled={saving}
                 inputProps={{ maxLength: 20 }}
               />
             </Grid>
@@ -400,6 +410,7 @@ export default function AddressesPage() {
                   <Checkbox
                     checked={form.is_default}
                     onChange={handleFormChange('is_default')}
+                    disabled={saving}
                     sx={{ color: palette.primaryLight, '&.Mui-checked': { color: palette.primary } }}
                   />
                 }

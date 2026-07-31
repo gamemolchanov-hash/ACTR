@@ -81,6 +81,10 @@ export default function SettingsPage() {
   const profileChanged =
     customer && (name !== (customer.name || '') || phone !== (customer.phone || ''));
 
+  // Both handlers read their fields once, before the first await, and the
+  // profile one then re-seeds them from the server (refreshProfile). The inputs
+  // are disabled for that window so a mid-flight edit can neither be saved as
+  // something else nor be silently overwritten.
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
@@ -238,6 +242,7 @@ export default function SettingsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               fullWidth
+              disabled={saving}
               sx={inputSx}
             />
             <TextField
@@ -253,6 +258,7 @@ export default function SettingsPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               fullWidth
+              disabled={saving}
               sx={inputSx}
             />
           </Box>
@@ -306,6 +312,7 @@ export default function SettingsPage() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               fullWidth
+              disabled={changingPw}
               sx={inputSx}
               helperText={t('currentPasswordHint')}
               InputProps={{
@@ -328,6 +335,7 @@ export default function SettingsPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               fullWidth
+              disabled={changingPw}
               sx={inputSx}
               helperText={t('newPasswordHint')}
             />
@@ -337,6 +345,7 @@ export default function SettingsPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               fullWidth
+              disabled={changingPw}
               sx={inputSx}
             />
           </Box>

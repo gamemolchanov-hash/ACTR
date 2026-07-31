@@ -180,6 +180,12 @@ export default function RegisterPage() {
       return;
     }
 
+    // Everything below reads the form ONCE, before the first await, and the
+    // register → login → reconcile chain then runs for a while. Every control is
+    // `disabled={loading}` for exactly that window: a consent ticked or unticked
+    // mid-flight would otherwise leave ARM recording a decision the shopper is no
+    // longer looking at — and a ticari ileti onay/ret has to match what was on
+    // screen when it was given (canon §7 ispat).
     setLoading(true);
     try {
       const emailNorm = email.trim().toLowerCase();
@@ -300,6 +306,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('namePlaceholder')}
+                disabled={loading}
                 sx={inputSx}
               />
             </FieldBlock>
@@ -315,6 +322,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
+                disabled={loading}
                 sx={inputSx}
               />
             </FieldBlock>
@@ -325,6 +333,7 @@ export default function RegisterPage() {
                 value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="+90 (5__) ___ __ __"
+                disabled={loading}
                 sx={inputSx}
               />
             </FieldBlock>
@@ -335,6 +344,7 @@ export default function RegisterPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
                 sx={inputSx}
                 endAdornment={
                   <InputAdornment position="end">
@@ -356,6 +366,7 @@ export default function RegisterPage() {
                 type={showConfirm ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
                 sx={inputSx}
                 endAdornment={
                   <InputAdornment position="end">
@@ -428,6 +439,7 @@ export default function RegisterPage() {
                   value={captchaInput}
                   onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ''))}
                   placeholder="?"
+                  disabled={loading}
                   inputProps={{ inputMode: 'numeric', maxLength: 3 }}
                   sx={{
                     ...inputSx,
@@ -438,6 +450,7 @@ export default function RegisterPage() {
                 />
                 <IconButton
                   onClick={refreshCaptcha}
+                  disabled={loading}
                   title={t('captchaRefresh')}
                   sx={{ color: palette.primary }}
                 >
@@ -452,6 +465,7 @@ export default function RegisterPage() {
                 <Checkbox
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
+                  disabled={loading}
                   sx={{
                     color: palette.primaryLight,
                     '&.Mui-checked': { color: palette.primary },
@@ -517,6 +531,7 @@ export default function RegisterPage() {
                         onChange={(e) =>
                           setConsentSel((prev) => ({ ...prev, [channel]: e.target.checked }))
                         }
+                        disabled={loading}
                         sx={{
                           color: palette.primaryLight,
                           '&.Mui-checked': { color: palette.primary },

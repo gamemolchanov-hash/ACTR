@@ -648,6 +648,10 @@ export default function CheckoutPage() {
   }
 
   /* ---- Form field helpers ---- */
+  // The order payload is built from `form`, `selectedRateId` and the consent
+  // boxes once, before createOrder — so every one of them freezes while the
+  // order is in flight. Otherwise a shopper could change the address (or
+  // withdraw a KVKK/Mesafeli consent) that ARM has already been given.
   const field = (label: string, name: keyof FormData) => (
     <Box>
       <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
@@ -661,6 +665,7 @@ export default function CheckoutPage() {
         variant="outlined"
         value={form[name]}
         onChange={handleField(name)}
+        disabled={submitting}
         sx={inputSx}
       />
     </Box>
@@ -673,6 +678,7 @@ export default function CheckoutPage() {
         variant="outlined"
         value={form[name]}
         onChange={handleField(name)}
+        disabled={submitting}
         sx={inputSx}
       />
     </Box>
@@ -979,6 +985,7 @@ export default function CheckoutPage() {
                 >
                   <FormControlLabel
                     value={rate.id}
+                    disabled={submitting}
                     control={<Radio sx={{ color: c.main, '&.Mui-checked': { color: c.main } }} />}
                     label={
                       <Box>
@@ -1011,6 +1018,7 @@ export default function CheckoutPage() {
               applied={walletApplied}
               onChange={setWalletApplied}
               promoActive={promoActive}
+              disabled={submitting}
             />
           )}
 
@@ -1020,6 +1028,7 @@ export default function CheckoutPage() {
               <Checkbox
                 checked={agreedKvkk}
                 onChange={(e) => setAgreedKvkk(e.target.checked)}
+                disabled={submitting}
                 sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
               />
             }
@@ -1039,6 +1048,7 @@ export default function CheckoutPage() {
               <Checkbox
                 checked={agreedMesafeli}
                 onChange={(e) => setAgreedMesafeli(e.target.checked)}
+                disabled={submitting}
                 sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
               />
             }
