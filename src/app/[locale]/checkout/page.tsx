@@ -274,6 +274,11 @@ export default function CheckoutPage() {
 
   // Payment session (Stripe Embedded)
   const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
+  // ARM order id, once POST /orders has answered 201. A created order is
+  // irreversible — ARM has booked it and may already have mailed the guest their
+  // new account — so everything after that point retries against THIS id and
+  // never places a second order (FBG-477 review).
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
 
   // Ön Bilgilendirme Formu modal (FBG-401). `obfGeneratedAt` is stamped once on
   // first open (client-only) so the draft ref / date-time stay stable while the
@@ -426,6 +431,11 @@ export default function CheckoutPage() {
   });
   const emailRequired = guestEmailRequired(authState);
 
+  // The order payload is frozen while it is in flight — and stays frozen once
+  // ARM has booked the order, because from then on the form no longer describes
+  // anything the shop can still change (only the payment session is retried).
+  const inputsLocked = submitting || placedOrderId !== null;
+
   const isStep1Valid = useMemo(() => {
     return !!(
       (!emailRequired || looksLikeEmail(form.email)) &&
@@ -555,67 +565,78 @@ export default function CheckoutPage() {
     }
     setError(null);
     setSubmitting(true);
+    // Placed at most once. A retry after a failed payment session resumes from
+    // the existing order — creating a second one would double-charge the shop,
+    // orphan the first order and overwrite its account notice.
+    let orderId = placedOrderId;
     try {
-      const addressParts = [
-        form.street,
-        form.building && `No: ${form.building}`,
-        form.block && `Block: ${form.block}`,
-        form.apartment && `Apt: ${form.apartment}`,
-      ]
-        .filter(Boolean)
-        .join(', ');
+      if (!orderId) {
+        const addressParts = [
+          form.street,
+          form.building && `No: ${form.building}`,
+          form.block && `Block: ${form.block}`,
+          form.apartment && `Apt: ${form.apartment}`,
+        ]
+          .filter(Boolean)
+          .join(', ');
 
-      const email = form.email.trim();
-      const orderRes = await createOrder({
-        customer: {
-          name: form.name,
-          phone: form.phone,
-          email: email || undefined,
-        },
-        shipping: {
-          address: addressParts,
-          city: form.city,
-          zip: form.zip,
-          country: form.country,
-          street: form.street || undefined,
-          building: form.building || undefined,
-          block: form.block || undefined,
-          apartment: form.apartment || undefined,
-          cost: selectedRate?.price,
-          method: selectedRateId || undefined,
-        },
-        items,
-        promoCode: promoResult?.valid ? promoResult.code : undefined,
-        // FBG-385: only a positive, XOR-clean amount; api.createOrder also gates
-        // on JWT so guests never send it.
-        walletAmountToApply: walletToApply > 0 ? walletToApply : undefined,
-        // ARM addresses the guest welcome ("set your password") email with this
-        // raw tag — without it a Turkish buyer would get English copy.
-        locale,
-      });
-
-      // What ARM did with the buyer's account is reported here and nowhere else
-      // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
-      // through a full navigation — so hand it over via sessionStorage. Exactly
-      // one write per order, so a previous order's notice can never linger.
-      const account = orderRes.data.account;
-      if (account && (account.status === 'created' || account.status === 'email_taken')) {
-        saveAccountNotice({
-          orderId: orderRes.data.id,
-          status: account.status,
-          welcomeEmailSent: account.welcome_email_sent,
-          email,
+        const email = form.email.trim();
+        const orderRes = await createOrder({
+          customer: {
+            name: form.name,
+            phone: form.phone,
+            email: email || undefined,
+          },
+          shipping: {
+            address: addressParts,
+            city: form.city,
+            zip: form.zip,
+            country: form.country,
+            street: form.street || undefined,
+            building: form.building || undefined,
+            block: form.block || undefined,
+            apartment: form.apartment || undefined,
+            cost: selectedRate?.price,
+            method: selectedRateId || undefined,
+          },
+          items,
+          promoCode: promoResult?.valid ? promoResult.code : undefined,
+          // FBG-385: only a positive, XOR-clean amount; api.createOrder also gates
+          // on JWT so guests never send it.
+          walletAmountToApply: walletToApply > 0 ? walletToApply : undefined,
+          // ARM addresses the guest welcome ("set your password") email with this
+          // raw tag — without it a Turkish buyer would get English copy.
+          locale,
         });
-      } else {
-        clearAccountNotice();
+        orderId = orderRes.data.id;
+        setPlacedOrderId(orderId);
+
+        // What ARM did with the buyer's account is reported here and nowhere else
+        // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
+        // through a full navigation — so hand it over via sessionStorage. Exactly
+        // one write per order, so a previous order's notice can never linger.
+        const account = orderRes.data.account;
+        if (account && (account.status === 'created' || account.status === 'email_taken')) {
+          saveAccountNotice({
+            orderId,
+            status: account.status,
+            welcomeEmailSent: account.welcome_email_sent,
+            email,
+          });
+        } else {
+          clearAccountNotice();
+        }
       }
 
+      // `localePrefix: 'always'` — a bare /checkout/success would be re-resolved
+      // by the middleware to the DEFAULT locale, so an EN shopper would come back
+      // to a Turkish confirmation (and a Turkish checkout on cancel).
       const origin = window.location.origin;
-      const successUrl = `${origin}/checkout/success?order=${orderRes.data.id}`;
+      const successUrl = `${origin}/${locale}/checkout/success?order=${orderId}`;
       const sessionRes = await createPaymentSession(
-        orderRes.data.id,
+        orderId,
         successUrl,
-        `${origin}/checkout`,
+        `${origin}/${locale}/checkout`,
       );
 
       // Clear session storage (cart cleared on success page after payment)
@@ -648,7 +669,10 @@ export default function CheckoutPage() {
         err?.response?.data?.message ||
         err?.message ||
         'Error creating order';
-      setError(msg);
+      // `orderId` set means the order is already booked and only the payment
+      // session failed — saying "error creating order" here would invite the
+      // shopper to place another one.
+      setError(orderId ? t('checkout.errors.paymentSessionFailed') : msg);
       setSubmitting(false);
     }
   };
@@ -728,7 +752,7 @@ export default function CheckoutPage() {
         variant="outlined"
         value={form[name]}
         onChange={handleField(name)}
-        disabled={submitting}
+        disabled={inputsLocked}
         sx={inputSx}
       />
     </Box>
@@ -741,7 +765,7 @@ export default function CheckoutPage() {
         variant="outlined"
         value={form[name]}
         onChange={handleField(name)}
-        disabled={submitting}
+        disabled={inputsLocked}
         sx={inputSx}
       />
     </Box>
@@ -1058,7 +1082,7 @@ export default function CheckoutPage() {
                 >
                   <FormControlLabel
                     value={rate.id}
-                    disabled={submitting}
+                    disabled={inputsLocked}
                     control={<Radio sx={{ color: c.main, '&.Mui-checked': { color: c.main } }} />}
                     label={
                       <Box>
@@ -1091,7 +1115,7 @@ export default function CheckoutPage() {
               applied={walletApplied}
               onChange={setWalletApplied}
               promoActive={promoActive}
-              disabled={submitting}
+              disabled={inputsLocked}
             />
           )}
 
@@ -1101,7 +1125,7 @@ export default function CheckoutPage() {
               <Checkbox
                 checked={agreedKvkk}
                 onChange={(e) => setAgreedKvkk(e.target.checked)}
-                disabled={submitting}
+                disabled={inputsLocked}
                 sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
               />
             }
@@ -1121,7 +1145,7 @@ export default function CheckoutPage() {
               <Checkbox
                 checked={agreedMesafeli}
                 onChange={(e) => setAgreedMesafeli(e.target.checked)}
-                disabled={submitting}
+                disabled={inputsLocked}
                 sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
               />
             }
@@ -1160,7 +1184,7 @@ export default function CheckoutPage() {
                 <Checkbox
                   checked={agreedUyelik}
                   onChange={(e) => setAgreedUyelik(e.target.checked)}
-                  disabled={submitting}
+                  disabled={inputsLocked}
                   sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
                 />
               }

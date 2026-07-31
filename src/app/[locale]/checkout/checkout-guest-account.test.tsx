@@ -21,13 +21,18 @@ const apiMock = vi.hoisted(() => ({
   fetchShippingRates: vi.fn(),
   createOrder: vi.fn(),
   createPaymentSession: vi.fn(),
+  fetchOrder: vi.fn(),
 }));
 const assign = vi.hoisted(() => vi.fn());
+const query = vi.hoisted(() => ({ value: new URLSearchParams() }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
   useLocale: () => 'tr',
 }));
+
+vi.mock('next/navigation', () => ({ useSearchParams: () => query.value }));
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, ...props }: { children?: ReactNode; [k: string]: unknown }) => (
@@ -42,7 +47,11 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@/providers/CartProvider', () => ({
-  useCart: () => ({ items: [{ productId: 'dp1', quantity: 1 }], removeItem: vi.fn() }),
+  useCart: () => ({
+    items: [{ productId: 'dp1', quantity: 1 }],
+    removeItem: vi.fn(),
+    clearCart: vi.fn(),
+  }),
 }));
 vi.mock('@/providers/CurrencyProvider', () => ({
   useCurrency: () => 'TRY',
@@ -57,6 +66,7 @@ vi.mock('@/components/WalletWidget', () => ({ default: () => null }));
 
 import { readAccountNotice, saveAccountNotice } from '@/lib/checkout';
 import CheckoutPage from './page';
+import CheckoutSuccessPage from './success/page';
 
 const RATE = {
   id: 'economy',
@@ -109,6 +119,7 @@ async function arriveAtStep2({ uyelik = false }: { uyelik?: boolean } = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
+  query.value = new URLSearchParams();
   auth.value = { customer: null, loading: false };
   apiMock.validateCart.mockResolvedValue({
     data: {
@@ -132,6 +143,9 @@ beforeEach(() => {
     data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
   });
   apiMock.createPaymentSession.mockResolvedValue({ data: { type: 'manual' } });
+  apiMock.fetchOrder.mockResolvedValue({
+    data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY', status: { name: 'New' } },
+  });
   Object.defineProperty(window, 'location', {
     value: { origin: 'https://american-creator.tr', assign },
     writable: true,
@@ -220,15 +234,8 @@ describe('guest-only UI', () => {
   });
 });
 
-describe('account notice hand-off to the confirmation page', () => {
-  const submitAsGuest = async () => {
-    seedStep2({ email: 'ada@example.com' });
-    await arriveAtStep2({ uyelik: true });
-    fireEvent.click(proceedButton());
-    await waitFor(() => expect(assign).toHaveBeenCalled());
-  };
-
-  it('stores a created-account notice with the address ARM used', async () => {
+describe('order creation is not repeated after a failed payment session', () => {
+  it('retries only the payment session — the order is placed exactly once', async () => {
     apiMock.createOrder.mockResolvedValue({
       data: {
         id: 'ord-1',
@@ -238,20 +245,71 @@ describe('account notice hand-off to the confirmation page', () => {
         account: { status: 'created', welcome_email_sent: true },
       },
     });
-    await submitAsGuest();
+    apiMock.createPaymentSession.mockRejectedValueOnce(new Error('gateway down'));
 
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+
+    // The order is already booked — the copy must not invite a second one.
+    await waitFor(() =>
+      expect(screen.getByText('checkout.errors.paymentSessionFailed')).toBeDefined(),
+    );
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(2);
+    // Both attempts targeted the SAME order, so its notice survives intact.
+    expect(apiMock.createPaymentSession.mock.calls[1][0]).toBe('ord-1');
     expect(readAccountNotice()).toEqual({
       orderId: 'ord-1',
       status: 'created',
       welcomeEmailSent: true,
       email: 'ada@example.com',
     });
-    expect(assign).toHaveBeenCalledWith(
-      'https://american-creator.tr/checkout/success?order=ord-1',
-    );
+  });
+});
+
+describe('checkout → confirmation page, end to end', () => {
+  /** Place a guest order and follow the redirect the page actually issued. */
+  const placeOrderAndFollowRedirect = async () => {
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(assign).toHaveBeenCalled());
+
+    const target = new URL(assign.mock.calls[0][0] as string);
+    // `localePrefix: 'always'`: without /tr the middleware would resolve the
+    // confirmation page to the default locale and answer an EN buyer in Turkish.
+    expect(target.pathname).toBe('/tr/checkout/success');
+    query.value = target.searchParams;
+    cleanup();
+    render(<CheckoutSuccessPage />);
+  };
+
+  const notice = () => screen.queryByTestId('account-notice');
+
+  it('shows the created-account block with the address ARM mailed', async () => {
+    apiMock.createOrder.mockResolvedValue({
+      data: {
+        id: 'ord-1',
+        number: 'N-1',
+        total: 150,
+        currency: 'TRY',
+        account: { status: 'created', welcome_email_sent: true },
+      },
+    });
+    await placeOrderAndFollowRedirect();
+
+    await waitFor(() => expect(notice()).not.toBeNull());
+    expect(notice()!.textContent).toContain('checkout.account.createdSent');
+    expect(notice()!.textContent).toContain('ada@example.com');
   });
 
-  it('stores an email_taken notice', async () => {
+  it('shows the email_taken block with a standalone sign-in link', async () => {
     apiMock.createOrder.mockResolvedValue({
       data: {
         id: 'ord-1',
@@ -261,46 +319,51 @@ describe('account notice hand-off to the confirmation page', () => {
         account: { status: 'email_taken', welcome_email_sent: false },
       },
     });
-    await submitAsGuest();
+    await placeOrderAndFollowRedirect();
 
-    expect(readAccountNotice()).toEqual({
-      orderId: 'ord-1',
-      status: 'email_taken',
-      welcomeEmailSent: false,
-      email: 'ada@example.com',
-    });
+    await waitFor(() => expect(notice()).not.toBeNull());
+    expect(notice()!.textContent).toContain('checkout.account.emailTaken');
+    expect(notice()!.querySelector('a[href="/login"]')).not.toBeNull();
+    expect(notice()!.textContent).not.toContain('checkout.account.createdSent');
   });
 
-  it('clears a stale notice when this order has nothing to announce', async () => {
+  it.each(['none', 'linked'] as const)(
+    'shows no block for account.status = %s, clearing a previous order notice',
+    async (status) => {
+      saveAccountNotice({
+        orderId: 'ord-old',
+        status: 'created',
+        welcomeEmailSent: true,
+        email: 'old@example.com',
+      });
+      apiMock.createOrder.mockResolvedValue({
+        data: {
+          id: 'ord-1',
+          number: 'N-1',
+          total: 150,
+          currency: 'TRY',
+          account: { status, welcome_email_sent: false },
+        },
+      });
+      await placeOrderAndFollowRedirect();
+
+      await waitFor(() => expect(apiMock.fetchOrder).toHaveBeenCalled());
+      expect(readAccountNotice()).toBe(null);
+      expect(notice()).toBeNull();
+    },
+  );
+
+  it('shows no block on a storefront that reports no account at all', async () => {
     saveAccountNotice({
       orderId: 'ord-old',
       status: 'created',
       welcomeEmailSent: true,
       email: 'old@example.com',
     });
-    apiMock.createOrder.mockResolvedValue({
-      data: {
-        id: 'ord-1',
-        number: 'N-1',
-        total: 150,
-        currency: 'TRY',
-        account: { status: 'linked', welcome_email_sent: false },
-      },
-    });
-    await submitAsGuest();
+    await placeOrderAndFollowRedirect();
 
+    await waitFor(() => expect(apiMock.fetchOrder).toHaveBeenCalled());
     expect(readAccountNotice()).toBe(null);
-  });
-
-  it('clears a stale notice on a storefront that reports no account at all', async () => {
-    saveAccountNotice({
-      orderId: 'ord-old',
-      status: 'created',
-      welcomeEmailSent: true,
-      email: 'old@example.com',
-    });
-    await submitAsGuest();
-
-    expect(readAccountNotice()).toBe(null);
+    expect(notice()).toBeNull();
   });
 });

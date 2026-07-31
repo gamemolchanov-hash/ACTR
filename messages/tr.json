@@ -171,6 +171,7 @@
   "checkout.consent.uyelikSuffix": "ni okudum ve kabul ediyorum.",
   "checkout.errors.account_deactivated": "Bu hesap devre dışı bırakıldı.",
   "checkout.errors.invalid_email": "Lütfen geçerli bir e-posta adresi girin.",
+  "checkout.errors.paymentSessionFailed": "Siparişiniz oluşturuldu ancak ödemeyi başlatamadık. Ödemeyi yeniden denemek için düğmeye tekrar basın — ikinci bir sipariş oluşturulmaz.",
   "checkout.errors.token_revoked": "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.",
   "checkout.errors.wallet_promo_conflict": "Promosyon kodu ve cüzdan ödemesi birlikte kullanılamaz. Devam etmek için birini kaldırın.",
   "checkout.errors.wallet_requires_auth": "Cüzdanınızla ödemek için lütfen giriş yapın.",

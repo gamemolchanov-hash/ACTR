@@ -171,6 +171,7 @@
   "checkout.consent.uyelikSuffix": ".",
   "checkout.errors.account_deactivated": "This account has been deactivated.",
   "checkout.errors.invalid_email": "Please enter a valid email address.",
+  "checkout.errors.paymentSessionFailed": "Your order has been placed, but we couldn't start the payment. Press the button again to retry the payment — no second order will be created.",
   "checkout.errors.token_revoked": "Your session has expired. Please sign in again.",
   "checkout.errors.wallet_promo_conflict": "A promo code and wallet payment can't be used together. Remove one to continue.",
   "checkout.errors.wallet_requires_auth": "Please sign in to pay with your wallet.",
