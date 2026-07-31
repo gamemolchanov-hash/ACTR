@@ -178,6 +178,42 @@ describe('guest submit gate', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined();
   });
 
+  it('explains a malformed email at the field instead of a dead Continue', async () => {
+    // "ada@example" fills every other field, so without this the guest just sees
+    // a Continue button that does nothing and no way to learn why.
+    seedStep2({ email: 'ada@example' });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined(),
+    );
+    expect(screen.getByText('checkout.consent.emailRequired')).toBeDefined();
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+
+    // Fixing it clears the message and unlocks the step.
+    const email = document.querySelector('input') as HTMLInputElement;
+    fireEvent.change(email, { target: { value: 'ada@example.com' } });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    expect(screen.queryByText('checkout.consent.emailRequired')).toBeNull();
+  });
+
+  it('does not scold a member for leaving the optional email empty', async () => {
+    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    seedStep2({ email: '' });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
+    expect(screen.queryByText('checkout.consent.emailRequired')).toBeNull();
+  });
+
   it('refuses to order without the üyelik consent', async () => {
     seedStep2({ email: 'ada@example.com' });
     await arriveAtStep2({ uyelik: false });
@@ -419,6 +455,77 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     fireEvent.click(proceedButton());
     await waitFor(() => expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(2));
     expect(apiMock.createOrder).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('what ARM says about the failed payment decides what is offered', () => {
+  const armError = (status: number, error: string) =>
+    Object.assign(new Error(error), { response: { status, data: { error, status } } });
+
+  /** A member has no üyelik box to tick — the gate doesn't ask them for one. */
+  const placeOrderWith = async (failure: Error) => {
+    apiMock.createPaymentSession.mockRejectedValue(failure);
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: !auth.value.customer });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
+  };
+
+  it('sends an already-paid order to its confirmation instead of asking to pay again', async () => {
+    // The buyer paid in the embedded form and never reached the success page.
+    await placeOrderWith(armError(400, 'Order is already paid'));
+
+    await waitFor(() =>
+      expect(assign).toHaveBeenCalledWith(
+        'https://american-creator.tr/tr/checkout/success?order=ord-1',
+      ),
+    );
+    expect(screen.queryByText(/checkout\.errors\.paymentSessionFailed/)).toBeNull();
+  });
+
+  it('does not tell a signed-in buyer to sign in when their own order 404s', async () => {
+    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    await placeOrderWith(armError(404, 'Order not found'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.orderUnreachable/)).toBeDefined(),
+    );
+    expect(screen.queryByText(/checkout\.errors\.ownerSignInRequired/)).toBeNull();
+    // Retrying cannot fix a stale session either — the button stops firing.
+    expect(proceedButton().disabled).toBe(true);
+    fireEvent.click(proceedButton());
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps offering a retry for a transient failure', async () => {
+    await placeOrderWith(armError(500, 'Failed to create payment session'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.paymentSessionFailed/)).toBeDefined(),
+    );
+    expect(proceedButton().disabled).toBe(false);
+    expect(screen.queryByText('checkout.pendingOrder.startNew')).toBeNull();
+  });
+
+  it('offers a way out of a payment that can never succeed', async () => {
+    // Without this the tab is bricked: basket frozen, empty-cart screen
+    // suppressed, step 1 out of reach, button dead.
+    await placeOrderWith(armError(404, 'Order not found'));
+    await waitFor(() => expect(screen.getByText('checkout.pendingOrder.startNew')).toBeDefined());
+
+    fireEvent.click(screen.getByText('checkout.pendingOrder.startNew'));
+
+    // Back to an ordinary checkout: the claim on the old order is dropped, the
+    // typed address survives, and a new order can be placed.
+    await waitFor(() => expect(readPendingOrder()).toBe(null));
+    expect(screen.queryByText('checkout.pendingOrder.notice')).toBeNull();
+    expect(sessionStorage.getItem('checkout_form')).not.toBeNull();
+  });
+
+  it('shows the order number so a stuck buyer has something to quote', async () => {
+    await placeOrderWith(armError(500, 'Failed to create payment session'));
+    await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
+    expect(document.body.textContent).toContain('N-1');
   });
 });
 

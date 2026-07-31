@@ -92,7 +92,7 @@ describe('account notice storage', () => {
 });
 
 describe('pending order marker', () => {
-  const PENDING = { orderId: 'ord-1', total: 150, currency: 'TRY' };
+  const PENDING = { orderId: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' };
 
   it('round-trips the booked order with the total ARM charged for it', () => {
     savePendingOrder(PENDING);
@@ -114,6 +114,11 @@ describe('pending order marker', () => {
     sessionStorage.setItem('checkout_pending_order', 'ord-1');
     expect(readPendingOrder()).toBe(null);
     sessionStorage.setItem('checkout_pending_order', JSON.stringify({ orderId: 'ord-1' }));
+    expect(readPendingOrder()).toBe(null);
+    sessionStorage.setItem(
+      'checkout_pending_order',
+      JSON.stringify({ orderId: 'ord-1', number: 'N-1', currency: 'TRY' }),
+    );
     expect(readPendingOrder()).toBe(null);
   });
 

@@ -100,10 +100,55 @@ export function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 }
 
+/**
+ * What ARM's refusal to open a payment session means for an order we have just
+ * created. The BFF answers with `{ error, status }`:
+ *  - 400 "Order is already paid" (storefront-api.ts) — the money is in; the
+ *    buyer simply never landed on the confirmation page (reload/back before the
+ *    return, or a storefront `success_url` that points elsewhere). Offering a
+ *    retry would ask them to pay twice, and `GET /orders/:id` carries no
+ *    `payment_status`, so the page cannot discover this on its own;
+ *  - 404 for a guest — the ownership gate: the checkout phone belongs to a
+ *    registered account, so only that account's JWT can pay (FBG-480);
+ *  - 404 for a signed-in buyer — their token SHOULD have opened that gate, so
+ *    this is a stale session or an order that isn't theirs. Retrying can't fix
+ *    it either, but "sign in, it's someone's account" would be a lie;
+ *  - anything else — transient; a retry is the right offer.
+ */
+export type PaymentSessionFailure = 'already_paid' | 'owner_sign_in' | 'unreachable' | 'retry';
+
+export function paymentSessionFailure(opts: {
+  status: number | undefined;
+  serverError: unknown;
+  authState: CheckoutAuthState;
+}): PaymentSessionFailure {
+  const message = typeof opts.serverError === 'string' ? opts.serverError : '';
+  if (opts.status === 400 && /already paid/i.test(message)) return 'already_paid';
+  if (opts.status === 404) return opts.authState === 'member' ? 'unreachable' : 'owner_sign_in';
+  return 'retry';
+}
+
+/** i18n key explaining a payment failure to the buyer. */
+export function paymentFailureKey(failure: PaymentSessionFailure): string {
+  switch (failure) {
+    case 'owner_sign_in':
+      return 'checkout.errors.ownerSignInRequired';
+    case 'unreachable':
+      return 'checkout.errors.orderUnreachable';
+    default:
+      return 'checkout.errors.paymentSessionFailed';
+  }
+}
+
+/** Failures a retry can never resolve — the button must stop offering one. */
+export function paymentRetryHopeless(failure: PaymentSessionFailure | null): boolean {
+  return failure === 'owner_sign_in' || failure === 'unreachable';
+}
+
 /** Why the order can't be placed yet, in the order the user should fix it. */
 export type CheckoutBlockReason =
   | 'submitting'
-  | 'owner_sign_in'
+  | 'payment_blocked'
   | 'auth_pending'
   | 'consent'
   | 'uyelik'
@@ -127,11 +172,11 @@ export interface CheckoutGateOpts {
    */
   orderPlaced: boolean;
   /**
-   * ARM refuses to open a payment session for this order without its owner's
-   * JWT (the checkout phone belongs to a registered account — `linked`), so
-   * repeating the request is pointless until the shopper signs in.
+   * The last payment attempt failed in a way a retry cannot resolve (see
+   * PaymentSessionFailure), so the button must stop firing the same doomed
+   * request. The explanation is already on screen with its own way out.
    */
-  ownerSignInRequired: boolean;
+  paymentBlocked: boolean;
 }
 
 /**
@@ -152,7 +197,7 @@ export interface CheckoutGateOpts {
  */
 export function checkoutBlockReason(opts: CheckoutGateOpts): CheckoutBlockReason | null {
   if (opts.submitting) return 'submitting';
-  if (opts.ownerSignInRequired) return 'owner_sign_in';
+  if (opts.paymentBlocked) return 'payment_blocked';
   if (opts.orderPlaced) return null;
   if (opts.authState === 'pending') return 'auth_pending';
   if (!opts.agreedKvkk || !opts.agreedMesafeli) return 'consent';
@@ -176,13 +221,12 @@ export function proceedButtonDisabled(opts: CheckoutGateOpts): boolean {
 
 /**
  * i18n key explaining a block to the shopper. `submitting`/`auth_pending` are
- * transient and `shipping_rate` already has its own hint under the button, so
+ * transient, `shipping_rate` already has its own hint under the button, and
+ * `payment_blocked` keeps the message the failed attempt put on screen — so
  * those stay silent.
  */
 export function blockReasonKey(reason: CheckoutBlockReason | null): string | null {
   switch (reason) {
-    case 'owner_sign_in':
-      return 'checkout.errors.ownerSignInRequired';
     case 'consent':
       return 'checkout.consent.required';
     case 'uyelik':
@@ -214,6 +258,8 @@ const PENDING_ORDER_KEY = 'checkout_pending_order';
 
 export interface PendingOrder {
   orderId: string;
+  /** Human-readable number — what the buyer quotes to support if payment dies. */
+  number: string;
   /** Total ARM booked for THIS order — never recomputed from the live basket. */
   total: number;
   currency: string;
@@ -225,6 +271,7 @@ function isPendingOrder(value: unknown): value is PendingOrder {
   return (
     typeof v.orderId === 'string' &&
     v.orderId.length > 0 &&
+    typeof v.number === 'string' &&
     typeof v.total === 'number' &&
     typeof v.currency === 'string'
   );

@@ -15,6 +15,9 @@ import {
   checkoutBlockReason,
   guestEmailRequired,
   looksLikeEmail,
+  paymentFailureKey,
+  paymentRetryHopeless,
+  paymentSessionFailure,
   proceedButtonDisabled,
   showUyelikConsent,
 } from '@/lib/checkout';
@@ -29,7 +32,7 @@ const READY = {
   email: '',
   selectedRateId: 'economy',
   orderPlaced: false,
-  ownerSignInRequired: false,
+  paymentBlocked: false,
 };
 
 /** Same, for a guest: üyelik accepted and an email typed in. */
@@ -160,11 +163,13 @@ describe('checkoutBlockReason', () => {
     expect(checkoutBlockReason({ ...placed, submitting: true })).toBe('submitting');
   });
 
-  it('blocks a retry ARM can only answer with 404 until the owner signs in', () => {
-    const blocked = { ...GUEST_READY, orderPlaced: true, ownerSignInRequired: true };
-    expect(checkoutBlockReason(blocked)).toBe('owner_sign_in');
+  it('stops offering a retry ARM can never satisfy', () => {
+    const blocked = { ...GUEST_READY, orderPlaced: true, paymentBlocked: true };
+    expect(checkoutBlockReason(blocked)).toBe('payment_blocked');
     expect(proceedButtonDisabled(blocked)).toBe(true);
-    expect(blockReasonKey('owner_sign_in')).toBe('checkout.errors.ownerSignInRequired');
+    // The failed attempt already put its own explanation on screen — the gate
+    // must not overwrite it with a generic one.
+    expect(blockReasonKey('payment_blocked')).toBe(null);
   });
 });
 
@@ -225,5 +230,63 @@ describe('blockReasonKey', () => {
     expect(blockReasonKey('auth_pending')).toBe(null);
     expect(blockReasonKey('shipping_rate')).toBe(null);
     expect(blockReasonKey(null)).toBe(null);
+  });
+});
+
+describe('paymentSessionFailure', () => {
+  const guest = { authState: 'guest' as const };
+  const member = { authState: 'member' as const };
+
+  it('recognises an order ARM says is already paid', () => {
+    // The buyer paid but never landed on the confirmation page. Asking them to
+    // "press again" would be asking them to pay twice — and GET /orders/:id
+    // carries no payment_status, so this answer is the only signal there is.
+    expect(
+      paymentSessionFailure({ status: 400, serverError: 'Order is already paid', ...guest }),
+    ).toBe('already_paid');
+    expect(
+      paymentSessionFailure({ status: 400, serverError: 'Order is already paid', ...member }),
+    ).toBe('already_paid');
+  });
+
+  it('does not read every 400 as already-paid', () => {
+    expect(
+      paymentSessionFailure({ status: 400, serverError: 'Shipping cost cannot be zero', ...guest }),
+    ).toBe('retry');
+  });
+
+  it('reads a guest 404 as the ownership gate', () => {
+    expect(paymentSessionFailure({ status: 404, serverError: 'Order not found', ...guest })).toBe(
+      'owner_sign_in',
+    );
+    expect(
+      paymentSessionFailure({ status: 404, serverError: 'Order not found', authState: 'pending' }),
+    ).toBe('owner_sign_in');
+  });
+
+  it('does not tell a signed-in buyer their own order belongs to someone else', () => {
+    // Their token should have opened the ownership gate; a 404 here means a
+    // stale session or a foreign order, not "sign in to the account that owns it".
+    expect(paymentSessionFailure({ status: 404, serverError: 'Order not found', ...member })).toBe(
+      'unreachable',
+    );
+  });
+
+  it('treats anything else as retryable', () => {
+    expect(paymentSessionFailure({ status: 500, serverError: 'boom', ...guest })).toBe('retry');
+    expect(paymentSessionFailure({ status: undefined, serverError: undefined, ...guest })).toBe(
+      'retry',
+    );
+  });
+
+  it('maps each failure to its own message, and only hopeless ones block', () => {
+    expect(paymentFailureKey('owner_sign_in')).toBe('checkout.errors.ownerSignInRequired');
+    expect(paymentFailureKey('unreachable')).toBe('checkout.errors.orderUnreachable');
+    expect(paymentFailureKey('retry')).toBe('checkout.errors.paymentSessionFailed');
+
+    expect(paymentRetryHopeless('owner_sign_in')).toBe(true);
+    expect(paymentRetryHopeless('unreachable')).toBe(true);
+    expect(paymentRetryHopeless('retry')).toBe(false);
+    expect(paymentRetryHopeless(null)).toBe(false);
   });
 });

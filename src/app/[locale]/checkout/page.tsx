@@ -56,9 +56,14 @@ import {
   checkoutAuthState,
   checkoutBlockReason,
   clearAccountNotice,
+  clearPendingOrder,
   guestEmailRequired,
   looksLikeEmail,
+  paymentFailureKey,
+  paymentRetryHopeless,
+  paymentSessionFailure,
   proceedButtonDisabled,
+  type PaymentSessionFailure,
   readPendingOrder,
   saveAccountNotice,
   savePendingOrder,
@@ -284,11 +289,9 @@ export default function CheckoutPage() {
   // never places a second order (FBG-477 review).
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
   const placedOrderId = pendingOrder?.orderId ?? null;
-  // ARM won't open a payment session for this order without its owner's JWT:
-  // the checkout phone belongs to a registered account, so ARM linked the order
-  // to it (`account.status: 'linked'`) and answers 404 to everyone else. Retrying
-  // can only start working after the shopper signs in.
-  const [ownerSignInRequired, setOwnerSignInRequired] = useState(false);
+  // How the last payment attempt failed, when the order itself already exists.
+  // Only some of those are worth retrying — see PaymentSessionFailure.
+  const [paymentFailure, setPaymentFailure] = useState<PaymentSessionFailure | null>(null);
 
   // Ön Bilgilendirme Formu modal (FBG-401). `obfGeneratedAt` is stamped once on
   // first open (client-only) so the draft ref / date-time stay stable while the
@@ -443,15 +446,21 @@ export default function CheckoutPage() {
     hasCustomer: !!customer,
   });
   const emailRequired = guestEmailRequired(authState);
+  // A typo like "ada@example" passes every other check, so without this the
+  // Continue button would just sit there dead with nothing explaining why. Only
+  // flagged once something has been typed — an untouched field has its `*`.
+  const emailInvalid = emailRequired && form.email.trim() !== '' && !looksLikeEmail(form.email);
 
   // The order payload is frozen while it is in flight — and stays frozen once
   // ARM has booked the order, because from then on the form no longer describes
   // anything the shop can still change (only the payment session is retried).
   const inputsLocked = submitting || placedOrderId !== null;
 
-  // Signing in clears the block by itself: the retry then carries the owner's
-  // Bearer token, which is exactly what ARM was asking for.
-  const ownerBlocked = ownerSignInRequired && authState !== 'member';
+  // Signing in clears the ownership block by itself: the retry then carries the
+  // owner's Bearer token, which is exactly what ARM was asking for.
+  const paymentBlocked =
+    paymentRetryHopeless(paymentFailure) &&
+    !(paymentFailure === 'owner_sign_in' && authState === 'member');
 
   const gateOpts = {
     submitting,
@@ -462,7 +471,7 @@ export default function CheckoutPage() {
     email: form.email,
     selectedRateId,
     orderPlaced: placedOrderId !== null,
-    ownerSignInRequired: ownerBlocked,
+    paymentBlocked,
   };
 
   const isStep1Valid = useMemo(() => {
@@ -581,7 +590,7 @@ export default function CheckoutPage() {
       // message would point at something they cannot see.
       if (blockReason === 'guest_email') setStep(1);
       const key = blockReasonKey(blockReason);
-      setError(key ? t(key) : null);
+      if (key) setError(t(key));
       return;
     }
     setError(null);
@@ -633,6 +642,7 @@ export default function CheckoutPage() {
         // no longer describes what is being paid.
         const placed: PendingOrder = {
           orderId: orderRes.data.id,
+          number: orderRes.data.number,
           total: orderRes.data.total,
           currency: orderRes.data.currency,
         };
@@ -700,22 +710,43 @@ export default function CheckoutPage() {
         err?.response?.data?.message ||
         err?.message ||
         'Error creating order';
-      // A 404 on an order we just created is ARM's ownership gate, not a missing
-      // order: the checkout phone belongs to a registered account, so the order
-      // was linked to it and only that account's JWT can pay it. Repeating the
-      // request can never succeed, so stop offering a retry and send the shopper
-      // to sign in — after which the same button works, on the same order.
-      if (orderId && err?.response?.status === 404) {
-        setOwnerSignInRequired(true);
-        setError(t('checkout.errors.ownerSignInRequired'));
-      } else {
-        // `orderId` set means the order is already booked and only the payment
-        // session failed — saying "error creating order" here would invite the
-        // shopper to place another one.
-        setError(orderId ? t('checkout.errors.paymentSessionFailed') : msg);
+      if (!orderId) {
+        // The order itself failed — nothing was booked, the server text stands.
+        setError(msg);
+        setSubmitting(false);
+        return;
       }
+      // The order IS booked, so "error creating order" would invite a second
+      // one. What to offer instead depends on WHY ARM refused the session — a
+      // blanket "press again" asks a buyer who already paid to pay twice.
+      const failure = paymentSessionFailure({
+        status: err?.response?.status,
+        serverError: err?.response?.data?.error,
+        authState,
+      });
+      if (failure === 'already_paid') {
+        // Nothing left to do here: the money is in and only the confirmation
+        // was missed. That page reads the order and clears this checkout.
+        window.location.assign(`${window.location.origin}/${locale}/checkout/success?order=${orderId}`);
+        return;
+      }
+      setPaymentFailure(failure);
+      setError(t(paymentFailureKey(failure)));
       setSubmitting(false);
     }
+  };
+
+  /**
+   * Give up on the booked order and go back to an ordinary checkout. The order
+   * stays in ARM (unpaid, for support to resolve) — what is dropped is only this
+   * tab's claim on it. The typed address and the basket are kept: the shopper is
+   * placing the same order again, not starting from scratch.
+   */
+  const startNewOrder = () => {
+    clearPendingOrder();
+    setPendingOrder(null);
+    setPaymentFailure(null);
+    setError(null);
   };
 
   /* ---- Breadcrumbs ---- */
@@ -780,7 +811,12 @@ export default function CheckoutPage() {
   // boxes once, before createOrder — so every one of them freezes while the
   // order is in flight. Otherwise a shopper could change the address (or
   // withdraw a KVKK/Mesafeli consent) that ARM has already been given.
-  const field = (label: string, name: keyof FormData, required = true) => (
+  const field = (
+    label: string,
+    name: keyof FormData,
+    required = true,
+    errorText: string | null = null,
+  ) => (
     <Box>
       <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
         {label}{' '}
@@ -796,6 +832,8 @@ export default function CheckoutPage() {
         value={form[name]}
         onChange={handleField(name)}
         disabled={inputsLocked}
+        error={!!errorText}
+        helperText={errorText || undefined}
         sx={inputSx}
       />
     </Box>
@@ -890,9 +928,9 @@ export default function CheckoutPage() {
   const errorAlert = error ? (
     <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
       {error}
-      {/* The only way out of the ownership block: sign in and press again — the
-          retry then carries the token ARM asked for, on the same order. */}
-      {ownerBlocked && (
+      {/* Both blocked failures point at the session: signing in and pressing
+          again is what carries the token ARM asked for, on the same order. */}
+      {paymentBlocked && (
         <Box sx={{ mt: 1 }}>
           <MuiLink
             component={Link}
@@ -926,6 +964,9 @@ export default function CheckoutPage() {
           <Typography sx={{ ...textSm, color: c.main, mb: 2 }}>
             {t('checkout.pendingOrder.notice')}
           </Typography>
+          <Typography sx={{ ...textSm, color: c.main, mb: 1 }}>
+            Order number: <strong>{pendingOrder.number}</strong>
+          </Typography>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
             <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
@@ -953,6 +994,21 @@ export default function CheckoutPage() {
               )}
             </Button>
           )}
+          {/* Escape hatch. Without it a payment that can never be retried locks
+              this tab on the pending screen for good: the basket is frozen, the
+              empty-cart screen is suppressed and step 1 is out of reach. Offered
+              ONLY when the retry is hopeless, so it can't become a casual way to
+              duplicate an order. */}
+          {paymentBlocked && (
+            <Button
+              variant="text"
+              fullWidth
+              onClick={startNewOrder}
+              sx={{ mt: 2, ...btn, color: c.main, textTransform: 'none' }}
+            >
+              {t('checkout.pendingOrder.startNew')}
+            </Button>
+          )}
         </Box>
       </Box>
     );
@@ -963,7 +1019,7 @@ export default function CheckoutPage() {
     <>
       {errorAlert}
       <Stack spacing={2.5}>
-        {field('Email', 'email', emailRequired)}
+        {field('Email', 'email', emailRequired, emailInvalid ? t('checkout.consent.emailRequired') : null)}
         {field('Full Name', 'name')}
         {field('Phone', 'phone')}
 
