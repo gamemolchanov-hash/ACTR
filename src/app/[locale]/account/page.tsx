@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { Box, Typography, Button, Card, CardContent, Grid } from '@mui/material';
-import { ShoppingBag, Person, Lock, ExitToApp, LocationOn, Loyalty } from '@mui/icons-material';
+import {
+  ShoppingBag,
+  Person,
+  Lock,
+  ExitToApp,
+  LocationOn,
+  Loyalty,
+  Campaign,
+} from '@mui/icons-material';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { CASHBACK_WALLET_PROGRAM, fetchLoyaltyConfig } from '@/lib/loyalty';
+import { ACTIVE_CHANNELS } from '@/lib/ticari-ileti';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
@@ -79,6 +88,18 @@ export default function AccountPage() {
       href: '/account/settings#password',
       icon: Lock,
     },
+    // İletişim Tercihleri (FBG-410) — hidden when the storefront runs no
+    // commercial-message channel at all, since there would be nothing to manage.
+    ...(ACTIVE_CHANNELS.length
+      ? [
+          {
+            label: t('prefs.menuLabel'),
+            description: t('prefs.menuDesc'),
+            href: '/account/preferences',
+            icon: Campaign,
+          },
+        ]
+      : []),
   ];
 
   useEffect(() => {

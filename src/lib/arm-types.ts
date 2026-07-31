@@ -167,6 +167,48 @@ export interface ArmPaymentSession {
   redirectUrl?: string;
 }
 
+// ---------- Ticari elektronik ileti consents (FBG-409 / FBG-410) ----------
+
+/** İYS channels, 1:1 with the İYS taxonomy (E-POSTA / MESAJ / ARAMA). */
+export type ArmConsentChannel = 'email' | 'mesaj' | 'arama';
+
+/** MESAJ sub-channels — both ride the single İYS "MESAJ" channel. */
+export type ArmConsentSubChannel = 'sms' | 'whatsapp';
+
+export type ArmConsentStatus = 'onay' | 'ret';
+
+/**
+ * One consent event sent to ARM. The BFF schema is `.strict()`: `sub_channel` is
+ * only valid on `mesaj`, and a `mesaj` GRANT must carry one (a sub-less
+ * `mesaj: 'ret'` stays valid — that is the İYS channel-level unsubscribe).
+ */
+export interface ArmConsentDecision {
+  channel: ArmConsentChannel;
+  sub_channel?: ArmConsentSubChannel;
+  status: ArmConsentStatus;
+}
+
+/**
+ * Derived current state (latest event wins), already evaluated against the
+ * customer's CURRENT email/phone — a contact change stales the old grant. `null`
+ * means "never decided". Sendability lives in `mesaj_sms`/`mesaj_whatsapp`
+ * (they already fold in an İYS channel-level `ret`); `mesaj` is informational.
+ */
+export interface ArmConsentState {
+  email: ArmConsentStatus | null;
+  arama: ArmConsentStatus | null;
+  mesaj: ArmConsentStatus | null;
+  mesaj_sms: ArmConsentStatus | null;
+  mesaj_whatsapp: ArmConsentStatus | null;
+}
+
+/** Response of both GET and POST `/auth/me/consents`. */
+export interface ArmConsentsResponse {
+  /** Canon document id the shown text is pinned to — server-side, never sent. */
+  text_version: string;
+  consents: ArmConsentState;
+}
+
 export interface ArmOrder {
   id: string;
   number: string;

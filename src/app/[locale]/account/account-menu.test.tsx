@@ -13,6 +13,7 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 
 const fetchLoyaltyConfig = vi.hoisted(() => vi.fn());
 const routerSpy = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
+const activeChannels = vi.hoisted(() => ({ value: ['email', 'sms', 'arama'] as string[] }));
 
 vi.mock('next-intl', () => ({
   useTranslations: (namespace?: string) => (key: string, params?: Record<string, unknown>) => {
@@ -37,15 +38,26 @@ vi.mock('@/lib/loyalty', async (importOriginal) => ({
   fetchLoyaltyConfig,
 }));
 
+vi.mock('@/lib/ticari-ileti', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ticari-ileti')>();
+  return {
+    ...actual,
+    get ACTIVE_CHANNELS() {
+      return activeChannels.value;
+    },
+  };
+});
+
 import AccountPage from './page';
 
-const loyaltyLinks = () =>
-  Array.from(document.querySelectorAll('a')).filter(
-    (a) => a.getAttribute('href') === '/account/loyalty',
-  );
+const linksTo = (href: string) =>
+  Array.from(document.querySelectorAll('a')).filter((a) => a.getAttribute('href') === href);
+
+const loyaltyLinks = () => linksTo('/account/loyalty');
 
 beforeEach(() => {
   fetchLoyaltyConfig.mockReset();
+  activeChannels.value = ['email', 'sms', 'arama'];
 });
 
 afterEach(() => {
@@ -72,6 +84,28 @@ describe('AccountPage — Creator Club entry gate', () => {
     expect(loyaltyLinks()).toHaveLength(0);
     expect(screen.queryByText('account.loyalty')).toBeNull();
     // The rest of the menu is unaffected.
+    expect(screen.getByText('account.myOrders')).toBeTruthy();
+  });
+});
+
+describe('AccountPage — İletişim Tercihleri entry (FBG-410)', () => {
+  it('links to the preferences page whenever a message channel is live', async () => {
+    fetchLoyaltyConfig.mockResolvedValue({ program: 'points_discount', tiers: [], walletCap: null });
+    render(<AccountPage />);
+
+    await waitFor(() => expect(linksTo('/account/preferences')).toHaveLength(1));
+    expect(screen.getByText('account.prefs.menuLabel')).toBeTruthy();
+    // Independent of Creator Club: this entry stays while the loyalty one is hidden.
+    expect(loyaltyLinks()).toHaveLength(0);
+  });
+
+  it('hides the entry when the storefront runs no message channel', async () => {
+    activeChannels.value = [];
+    fetchLoyaltyConfig.mockResolvedValue({ program: 'points_discount', tiers: [], walletCap: null });
+    render(<AccountPage />);
+
+    await waitFor(() => expect(fetchLoyaltyConfig).toHaveBeenCalled());
+    expect(linksTo('/account/preferences')).toHaveLength(0);
     expect(screen.getByText('account.myOrders')).toBeTruthy();
   });
 });

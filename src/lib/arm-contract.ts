@@ -111,6 +111,9 @@ export const ENDPOINTS = {
     walletHistory: '/auth/me/wallet/history',
     loyaltyHistory: '/auth/me/loyalty/history',
     profile: '/auth/me/profile',
+    // Ticari elektronik ileti consents (FBG-409/FBG-410): GET reads the derived
+    // per-channel state, POST appends onay/ret events — same path, both methods.
+    consents: '/auth/me/consents',
     changePassword: '/auth/me/change-password',
     export: '/auth/me/export',
     deleteAccount: '/auth/me/delete-account',

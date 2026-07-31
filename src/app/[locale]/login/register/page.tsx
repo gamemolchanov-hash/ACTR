@@ -18,9 +18,22 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
-import { register, login as doLogin, TERMS_VERSION } from '@/lib/auth';
+import {
+  register,
+  login as doLogin,
+  getConsents,
+  updateConsents,
+  TERMS_VERSION,
+} from '@/lib/auth';
 import { useAuth } from '@/lib/auth-context';
-import { useTranslations } from 'next-intl';
+import {
+  ACTIVE_CHANNELS,
+  buildRegisterConsents,
+  isPhoneUsableForConsent,
+  missingGrants,
+  type UiChannel,
+} from '@/lib/ticari-ileti';
+import { useTranslations, useLocale } from 'next-intl';
 
 const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -75,6 +88,8 @@ function generateCaptcha(): { a: number; b: number; op: '+' | '-'; answer: numbe
 export default function RegisterPage() {
   const t = useTranslations('auth');
   const tCommon = useTranslations('common');
+  const tConsent = useTranslations('ticariIleti');
+  const locale = useLocale();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -85,6 +100,11 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  // Ticari elektronik ileti opt-ins (FBG-410) — a legal basis of their own, kept
+  // apart from `agreed` (Üyelik Sözleşmesi) and from the checkout KVKK/Mesafeli
+  // boxes. Starts empty: canon §9 forbids any pre-ticked box, and these never
+  // enter `isValid` or any submit gate.
+  const [consentSel, setConsentSel] = useState<Partial<Record<UiChannel, boolean>>>({});
   const { setAuth } = useAuth();
 
   // anti-bot: honeypot
@@ -163,6 +183,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const emailNorm = email.trim().toLowerCase();
+      const consents = buildRegisterConsents(consentSel, { email: emailNorm, phone });
       await register({
         name: name.trim(),
         email: emailNorm,
@@ -170,10 +191,29 @@ export default function RegisterPage() {
         password,
         terms_accepted: true,
         terms_version: TERMS_VERSION,
+        consents,
+        locale,
       });
       // Auto-login after register (FBG pattern)
       const loginRes = await doLogin(emailNorm, password);
       setAuth(loginRes.token, loginRes.customer, loginRes.loyalty);
+
+      // ARM records register-time consents best-effort and answers 200 even when
+      // that write fails (§9 — a consent hiccup must not cost the account), so
+      // the response says nothing about their fate. Verify against the
+      // authoritative GET and re-send only what is missing. A failure here is
+      // NOT a failed registration: the account exists and is signed in, so send
+      // the member to the page that shows the real state and can retry.
+      if (consents.length) {
+        try {
+          const { consents: state } = await getConsents();
+          const missing = missingGrants(consents, state);
+          if (missing.length) await updateConsents(missing, locale);
+        } catch {
+          router.push('/account/preferences');
+          return;
+        }
+      }
       router.push('/');
     } catch (err: any) {
       const msg =
@@ -187,7 +227,13 @@ export default function RegisterPage() {
   };
   const router = useRouter();
 
+  // NOTE: the ticari ileti boxes are deliberately absent from `isValid` — canon
+  // §9 forbids making consent a condition of registration.
   const isValid = name && email && phone && password && confirmPassword && captchaInput && agreed;
+
+  const phoneGrantUnusable =
+    (consentSel.sms === true || consentSel.arama === true || consentSel.whatsapp === true) &&
+    !isPhoneUsableForConsent(phone);
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
@@ -432,6 +478,81 @@ export default function RegisterPage() {
               }
               sx={{ mb: 1, alignItems: 'flex-start' }}
             />
+
+            {/* Ticari elektronik ileti opt-ins (FBG-410, canon §15). Only the
+                channels the store actually sends on are shown (§5); the section
+                disappears entirely when none is live. */}
+            {ACTIVE_CHANNELS.length > 0 && (
+              <Box sx={{ mt: 2.5, mb: 1 }}>
+                <Typography
+                  sx={{
+                    fontFamily: fontMain,
+                    fontSize: { xs: 14, md: 18 },
+                    color: palette.primary,
+                    mb: 0.5,
+                  }}
+                >
+                  {tConsent('heading')}
+                </Typography>
+                <Typography
+                  sx={{ fontFamily: fontBody, fontSize: 12, color: palette.primaryLight, mb: 1 }}
+                >
+                  {tConsent('optional')}{' '}
+                  <Link
+                    href="/legal/ticari-elektronik-ileti"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: palette.primary }}
+                  >
+                    {tConsent('noticeLink')}
+                  </Link>
+                </Typography>
+
+                {ACTIVE_CHANNELS.map((channel) => (
+                  <FormControlLabel
+                    key={channel}
+                    control={
+                      <Checkbox
+                        checked={consentSel[channel] === true}
+                        onChange={(e) =>
+                          setConsentSel((prev) => ({ ...prev, [channel]: e.target.checked }))
+                        }
+                        sx={{
+                          color: palette.primaryLight,
+                          '&.Mui-checked': { color: palette.primary },
+                          alignSelf: 'flex-start',
+                          pt: '2px',
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography
+                        sx={{
+                          fontFamily: fontBody,
+                          fontSize: { xs: 12, md: 13 },
+                          color: palette.primary,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {tConsent(`${channel}Label`)}
+                      </Typography>
+                    }
+                    sx={{ mb: 1, alignItems: 'flex-start' }}
+                  />
+                ))}
+
+                {/* A half-typed number would make ARM reject the WHOLE
+                    registration (§7 contact guard runs before the account is
+                    created), so phone grants are dropped — say so up front. */}
+                {phoneGrantUnusable && (
+                  <Typography
+                    sx={{ fontFamily: fontBody, fontSize: 12, color: palette.cartBadge, mb: 1 }}
+                  >
+                    {tConsent('phoneIncomplete')}
+                  </Typography>
+                )}
+              </Box>
+            )}
 
             {/* Submit */}
             <Button

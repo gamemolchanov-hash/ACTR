@@ -112,4 +112,28 @@ describe('messages are next-intl-consumable (unflatten invariant)', () => {
       expect(val.length).toBeGreaterThan(0);
     }
   });
+
+  // FBG-410 ticari elektronik ileti — the pages read these through the nested
+  // namespaces `ticariIleti` and `account.prefs`, so the flat keys must survive
+  // unflatten() without colliding with the plain `account.*` strings.
+  it.each([
+    ['en', enRaw],
+    ['tr', trRaw],
+  ])('%s ticari ileti keys resolve in both locales', async (locale, raw) => {
+    const messages = unflatten(raw as Record<string, string>);
+    const t = (await createTranslator({ locale, messages })) as unknown as (
+      key: string,
+    ) => string;
+    for (const key of [
+      'ticariIleti.emailLabel',
+      'ticariIleti.saveError',
+      'account.prefs.title',
+      'account.prefs.menuLabel',
+      'account.breadcrumb',
+    ]) {
+      const val = t(key);
+      expect(val).not.toBe(key);
+      expect(val.length).toBeGreaterThan(0);
+    }
+  });
 });

@@ -8,6 +8,7 @@
 
 import { api } from './api';
 import { ENDPOINTS } from './arm-contract';
+import type { ArmConsentDecision, ArmConsentsResponse } from './arm-types';
 
 // ---------------------------------------------------------------------------
 // Types (from 03-RESEARCH.md §ARM Types — verified from BFF source)
@@ -168,6 +169,16 @@ export async function register(data: {
   password: string;
   terms_accepted: boolean;
   terms_version: string;
+  /**
+   * Ticari elektronik ileti opt-ins (FBG-410). A separate legal basis from
+   * terms_accepted — never a condition of registration, so an empty array is
+   * the normal case. ARM records them best-effort AFTER the account exists and
+   * still answers 200 when the write fails, so the response says nothing about
+   * their fate: `getConsents()` is the only authoritative read.
+   */
+  consents?: ArmConsentDecision[];
+  /** Drives the language of the same-day teyit email (canon §16). */
+  locale?: string;
 }): Promise<{ message: string }> {
   const res = await api.post(ENDPOINTS.auth.register, data);
   return res.data;
@@ -254,6 +265,32 @@ export async function changePassword(data: {
   newPassword: string;
 }): Promise<{ message: string }> {
   const res = await api.post(ENDPOINTS.auth.changePassword, data, { headers: bearerHeader() });
+  return res.data;
+}
+
+/**
+ * GET /auth/me/consents — the authoritative per-channel ticari ileti state.
+ * Derived server-side against the customer's CURRENT email/phone, so it must be
+ * re-read on every visit rather than cached across a contact change (canon §7).
+ */
+export async function getConsents(): Promise<ArmConsentsResponse> {
+  const res = await api.get(ENDPOINTS.auth.consents, { headers: bearerHeader() });
+  return res.data;
+}
+
+/**
+ * POST /auth/me/consents — appends onay/ret events and returns the fresh state.
+ * `locale` selects the language of the same-day teyit message (canon §16).
+ */
+export async function updateConsents(
+  consents: ArmConsentDecision[],
+  locale?: string,
+): Promise<ArmConsentsResponse> {
+  const res = await api.post(
+    ENDPOINTS.auth.consents,
+    { consents, locale },
+    { headers: bearerHeader() },
+  );
   return res.data;
 }
 
