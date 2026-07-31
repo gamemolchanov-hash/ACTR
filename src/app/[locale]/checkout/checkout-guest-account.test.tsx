@@ -13,7 +13,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 
 const auth = vi.hoisted(() => ({
-  value: { customer: null as Record<string, unknown> | null, loading: false },
+  value: {
+    customer: null as Record<string, unknown> | null,
+    token: null as string | null,
+    loading: false,
+  },
 }));
 const apiMock = vi.hoisted(() => ({
   validateCart: vi.fn(),
@@ -123,7 +127,7 @@ beforeEach(() => {
   sessionStorage.clear();
   query.value = new URLSearchParams();
   cart.items = [{ productId: 'dp1', quantity: 1 }];
-  auth.value = { customer: null, loading: false };
+  auth.value = { customer: null, token: null, loading: false };
   apiMock.validateCart.mockResolvedValue({
     data: {
       items: [
@@ -207,7 +211,11 @@ describe('guest submit gate', () => {
   it('requires an email from a member too, without the format scolding', async () => {
     // Email has always been mandatory for everyone; only the well-formedness
     // rule is guest-specific (ARM builds them an account from it).
-    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: '', phone: null },
+      token: 'jwt-1',
+      loading: false,
+    };
     seedStep2({ email: '' });
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
@@ -239,8 +247,21 @@ describe('guest submit gate', () => {
     expect(apiMock.createOrder).not.toHaveBeenCalled();
   });
 
+  it('does not treat a signed-in shopper with an unreachable profile as a guest', async () => {
+    // `/auth/me` failed on the network: the token survives (only 401/403 drops
+    // the session), so who this is stays undecided — not "guest".
+    auth.value = { customer: null, token: 'jwt-1', loading: false };
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2();
+
+    expect(boxLabelled('checkout.consent.uyelikPrefix')).toBeUndefined();
+    expect(proceedButton().disabled).toBe(true);
+    fireEvent.click(proceedButton());
+    expect(apiMock.createOrder).not.toHaveBeenCalled();
+  });
+
   it('refuses to order while the auth state is still resolving', async () => {
-    auth.value = { customer: null, loading: true };
+    auth.value = { customer: null, token: 'jwt-1', loading: true };
     seedStep2({ email: 'ada@example.com' });
     await arriveAtStep2({ uyelik: false });
 
@@ -276,7 +297,11 @@ describe('guest-only UI', () => {
   });
 
   it('hides it from a member, whose email is still required and still sent', async () => {
-    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: '', phone: null },
+      token: 'jwt-1',
+      loading: false,
+    };
     seedStep2({ email: 'ada@example.com' });
     await arriveAtStep2();
 
@@ -289,7 +314,11 @@ describe('guest-only UI', () => {
   });
 
   it('marks the email field required for a member as well', async () => {
-    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: '', phone: null },
+      token: 'jwt-1',
+      loading: false,
+    };
     seedStep2({ email: 'ada@example.com' });
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
@@ -514,6 +543,33 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     expect(document.body.textContent).toContain('999');
   });
 
+  it('drops a payment session that arrives after the order was abandoned', async () => {
+    let resolveSession: (value: unknown) => void = () => {};
+    apiMock.createPaymentSession.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSession = resolve;
+        }),
+    );
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(readPendingOrder()?.orderId).toBe('ord-1'));
+
+    // Abandoned while the session request is still in flight.
+    fireEvent.click(screen.getByText('checkout.pendingOrder.startNew'));
+    await waitFor(() => expect(screen.queryByText('checkout.pendingOrder.notice')).toBeNull());
+
+    // The session for the abandoned order finally lands. Applying it would
+    // navigate this fresh checkout to the OLD order's confirmation page.
+    resolveSession({ data: { type: 'manual' } });
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
+    expect(assign).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('stripe-embedded')).toBeNull();
+    // …and the shopper is back on an ordinary checkout, free to order again.
+    expect(readPendingOrder()).toBe(null);
+  });
+
   it('keeps the draft and the pending marker until the buyer reaches success', async () => {
     apiMock.createOrder.mockResolvedValue({
       data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
@@ -563,7 +619,11 @@ describe('what ARM says about the failed payment decides what is offered', () =>
   });
 
   it('does not tell a signed-in buyer to sign in when their own order 404s', async () => {
-    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: '', phone: null },
+      token: 'jwt-1',
+      loading: false,
+    };
     await placeOrderWith(armError(404, 'Order not found'));
 
     await waitFor(() =>
@@ -625,7 +685,13 @@ describe('what ARM says about the failed payment decides what is offered', () =>
     // provider (its cancelUrl lands here) needs a way out even when the payment
     // itself never failed.
     apiMock.createOrder.mockResolvedValue({
-      data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
+      data: {
+        id: 'ord-1',
+        number: 'N-1',
+        total: 150,
+        currency: 'TRY',
+        account: { status: 'created', welcome_email_sent: true },
+      },
     });
     apiMock.createPaymentSession.mockRejectedValue(new Error('gateway down'));
     seedStep2({ email: 'ada@example.com' });
@@ -646,6 +712,8 @@ describe('what ARM says about the failed payment decides what is offered', () =>
     await waitFor(() => expect(readPendingOrder()).toBe(null));
     expect(screen.queryByText('checkout.pendingOrder.notice')).toBeNull();
     expect(sessionStorage.getItem('checkout_form')).not.toBeNull();
+    // The account notice described the abandoned order too.
+    expect(readAccountNotice()).toBe(null);
   });
 
   it('shows the order number so a stuck buyer has something to quote', async () => {
@@ -703,7 +771,11 @@ describe('order linked to a registered account (phone match)', () => {
     );
 
     // Signed in and back on this page: the retry now carries the owner's token.
-    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: '', phone: null },
+      token: 'jwt-1',
+      loading: false,
+    };
     apiMock.createPaymentSession.mockResolvedValue({ data: { type: 'manual' } });
     cleanup();
     render(<CheckoutPage />);

@@ -72,9 +72,16 @@ export function checkoutAuthState(opts: {
   hydrated: boolean;
   authLoading: boolean;
   hasCustomer: boolean;
+  hasToken: boolean;
 }): CheckoutAuthState {
   if (!opts.hydrated || opts.authLoading) return 'pending';
-  return opts.hasCustomer ? 'member' : 'guest';
+  if (opts.hasCustomer) return 'member';
+  // A token that never resolved into a profile: `/auth/me` failed on the network
+  // or a 5xx, and only 401/403 drops the session (FBG-50 / D-04) — so the token
+  // is still there and this shopper is probably signed in. Calling that a guest
+  // would show them the üyelik consent and demand a guest email.
+  if (opts.hasToken) return 'pending';
+  return 'guest';
 }
 
 /** The üyelik (account-creation) consent is a guest-only box. */
@@ -133,6 +140,10 @@ export function paymentSessionFailure(opts: {
   const message = typeof opts.serverError === 'string' ? opts.serverError : '';
   if (opts.status === 400 && /already paid/i.test(message)) return 'already_paid';
   if (opts.status === 404) return opts.authState === 'member' ? 'unreachable' : 'owner_sign_in';
+  // Timeout and rate-limit are about the moment, not the request: the BFF
+  // limiter allows a bounded number of attempts per window, so waiting and
+  // pressing again is exactly the right advice.
+  if (opts.status === 408 || opts.status === 429) return 'retry';
   if (opts.status !== undefined && opts.status >= 400 && opts.status < 500) return 'unavailable';
   return 'retry';
 }

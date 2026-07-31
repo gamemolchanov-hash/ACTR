@@ -44,32 +44,56 @@ const GUEST_READY = {
 };
 
 describe('checkoutAuthState', () => {
+  const SIGNED_OUT = { hasCustomer: false, hasToken: false };
+
   it('is pending before hydration — the SSR render must not claim "guest"', () => {
     // Server render / first client paint: no token read yet, loading false.
-    expect(
-      checkoutAuthState({ hydrated: false, authLoading: false, hasCustomer: false }),
-    ).toBe('pending');
+    expect(checkoutAuthState({ hydrated: false, authLoading: false, ...SIGNED_OUT })).toBe(
+      'pending',
+    );
   });
 
   it('is pending while the profile request is in flight', () => {
-    expect(checkoutAuthState({ hydrated: true, authLoading: true, hasCustomer: false })).toBe(
+    expect(checkoutAuthState({ hydrated: true, authLoading: true, ...SIGNED_OUT })).toBe(
       'pending',
     );
-    expect(checkoutAuthState({ hydrated: true, authLoading: true, hasCustomer: true })).toBe(
-      'pending',
-    );
+    expect(
+      checkoutAuthState({
+        hydrated: true,
+        authLoading: true,
+        hasCustomer: true,
+        hasToken: true,
+      }),
+    ).toBe('pending');
   });
 
-  it('is guest once hydrated with no customer', () => {
-    expect(checkoutAuthState({ hydrated: true, authLoading: false, hasCustomer: false })).toBe(
-      'guest',
-    );
+  it('is guest once hydrated with neither customer nor token', () => {
+    expect(checkoutAuthState({ hydrated: true, authLoading: false, ...SIGNED_OUT })).toBe('guest');
   });
 
   it('is member once hydrated with a customer', () => {
-    expect(checkoutAuthState({ hydrated: true, authLoading: false, hasCustomer: true })).toBe(
-      'member',
-    );
+    expect(
+      checkoutAuthState({
+        hydrated: true,
+        authLoading: false,
+        hasCustomer: true,
+        hasToken: true,
+      }),
+    ).toBe('member');
+  });
+
+  it('stays pending when a token failed to resolve into a profile', () => {
+    // `/auth/me` died on the network or a 5xx: only 401/403 drops the session,
+    // so the token is still here and this is very likely a signed-in shopper.
+    // Calling them a guest would demand a guest email and the üyelik consent.
+    expect(
+      checkoutAuthState({
+        hydrated: true,
+        authLoading: false,
+        hasCustomer: false,
+        hasToken: true,
+      }),
+    ).toBe('pending');
   });
 });
 
@@ -283,6 +307,17 @@ describe('paymentSessionFailure', () => {
     ).toBe('unavailable');
     expect(paymentSessionFailure({ status: 403, serverError: 'Forbidden', ...member })).toBe(
       'unavailable',
+    );
+  });
+
+  it('keeps a retry for a timeout and for the rate limiter', () => {
+    // The BFF limiter allows a bounded number of attempts per window — waiting
+    // and pressing again is exactly what resolves it.
+    expect(paymentSessionFailure({ status: 429, serverError: 'Too many requests', ...guest })).toBe(
+      'retry',
+    );
+    expect(paymentSessionFailure({ status: 408, serverError: 'Request timeout', ...member })).toBe(
+      'retry',
     );
   });
 

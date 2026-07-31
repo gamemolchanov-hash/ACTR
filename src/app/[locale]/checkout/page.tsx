@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import dynamic from 'next/dynamic';
 import {
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
-  const { customer, loading: authLoading } = useAuth();
+  const { customer, token, loading: authLoading } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
@@ -289,6 +289,11 @@ export default function CheckoutPage() {
   // never places a second order (FBG-477 review).
   const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
   const placedOrderId = pendingOrder?.orderId ?? null;
+  // Live mirror of the order this tab is currently paying for. A submit reads it
+  // AFTER its awaits to check that its own order is still the one on screen —
+  // the shopper can abandon it mid-request ("Start a new order"), and the state
+  // captured in the handler's closure would not know.
+  const pendingOrderRef = useRef<string | null>(null);
   // How the last payment attempt failed, when the order itself already exists.
   // Only some of those are worth retrying — see PaymentSessionFailure.
   const [paymentFailure, setPaymentFailure] = useState<PaymentSessionFailure | null>(null);
@@ -310,7 +315,9 @@ export default function CheckoutPage() {
     setStep(loadFromSession(CHECKOUT_STEP_KEY, 1));
     // An order booked before a reload must be picked up again, or this submit
     // would create a duplicate for the same basket (FBG-477 review).
-    setPendingOrder(readPendingOrder());
+    const restored = readPendingOrder();
+    setPendingOrder(restored);
+    pendingOrderRef.current = restored?.orderId ?? null;
     // Restore promo code from basket page
     try {
       const stored = sessionStorage.getItem(CHECKOUT_PROMO_KEY);
@@ -444,6 +451,7 @@ export default function CheckoutPage() {
     hydrated,
     authLoading,
     hasCustomer: !!customer,
+    hasToken: !!token,
   });
   // Email stays mandatory for everyone, as it always was. A guest gets one extra
   // rule on top: ARM turns their checkout into a claimable account, so the
@@ -657,6 +665,7 @@ export default function CheckoutPage() {
         };
         orderId = placed.orderId;
         setPendingOrder(placed);
+        pendingOrderRef.current = orderId;
         // Survives the reload a shopper reaches for when payment fails.
         savePendingOrder(placed);
 
@@ -694,6 +703,12 @@ export default function CheckoutPage() {
       // and a wiped draft would look like a fresh checkout — placing a SECOND
       // order for a basket that already has an unpaid one. The success page is
       // the terminal point and clears all of it (FBG-477 review).
+      // The shopper may have abandoned this order while the request was out
+      // ("Start a new order"). Applying a session that belongs to an order they
+      // walked away from would put its Stripe form — or its redirect — in front
+      // of whatever they are looking at now.
+      if (pendingOrderRef.current !== orderId) return;
+
       const session = sessionRes.data;
       if (session.type === 'manual') {
         // Offline payment (FBG-478): no session to run, the order is placed.
@@ -725,6 +740,9 @@ export default function CheckoutPage() {
         setSubmitting(false);
         return;
       }
+      // Abandoned mid-request (see above): its failure is no longer this
+      // shopper's problem either.
+      if (pendingOrderRef.current !== orderId) return;
       // The order IS booked, so "error creating order" would invite a second
       // one. What to offer instead depends on WHY ARM refused the session — a
       // blanket "press again" asks a buyer who already paid to pay twice.
@@ -760,6 +778,13 @@ export default function CheckoutPage() {
     // re-rendered on the NEXT order's pending screen — a Stripe form charging the
     // old order under the new order's total.
     setPaymentSession(null);
+    // Same for the account notice: it describes the abandoned order.
+    clearAccountNotice();
+    // A create-session request may still be in flight for the abandoned order.
+    // Moving the ref is what tells it to drop its own result; releasing the form
+    // here is safe precisely because that result can no longer land.
+    pendingOrderRef.current = null;
+    setSubmitting(false);
   };
 
   /* ---- Breadcrumbs ---- */
