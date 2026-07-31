@@ -151,21 +151,54 @@ export interface ArmShippingRatesResponse {
   error?: ArmShippingUnavailableReason | null;
 }
 
+/**
+ * What ARM did with the buyer's account while creating the order (FBG-476).
+ *  - `none` — logged-in buyer, or nothing to claim (no email given);
+ *  - `linked` — the order joined an existing record (phone/shell match);
+ *  - `created` — a fresh claimable shell account, welcome mail attempted;
+ *  - `email_taken` — the address belongs to a REGISTERED account, so the order
+ *    went to a separate new shell instead. It is NOT visible in that account.
+ */
+export type ArmGuestAccountStatus = 'none' | 'linked' | 'created' | 'email_taken';
+
+export interface ArmOrderAccount {
+  status: ArmGuestAccountStatus;
+  /** `false` is normal even for `created` (live reset token / mailer failure). */
+  welcome_email_sent: boolean;
+}
+
 export interface ArmOrderCreateResponse {
   data: {
     id: string;
     number: string;
     total: number;
     currency: string;
+    /** Present only on storefronts with `auto_register_guests` on. */
+    account?: ArmOrderAccount;
   };
 }
 
+/** Online (Stripe) session — hosted (`redirectUrl`) or embedded (`clientSecret`). */
 export interface ArmPaymentSession {
+  /** Never set on the online payload; the discriminant of the union below. */
+  type?: undefined;
   sessionId: string;
   clientSecret?: string;
   publishableKey?: string;
   redirectUrl?: string;
 }
+
+/**
+ * `provider: 'manual'` — offline payment (FBG-478). ARM answers 200 with no
+ * session at all: no `sessionId`, no `clientSecret`, no `redirectUrl`. That is a
+ * success (the order stays unpaid until an operator marks it paid in Portal),
+ * so it must not be modelled as an online session with a fake id.
+ */
+export interface ArmManualPayment {
+  type: 'manual';
+}
+
+export type ArmPaymentSessionResponse = ArmPaymentSession | ArmManualPayment;
 
 // ---------- Ticari elektronik ileti consents (FBG-409 / FBG-410) ----------
 

@@ -32,7 +32,7 @@ import type {
   ArmPaginated,
   ArmShippingRatesResponse,
   ArmOrderCreateResponse,
-  ArmPaymentSession,
+  ArmPaymentSessionResponse,
   ArmOrder,
 } from './arm-types';
 
@@ -250,6 +250,12 @@ export interface CreateOrderPayload {
    * exclusive with promoCode; the BFF enforces the XOR as the last defence.
    */
   walletAmountToApply?: number;
+  /**
+   * Raw locale tag of the checkout (`tr` / `en`). ARM addresses the guest
+   * "set your password" welcome email with exactly this value (FBG-476), so
+   * omitting it hands a Turkish buyer an English email.
+   */
+  locale: string;
 }
 
 /**
@@ -267,6 +273,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
     items: payload.items.map(toArm),
     comment: payload.comment,
     promoCode: payload.promoCode,
+    locale: payload.locale,
   };
   // FBG-385: the wallet debit is a logged-in-only action — attach
   // walletAmountToApply only with a JWT and a positive amount. Guests carry no
@@ -281,27 +288,34 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
 }
 
 /**
- * Create a Stripe payment session for an order.
- * ARM contract: POST /payment/create-session {orderId,successUrl,cancelUrl}
+ * Create a payment session for an order.
+ * ARM contract: POST /payment/create-session {orderId,successUrl,cancelUrl} →
+ * an online session, or `{type:'manual'}` when the storefront takes offline
+ * payments (FBG-478) — that answer carries no session and is still a success.
+ *
+ * Bearer: ARM requires the owner's JWT for an order whose customer can sign in
+ * (FBG-480). A guest's shell account has no credentials, so their order stays
+ * payable by its UUID and bearerHeader() correctly sends nothing.
  */
 export async function createPaymentSession(
   orderId: string,
   successUrl: string,
   cancelUrl: string,
-): Promise<{ data: ArmPaymentSession }> {
-  const { data } = await api.post(ENDPOINTS.paymentCreateSession, {
-    orderId,
-    successUrl,
-    cancelUrl,
-  });
+): Promise<{ data: ArmPaymentSessionResponse }> {
+  const { data } = await api.post(
+    ENDPOINTS.paymentCreateSession,
+    { orderId, successUrl, cancelUrl },
+    { headers: bearerHeader() },
+  );
   return { data: data.data ?? data };
 }
 
 /**
- * Fetch a guest order by UUID.
- * ARM contract: GET /orders/{id}
+ * Fetch an order by UUID.
+ * ARM contract: GET /orders/{id} — same ownership rule as create-session above,
+ * so a logged-in buyer must send their token to read their own order.
  */
 export async function fetchOrder(id: string): Promise<{ data: ArmOrder }> {
-  const { data } = await api.get(ENDPOINTS.order(id));
+  const { data } = await api.get(ENDPOINTS.order(id), { headers: bearerHeader() });
   return { data: data.data ?? data };
 }

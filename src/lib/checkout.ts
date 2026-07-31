@@ -4,7 +4,7 @@
  * drifting out of sync with the button's real disabled condition.
  */
 
-import type { ArmShippingUnavailableReason } from './arm-types';
+import type { ArmGuestAccountStatus, ArmShippingUnavailableReason } from './arm-types';
 
 /**
  * Runtime list of the shipping-unavailable reasons. ARM sends the first three in
@@ -57,27 +57,199 @@ export function shippingPanelState(opts: {
 }
 
 /**
- * Whether "Proceed to Payment" is disabled. This is the single source of truth
- * for the button in checkout/page.tsx and the test mirror. The order can be
- * placed only when:
+ * Who the checkout is serving right now (FBG-477). `pending` is the honest
+ * third state: the server render and the first client render BOTH look like a
+ * guest to `useAuth()` (SSR has no token; the client has just read one from
+ * localStorage and is still validating it), so keying the guest-only UI off
+ * `!customer` alone would render one markup on the server and another on the
+ * client. `hydrated` is the storefront's existing client-ready signal — until it
+ * flips, and while the profile request is in flight, the answer is `pending`:
+ * the same markup on both sides, and a closed submit gate.
+ */
+export type CheckoutAuthState = 'pending' | 'guest' | 'member';
+
+export function checkoutAuthState(opts: {
+  hydrated: boolean;
+  authLoading: boolean;
+  hasCustomer: boolean;
+}): CheckoutAuthState {
+  if (!opts.hydrated || opts.authLoading) return 'pending';
+  return opts.hasCustomer ? 'member' : 'guest';
+}
+
+/** The üyelik (account-creation) consent is a guest-only box. */
+export function showUyelikConsent(state: CheckoutAuthState): boolean {
+  return state === 'guest';
+}
+
+/**
+ * Email is mandatory only for a guest: ARM turns a guest checkout into a
+ * claimable account, and without an address there is nothing to claim. A member
+ * already has an account, so their email stays optional (as before).
+ */
+export function guestEmailRequired(state: CheckoutAuthState): boolean {
+  return state === 'guest';
+}
+
+/**
+ * Same shape of "looks like an email" the BFF applies (`z.string().email()` over
+ * the trimmed value). Not a stricter validator — anything that slips through
+ * still comes back as a localized `invalid_email` from ARM.
+ */
+export function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+}
+
+/** Why the order can't be placed yet, in the order the user should fix it. */
+export type CheckoutBlockReason =
+  | 'submitting'
+  | 'auth_pending'
+  | 'consent'
+  | 'uyelik'
+  | 'guest_email'
+  | 'shipping_rate';
+
+export interface CheckoutGateOpts {
+  submitting: boolean;
+  authState: CheckoutAuthState;
+  agreedKvkk: boolean;
+  agreedMesafeli: boolean;
+  agreedUyelik: boolean;
+  email: string;
+  selectedRateId: string;
+}
+
+/**
+ * The single source of truth for both the Proceed button and the submit handler
+ * in checkout/page.tsx (D-04/COMP-02 "gate the handler, not only the button").
+ * The order can be placed only when:
  *  - no request is already in flight (`submitting`),
- *  - both compliance consents are checked (KVKK + mesafeli), and
+ *  - the auth state has resolved — a `pending` state must not be read as "guest"
+ *    (it would let a member through) nor as "member" (it would skip the üyelik
+ *    consent for a guest),
+ *  - both compliance consents are checked (KVKK + mesafeli),
+ *  - a guest also accepted the üyelik agreement and gave a usable email, and
  *  - a concrete shipping rate is selected.
  * The last clause mirrors the ARM server guard that rejects a zero shipping cost
  * (`Shipping cost cannot be zero`). A free rate (`price:0`/`is_free`) still has a
  * non-empty id, so it counts as a valid selection — the gate keys off "a rate is
  * chosen", not "cost > 0".
  */
-export function proceedButtonDisabled(opts: {
-  submitting: boolean;
-  agreedKvkk: boolean;
-  agreedMesafeli: boolean;
-  selectedRateId: string;
-}): boolean {
+export function checkoutBlockReason(opts: CheckoutGateOpts): CheckoutBlockReason | null {
+  if (opts.submitting) return 'submitting';
+  if (opts.authState === 'pending') return 'auth_pending';
+  if (!opts.agreedKvkk || !opts.agreedMesafeli) return 'consent';
+  if (showUyelikConsent(opts.authState) && !opts.agreedUyelik) return 'uyelik';
+  if (guestEmailRequired(opts.authState) && !looksLikeEmail(opts.email)) return 'guest_email';
+  if (!opts.selectedRateId) return 'shipping_rate';
+  return null;
+}
+
+/**
+ * Whether "Proceed to Payment" is disabled — the button face of the same gate.
+ * Every block disables it EXCEPT `guest_email`: that field lives on step 1, so a
+ * greyed-out button would strand the shopper with nothing to click and no way to
+ * learn what is missing. The handler keeps refusing that case (and says so),
+ * which is also what makes the handler gate observable rather than decorative.
+ */
+export function proceedButtonDisabled(opts: CheckoutGateOpts): boolean {
+  const reason = checkoutBlockReason(opts);
+  return reason !== null && reason !== 'guest_email';
+}
+
+/**
+ * i18n key explaining a block to the shopper. `submitting`/`auth_pending` are
+ * transient and `shipping_rate` already has its own hint under the button, so
+ * those stay silent.
+ */
+export function blockReasonKey(reason: CheckoutBlockReason | null): string | null {
+  switch (reason) {
+    case 'consent':
+      return 'checkout.consent.required';
+    case 'uyelik':
+      return 'checkout.consent.uyelikRequired';
+    case 'guest_email':
+      return 'checkout.consent.emailRequired';
+    default:
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Account notice hand-off, checkout → success (FBG-477)
+// ---------------------------------------------------------------------------
+
+/**
+ * `POST /orders` is the ONLY place that reports what happened to the buyer's
+ * account, and the shopper leaves the page through a full navigation (Stripe
+ * redirect or `location.assign`), so React state can't carry it. `GET /orders/:id`
+ * doesn't return `account` either — hence a sessionStorage hand-off, the same
+ * class of data (and lifetime) as the `checkout_form` draft next to it.
+ */
+const ACCOUNT_NOTICE_KEY = 'checkout_account_notice';
+
+export interface AccountNotice {
+  /** Order the notice belongs to — guards against showing a previous one. */
+  orderId: string;
+  status: Extract<ArmGuestAccountStatus, 'created' | 'email_taken'>;
+  welcomeEmailSent: boolean;
+  /** Address ARM mailed / matched. Never travels through the URL. */
+  email: string;
+}
+
+function isAccountNotice(value: unknown): value is AccountNotice {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
   return (
-    opts.submitting ||
-    !opts.agreedKvkk ||
-    !opts.agreedMesafeli ||
-    !opts.selectedRateId
+    typeof v.orderId === 'string' &&
+    (v.status === 'created' || v.status === 'email_taken') &&
+    typeof v.welcomeEmailSent === 'boolean' &&
+    typeof v.email === 'string'
   );
+}
+
+export function saveAccountNotice(notice: AccountNotice): void {
+  try {
+    sessionStorage.setItem(ACCOUNT_NOTICE_KEY, JSON.stringify(notice));
+  } catch {}
+}
+
+/**
+ * Read without consuming. The success page may mount twice (React Strict Mode)
+ * or be reloaded (F5) — a destructive read would blank the notice on the second
+ * pass. Staleness is handled on the write side instead: every order clears or
+ * overwrites the slot, and the reader still checks the order id.
+ */
+export function readAccountNotice(): AccountNotice | null {
+  try {
+    const raw = sessionStorage.getItem(ACCOUNT_NOTICE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return isAccountNotice(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Idempotent — called after every order whose status has nothing to announce. */
+export function clearAccountNotice(): void {
+  try {
+    sessionStorage.removeItem(ACCOUNT_NOTICE_KEY);
+  } catch {}
+}
+
+/**
+ * Which notice (if any) the success page should show. An empty `orderId` means
+ * the payment provider sent the shopper to its own configured `success_url`
+ * without our query (ARM prefers `paymentConfig.success_url` over the URL we
+ * pass) — the stored notice is then the only thing identifying the order, so it
+ * is trusted. A DIFFERENT id means the page is showing another order: no notice.
+ */
+export function resolveAccountNotice(
+  stored: AccountNotice | null,
+  orderIdFromQuery: string,
+): AccountNotice | null {
+  if (!stored) return null;
+  if (!orderIdFromQuery) return stored;
+  return stored.orderId === orderIdFromQuery ? stored : null;
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { Box, Typography, Button, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Paper, CircularProgress, Link as MuiLink } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useCart } from '@/providers/CartProvider';
@@ -10,12 +11,14 @@ import { fetchOrder } from '@/lib/api';
 import { fmtMoney } from '@/lib/money';
 import { palette } from '@/lib/theme';
 import type { ArmOrder } from '@/lib/arm-types';
+import { readAccountNotice, resolveAccountNotice, type AccountNotice } from '@/lib/checkout';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
 const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
 
 function SuccessContent() {
+  const t = useTranslations();
   const params = useSearchParams();
   /** `order` query param holds the ARM order UUID returned by createOrder */
   const orderId = params.get('order') || '';
@@ -25,6 +28,7 @@ function SuccessContent() {
   const [order, setOrder] = useState<ArmOrder | null>(null);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<AccountNotice | null>(null);
 
   // Clear cart at the point of confirmed payment success
   useEffect(() => {
@@ -35,15 +39,27 @@ function SuccessContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // What ARM did with the buyer's account (FBG-477) — createOrder reported it
+  // once and GET /orders/{id} doesn't repeat it, so it comes from the checkout
+  // hand-off. The read is non-destructive: a reload (or a Strict-Mode double
+  // mount) must show the same block, and only the NEXT order rewrites the slot.
+  useEffect(() => {
+    setNotice(resolveAccountNotice(readAccountNotice(), orderId));
+  }, [orderId]);
+
+  // A payment provider configured with its own `success_url` sends the buyer
+  // back without our query, so the stored notice is then the only order id left.
+  const effectiveOrderId = orderId || notice?.orderId || '';
+
   // Fetch order details from ARM GET /orders/{id}
   useEffect(() => {
-    if (!orderId) return;
+    if (!effectiveOrderId) return;
     setOrderLoading(true);
-    fetchOrder(orderId)
+    fetchOrder(effectiveOrderId)
       .then((res) => setOrder(res.data))
       .catch(() => setOrderError('Could not load order details.'))
       .finally(() => setOrderLoading(false));
-  }, [orderId]);
+  }, [effectiveOrderId]);
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 8, textAlign: 'center' }}>
@@ -97,15 +113,45 @@ function SuccessContent() {
           </>
         )}
 
-        {!order && !orderLoading && !orderError && orderId && (
+        {!order && !orderLoading && !orderError && effectiveOrderId && (
           <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main }}>
-            Order ID: {orderId}
+            Order ID: {effectiveOrderId}
           </Typography>
         )}
 
         <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main, mt: 2 }}>
           We will contact you to confirm your order.
         </Typography>
+
+        {/* Account outcome (FBG-477). `email_taken` means the order went to a
+            separate new record, NOT to the account that owns this address — so
+            the sign-in link is offered on its own, never as a way to find this
+            order. `created` promises the password email only when ARM actually
+            managed to send it. */}
+        {notice && (
+          <Box
+            data-testid="account-notice"
+            sx={{ mt: 3, pt: 2, borderTop: `0.5px solid ${c.main}` }}
+          >
+            <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main }}>
+              {notice.status === 'email_taken'
+                ? t('checkout.account.emailTaken')
+                : notice.welcomeEmailSent
+                  ? t('checkout.account.createdSent', { email: notice.email })
+                  : t('checkout.account.createdPending')}
+            </Typography>
+            {notice.status === 'email_taken' && (
+              <MuiLink
+                component={Link}
+                href="/login"
+                underline="always"
+                sx={{ fontFamily: font, fontSize: 16, color: c.main, display: 'inline-block', mt: 1 }}
+              >
+                {t('checkout.account.loginCta')}
+              </MuiLink>
+            )}
+          </Box>
+        )}
       </Paper>
 
       <Button

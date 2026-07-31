@@ -34,6 +34,7 @@ const orderPayload = {
   customer: { name: 'A', phone: '+90', email: 'a@b.co' },
   shipping: { country: 'TR' },
   items: [{ productId: 'dp1', quantity: 1 }],
+  locale: 'tr',
 };
 
 describe('createOrder — walletAmountToApply gating', () => {

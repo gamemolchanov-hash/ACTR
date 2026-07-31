@@ -16,6 +16,8 @@ Set DEMO_PRODUCT_ID env var to override the default placeholder.
 import json
 import os
 import sys
+import uuid
+
 import requests
 
 BASE = os.environ.get("STOREFRONT_BASE", "http://localhost:3000")
@@ -87,14 +89,26 @@ def test_shipping_rates() -> None:
         check("has rates array", isinstance(d.get("rates"), list))
 
 
-# ── 4. createOrder ────────────────────────────────────────────────────────────
+# ── 4. createOrder (guest, auto-registered account — FBG-476/FBG-477) ─────────
 def test_create_order() -> None:
+    """A brand-new guest: unique email AND unique phone.
+
+    Any phone that already exists in the storefront is the checkout identity in
+    ARM and yields `linked`, so the `created` branch is only observable with a
+    genuinely new pair.
+    """
     print("\n[4] POST /api/storefront/orders")
     if not DEMO_PRODUCT_ID:
         print("  SKIP  no DEMO_PRODUCT_ID set — cannot create order without valid items")
-        return
+        return None
+    tag = uuid.uuid4().hex[:10]
+    email = f"guest.{tag}@example.com"
     body = {
-        "customer": {"name": "Test User", "phone": "+905000000000", "email": "test@example.com"},
+        "customer": {
+            "name": "Test User",
+            "phone": f"+9053{tag[:8]}",
+            "email": email,
+        },
         "shipping": {
             "city": "Istanbul",
             "zip": "34000",
@@ -103,36 +117,121 @@ def test_create_order() -> None:
             "building": "1",
         },
         "items": [{"distributorProductId": DEMO_PRODUCT_ID, "quantity": 1}],
+        # ARM addresses the "set your password" email with this raw tag.
+        "locale": "tr",
     }
     r = session.post(f"{BASE}/api/storefront/orders", json=body)
     check("status 201 or 200", r.status_code in (200, 201), str(r.status_code))
-    if r.ok:
-        d = r.json()
-        data = d.get("data", {})
-        check("has data.id", "id" in data)
-        check("has data.number", "number" in data)
-        check("has data.total", "total" in data)
-        check("has data.currency", "currency" in data)
-        return data.get("id")
+    if not r.ok:
+        return None
+    data = r.json().get("data", {})
+    check("has data.id", "id" in data)
+    check("has data.number", "number" in data)
+    check("has data.total", "total" in data)
+    check("has data.currency", "currency" in data)
+
+    account = data.get("account")
+    if account is None:
+        # Configuration, not a defect: `account` is returned only by storefronts
+        # with arm_storefronts.auto_register_guests on.
+        print("  SKIP  no data.account — auto_register_guests is off for this storefront")
+    else:
+        check(
+            "new guest → account.status == 'created'",
+            account.get("status") == "created",
+            str(account),
+        )
+        check("account.welcome_email_sent is a bool", isinstance(account.get("welcome_email_sent"), bool))
+    return data.get("id")
 
 
-# ── 5. createPaymentSession ───────────────────────────────────────────────────
-def test_payment_session(order_id: str | None = None) -> None:
-    print("\n[5] POST /api/storefront/payment/create-session")
+# ── 5. guest order stays readable/payable by UUID (FBG-480) ───────────────────
+def test_guest_order_access(order_id: str | None = None) -> None:
+    """No Authorization header at all — the guest's own browser after checkout.
+
+    ARM links every order to a customer row, so before FBG-480 both calls below
+    answered 404 and the buyer could never reach payment or confirmation.
+    """
+    print("\n[5] guest access to the fresh order (no Authorization)")
     if not order_id:
-        print("  SKIP  no order_id — skipping payment session test")
+        print("  SKIP  no order_id — skipping guest access test")
         return
+
+    r = session.get(f"{BASE}/api/storefront/orders/{order_id}")
+    check("GET /orders/:id is not 404 for the guest owner", r.status_code != 404, str(r.status_code))
+    check("GET /orders/:id status 200", r.status_code == 200, str(r.status_code))
+
     body = {
         "orderId": order_id,
-        "successUrl": f"{BASE}/checkout/success",
+        "successUrl": f"{BASE}/checkout/success?order={order_id}",
         "cancelUrl": f"{BASE}/checkout",
     }
     r = session.post(f"{BASE}/api/storefront/payment/create-session", json=body)
-    check("status 200", r.status_code == 200, str(r.status_code))
+    check("create-session is not 404 for the guest owner", r.status_code != 404, str(r.status_code))
+    check("create-session status 200", r.status_code == 200, str(r.status_code))
     if r.ok:
-        d = r.json()
-        data = d.get("data", {})
-        check("has clientSecret or redirectUrl", bool(data.get("clientSecret") or data.get("redirectUrl")))
+        data = r.json().get("data", {})
+        # `{"type":"manual"}` is a success too (offline provider, FBG-478): the
+        # order is placed and waits for an operator, so there is no session.
+        check(
+            "manual payload or an online session",
+            data.get("type") == "manual"
+            or bool(data.get("clientSecret") or data.get("redirectUrl")),
+            str(data),
+        )
+
+
+# ── 6. repeat checkout with the same email → linked, not created ──────────────
+def test_repeat_guest_links() -> None:
+    print("\n[6] POST /api/storefront/orders — same email, new phone")
+    if not DEMO_PRODUCT_ID:
+        print("  SKIP  no DEMO_PRODUCT_ID set")
+        return
+    tag = uuid.uuid4().hex[:10]
+    email = f"guest.{tag}@example.com"
+    shipping = {
+        "city": "Istanbul",
+        "zip": "34000",
+        "country": "TR",
+        "street": "Istiklal Cad",
+        "building": "1",
+    }
+    items = [{"distributorProductId": DEMO_PRODUCT_ID, "quantity": 1}]
+
+    first = session.post(
+        f"{BASE}/api/storefront/orders",
+        json={
+            "customer": {"name": "Test User", "phone": f"+9053{tag[:8]}", "email": email},
+            "shipping": shipping,
+            "items": items,
+            "locale": "tr",
+        },
+    )
+    if not first.ok or first.json().get("data", {}).get("account") is None:
+        print("  SKIP  auto_register_guests is off (or first order failed)")
+        return
+
+    second = session.post(
+        f"{BASE}/api/storefront/orders",
+        json={
+            "customer": {
+                "name": "Test User",
+                "phone": f"+9054{uuid.uuid4().hex[:8]}",
+                "email": email,
+            },
+            "shipping": shipping,
+            "items": items,
+            "locale": "tr",
+        },
+    )
+    check("status 201 or 200", second.status_code in (200, 201), str(second.status_code))
+    if second.ok:
+        account = second.json().get("data", {}).get("account", {})
+        check(
+            "known email → account.status == 'linked'",
+            account.get("status") == "linked",
+            str(account),
+        )
 
 
 if __name__ == "__main__":
@@ -144,7 +243,8 @@ if __name__ == "__main__":
     test_validate_promo()
     test_shipping_rates()
     order_id = test_create_order()
-    test_payment_session(order_id)
+    test_guest_order_access(order_id)
+    test_repeat_guest_links()
 
     print(f"\n{'='*50}")
     print(f"Results: {PASS} passed, {FAIL} failed")

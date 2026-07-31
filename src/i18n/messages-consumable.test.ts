@@ -136,4 +136,35 @@ describe('messages are next-intl-consumable (unflatten invariant)', () => {
       expect(val.length).toBeGreaterThan(0);
     }
   });
+
+  // FBG-477 üyelik consent + the post-order account notice — both locales, and
+  // `checkout.account.createdSent` must interpolate the buyer's address.
+  it.each([
+    ['en', enRaw],
+    ['tr', trRaw],
+  ])('%s guest-account checkout keys resolve in both locales', async (locale, raw) => {
+    const messages = unflatten(raw as Record<string, string>);
+    const t = (await createTranslator({ locale, messages })) as unknown as (
+      key: string,
+      values?: Record<string, unknown>,
+    ) => string;
+    for (const key of [
+      'checkout.consent.uyelikPrefix',
+      'checkout.consent.uyelikLink',
+      'checkout.consent.uyelikSuffix',
+      'checkout.consent.uyelikRequired',
+      'checkout.consent.emailRequired',
+      'checkout.account.createdPending',
+      'checkout.account.emailTaken',
+      'checkout.account.loginCta',
+      'checkout.errors.invalid_email',
+    ]) {
+      const val = t(key);
+      expect(val).not.toBe(key);
+      expect(val.length).toBeGreaterThan(0);
+    }
+    expect(t('checkout.account.createdSent', { email: 'ada@example.com' })).toContain(
+      'ada@example.com',
+    );
+  });
 });

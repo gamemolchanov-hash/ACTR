@@ -82,6 +82,8 @@ export function effectiveWalletAmount(opts: {
  * have localized en/tr messages. Anything else falls back to the server text.
  */
 const CHECKOUT_ERROR_CODES = new Set([
+  // FBG-477: an auto-registering storefront rejects a malformed checkout email.
+  'invalid_email',
   'wallet_promo_conflict',
   'wallet_requires_auth',
   'wallet_unavailable',

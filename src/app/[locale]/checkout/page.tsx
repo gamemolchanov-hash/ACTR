@@ -48,7 +48,19 @@ import { imgCart } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { kdvFromBrutto } from '@/lib/kdv';
 import {effectiveWalletAmount, checkoutErrorKey } from '@/lib/wallet';
-import { proceedButtonDisabled, shippingErrorKey, shippingPanelState } from '@/lib/checkout';
+import {
+  blockReasonKey,
+  checkoutAuthState,
+  checkoutBlockReason,
+  clearAccountNotice,
+  guestEmailRequired,
+  looksLikeEmail,
+  proceedButtonDisabled,
+  saveAccountNotice,
+  shippingErrorKey,
+  shippingPanelState,
+  showUyelikConsent,
+} from '@/lib/checkout';
 import {
   buildOnBilgilendirmeData,
   renderOnBilgilendirmeFormu,
@@ -216,7 +228,7 @@ export default function CheckoutPage() {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
-  const { customer } = useAuth();
+  const { customer, loading: authLoading } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
@@ -257,6 +269,8 @@ export default function CheckoutPage() {
   // Compliance consent (D-04/COMP-02) — kept at top level so state survives step navigation
   const [agreedKvkk, setAgreedKvkk] = useState(false);
   const [agreedMesafeli, setAgreedMesafeli] = useState(false);
+  // Guest-only: ARM turns a guest checkout into a claimable account (FBG-477)
+  const [agreedUyelik, setAgreedUyelik] = useState(false);
 
   // Payment session (Stripe Embedded)
   const [paymentSession, setPaymentSession] = useState<ArmPaymentSession | null>(null);
@@ -402,9 +416,19 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, country: e.target.value }));
   };
 
+  // Who the form is serving. `hydrated` is what keeps the server render and the
+  // first client render identical: both look like a guest to useAuth(), so the
+  // guest-only bits stay hidden until the real answer is in (FBG-477).
+  const authState = checkoutAuthState({
+    hydrated,
+    authLoading,
+    hasCustomer: !!customer,
+  });
+  const emailRequired = guestEmailRequired(authState);
+
   const isStep1Valid = useMemo(() => {
     return !!(
-      form.email &&
+      (!emailRequired || looksLikeEmail(form.email)) &&
       form.name &&
       form.phone &&
       form.country &&
@@ -413,7 +437,7 @@ export default function CheckoutPage() {
       form.building &&
       form.zip
     );
-  }, [form]);
+  }, [form, emailRequired]);
 
   const handleStep1Continue = () => {
     if (!isStep1Valid) return;
@@ -507,16 +531,28 @@ export default function CheckoutPage() {
   );
 
   const handleSubmit = async () => {
-    if (submitting) return;
-    // Consent gate (D-04/COMP-02, Pitfall 3 — gate the handler, not only the button)
-    if (!agreedKvkk || !agreedMesafeli) {
-      setError(t('checkout.consent.required'));
+    // One gate for every reason the order can't be placed (D-04/COMP-02,
+    // Pitfall 3 — gate the handler, not only the button). Same predicate the
+    // button reads, so the handler is never the weaker check: consents, the
+    // guest email + üyelik agreement, an unresolved auth state, and the
+    // selected-rate mirror of the ARM zero-shipping-cost guard (FBG-393).
+    const blockReason = checkoutBlockReason({
+      submitting,
+      authState,
+      agreedKvkk,
+      agreedMesafeli,
+      agreedUyelik,
+      email: form.email,
+      selectedRateId,
+    });
+    if (blockReason) {
+      // The email field lives on step 1 — take the shopper back to it, or the
+      // message would point at something they cannot see.
+      if (blockReason === 'guest_email') setStep(1);
+      const key = blockReasonKey(blockReason);
+      setError(key ? t(key) : null);
       return;
     }
-    // Shipping gate — mirror of the ARM server guard that rejects a zero shipping
-    // cost (FBG-393). The button is already disabled without a selected rate; this
-    // is defence-in-depth so the handler is never the weaker check.
-    if (!selectedRateId) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -529,11 +565,12 @@ export default function CheckoutPage() {
         .filter(Boolean)
         .join(', ');
 
+      const email = form.email.trim();
       const orderRes = await createOrder({
         customer: {
           name: form.name,
           phone: form.phone,
-          email: form.email || undefined,
+          email: email || undefined,
         },
         shipping: {
           address: addressParts,
@@ -552,12 +589,32 @@ export default function CheckoutPage() {
         // FBG-385: only a positive, XOR-clean amount; api.createOrder also gates
         // on JWT so guests never send it.
         walletAmountToApply: walletToApply > 0 ? walletToApply : undefined,
+        // ARM addresses the guest welcome ("set your password") email with this
+        // raw tag — without it a Turkish buyer would get English copy.
+        locale,
       });
 
+      // What ARM did with the buyer's account is reported here and nowhere else
+      // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
+      // through a full navigation — so hand it over via sessionStorage. Exactly
+      // one write per order, so a previous order's notice can never linger.
+      const account = orderRes.data.account;
+      if (account && (account.status === 'created' || account.status === 'email_taken')) {
+        saveAccountNotice({
+          orderId: orderRes.data.id,
+          status: account.status,
+          welcomeEmailSent: account.welcome_email_sent,
+          email,
+        });
+      } else {
+        clearAccountNotice();
+      }
+
       const origin = window.location.origin;
+      const successUrl = `${origin}/checkout/success?order=${orderRes.data.id}`;
       const sessionRes = await createPaymentSession(
         orderRes.data.id,
-        `${origin}/checkout/success?order=${orderRes.data.id}`,
+        successUrl,
         `${origin}/checkout`,
       );
 
@@ -566,16 +623,20 @@ export default function CheckoutPage() {
       sessionStorage.removeItem(STORAGE_STEP_KEY);
       sessionStorage.removeItem('checkout_promo');
 
-      if (sessionRes.data.redirectUrl) {
+      const session = sessionRes.data;
+      if (session.type === 'manual') {
+        // Offline payment (FBG-478): no session to run, the order is placed.
+        window.location.assign(successUrl);
+      } else if (session.redirectUrl) {
         // Hosted Stripe Checkout (ui_mode=hosted fallback)
-        window.location.assign(sessionRes.data.redirectUrl);
-      } else if (sessionRes.data.clientSecret && sessionRes.data.publishableKey) {
+        window.location.assign(session.redirectUrl);
+      } else if (session.clientSecret && session.publishableKey) {
         // Embedded Stripe Checkout (ui_mode=embedded)
-        setPaymentSession(sessionRes.data);
+        setPaymentSession(session);
         setSubmitting(false);
       } else {
         // Fallback: direct redirect to success
-        window.location.assign(`${origin}/checkout/success?order=${orderRes.data.id}`);
+        window.location.assign(successUrl);
       }
     } catch (err: any) {
       // Known machine-readable codes get localized en/tr text; anything else
@@ -652,13 +713,15 @@ export default function CheckoutPage() {
   // boxes once, before createOrder — so every one of them freezes while the
   // order is in flight. Otherwise a shopper could change the address (or
   // withdraw a KVKK/Mesafeli consent) that ARM has already been given.
-  const field = (label: string, name: keyof FormData) => (
+  const field = (label: string, name: keyof FormData, required = true) => (
     <Box>
       <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
         {label}{' '}
-        <Box component="span" sx={{ color: c.red }}>
-          *
-        </Box>
+        {required && (
+          <Box component="span" sx={{ color: c.red }}>
+            *
+          </Box>
+        )}
       </Typography>
       <TextField
         fullWidth
@@ -751,11 +814,21 @@ export default function CheckoutPage() {
     </Box>
   );
 
+  /* ---- Error banner — the submit gate can bounce the shopper back to step 1
+         (a missing guest email), so the message has to be reachable there too.
+         The steps are mutually exclusive, so only one copy is ever mounted. ---- */
+  const errorAlert = error ? (
+    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+      {error}
+    </Alert>
+  ) : null;
+
   /* ---- Step 1: Contact & Address form ---- */
   const step1Content = (
     <>
+      {errorAlert}
       <Stack spacing={2.5}>
-        {field('Email', 'email')}
+        {field('Email', 'email', emailRequired)}
         {field('Full Name', 'name')}
         {field('Phone', 'phone')}
 
@@ -1077,22 +1150,50 @@ export default function CheckoutPage() {
                 {t('checkout.consent.mesafeliSuffix')}
               </Typography>
             }
-            sx={{ alignItems: 'flex-start', mb: 2 }}
+            sx={{ alignItems: 'flex-start', mb: showUyelikConsent(authState) ? 1 : 2 }}
           />
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
+          {/* Guest only: ARM opens a claimable account from this checkout
+              (FBG-477). A member already has one, so they never see this. */}
+          {showUyelikConsent(authState) && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={agreedUyelik}
+                  onChange={(e) => setAgreedUyelik(e.target.checked)}
+                  disabled={submitting}
+                  sx={{ color: c.main, '&.Mui-checked': { color: c.main }, alignSelf: 'flex-start', pt: '2px' }}
+                />
+              }
+              label={
+                <Typography sx={{ ...info, color: c.main, lineHeight: '1.5' }}>
+                  {t('checkout.consent.uyelikPrefix')}{' '}
+                  <Link
+                    href="/legal/uyelik-sozlesmesi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: c.main }}
+                  >
+                    {t('checkout.consent.uyelikLink')}
+                  </Link>
+                  {t('checkout.consent.uyelikSuffix')}
+                </Typography>
+              }
+              sx={{ alignItems: 'flex-start', mb: 2 }}
+            />
           )}
+
+          {errorAlert}
 
           <Button
             variant="contained"
             fullWidth
             disabled={proceedButtonDisabled({
               submitting,
+              authState,
               agreedKvkk,
               agreedMesafeli,
+              agreedUyelik,
+              email: form.email,
               selectedRateId,
             })}
             onClick={handleSubmit}
