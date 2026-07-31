@@ -482,6 +482,38 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
   });
 
+  it('drops the abandoned order\'s payment session when starting a new one', async () => {
+    // Otherwise the next order's pending screen re-renders the OLD order's Stripe
+    // form under the NEW order's total: the buyer pays order A and leaves B
+    // unpaid.
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-A', number: 'N-A', total: 150, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockResolvedValue({
+      data: { sessionId: 'cs_A', clientSecret: 'cs_secret_A', publishableKey: 'pk_test' },
+    });
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(screen.getByTestId('stripe-embedded')).toBeDefined());
+
+    fireEvent.click(screen.getByText('checkout.pendingOrder.startNew'));
+    await waitFor(() => expect(screen.queryByTestId('stripe-embedded')).toBeNull());
+
+    // Order B is placed, but its payment session fails.
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-B', number: 'N-B', total: 999, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockRejectedValue(new Error('gateway down'));
+    fireEvent.click(proceedButton());
+
+    await waitFor(() => expect(readPendingOrder()?.orderId).toBe('ord-B'));
+    // No Stripe form at all — and certainly not order A's.
+    expect(screen.queryByTestId('stripe-embedded')).toBeNull();
+    expect(document.body.textContent).not.toContain('cs_secret_A');
+    expect(document.body.textContent).toContain('999');
+  });
+
   it('keeps the draft and the pending marker until the buyer reaches success', async () => {
     apiMock.createOrder.mockResolvedValue({
       data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
@@ -551,6 +583,26 @@ describe('what ARM says about the failed payment decides what is offered', () =>
       expect(screen.getByText(/checkout\.errors\.paymentSessionFailed/)).toBeDefined(),
     );
     expect(proceedButton().disabled).toBe(false);
+  });
+
+  it('does not advise signing in when the storefront simply has no acquirer', async () => {
+    await placeOrderWith(armError(400, 'No payment provider configured'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.paymentUnavailable/)).toBeDefined(),
+    );
+    // A login cannot conjure a payment provider — only the way out is honest.
+    expect(document.querySelector('a[href="/login"]')).toBeNull();
+    expect(screen.getByText('checkout.pendingOrder.startNew')).toBeDefined();
+  });
+
+  it('still advises signing in when ARM refused on identity grounds', async () => {
+    await placeOrderWith(armError(404, 'Order not found'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.ownerSignInRequired/)).toBeDefined(),
+    );
+    expect(document.querySelector('a[href="/login"]')).not.toBeNull();
   });
 
   it('stops retrying a storefront with no payment provider configured', async () => {

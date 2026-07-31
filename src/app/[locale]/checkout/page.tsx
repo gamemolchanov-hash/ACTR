@@ -465,6 +465,8 @@ export default function CheckoutPage() {
   const paymentBlocked =
     paymentRetryHopeless(paymentFailure) &&
     !(paymentFailure === 'owner_sign_in' && authState === 'member');
+  // …but only the identity-shaped refusals are worth a sign-in link.
+  const signInHelps = paymentBlocked && paymentFailure !== 'unavailable';
 
   const gateOpts = {
     submitting,
@@ -754,6 +756,10 @@ export default function CheckoutPage() {
     setPendingOrder(null);
     setPaymentFailure(null);
     setError(null);
+    // The session belongs to the order being abandoned. Left behind, it would be
+    // re-rendered on the NEXT order's pending screen — a Stripe form charging the
+    // old order under the new order's total.
+    setPaymentSession(null);
   };
 
   /* ---- Breadcrumbs ---- */
@@ -935,9 +941,11 @@ export default function CheckoutPage() {
   const errorAlert = error ? (
     <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
       {error}
-      {/* Both blocked failures point at the session: signing in and pressing
-          again is what carries the token ARM asked for, on the same order. */}
-      {paymentBlocked && (
+      {/* Only offered where signing in is actually the fix: ARM refused on
+          identity grounds (ownership gate, stale session). A storefront with no
+          acquirer configured (`unavailable`) is not something a login solves —
+          there the escape hatch below is the only honest next step. */}
+      {signInHelps && (
         <Box sx={{ mt: 1 }}>
           <MuiLink
             component={Link}
