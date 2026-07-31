@@ -237,7 +237,7 @@ export default function CheckoutPage() {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
-  const { customer, token, loading: authLoading } = useAuth();
+  const { customer, token, loading: authLoading, refreshProfile } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
@@ -453,6 +453,16 @@ export default function CheckoutPage() {
     hasCustomer: !!customer,
     hasToken: !!token,
   });
+  // Token without a profile (see checkoutAuthState: gated as member): try to
+  // fetch the profile ONCE more so the wallet/addresses still show up. Not a
+  // loop — a second failure keeps the member gating and the shopper moving.
+  const profileRetriedRef = useRef(false);
+  useEffect(() => {
+    if (hydrated && !authLoading && !customer && token && !profileRetriedRef.current) {
+      profileRetriedRef.current = true;
+      void refreshProfile();
+    }
+  }, [hydrated, authLoading, customer, token, refreshProfile]);
   // Email stays mandatory for everyone, as it always was. A guest gets one extra
   // rule on top: ARM turns their checkout into a claimable account, so the
   // address also has to be well-formed (`invalid_email` on the BFF border).

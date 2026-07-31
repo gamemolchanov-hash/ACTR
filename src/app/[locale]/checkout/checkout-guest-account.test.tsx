@@ -45,7 +45,9 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
-vi.mock('@/lib/auth-context', () => ({ useAuth: () => auth.value }));
+vi.mock('@/lib/auth-context', () => ({
+  useAuth: () => ({ refreshProfile: async () => {}, ...auth.value }),
+}));
 vi.mock('@/lib/auth', () => ({
   getMyAddresses: vi.fn().mockResolvedValue({ data: [] }),
   deleteMyAddress: vi.fn().mockResolvedValue({}),
@@ -247,17 +249,19 @@ describe('guest submit gate', () => {
     expect(apiMock.createOrder).not.toHaveBeenCalled();
   });
 
-  it('does not treat a signed-in shopper with an unreachable profile as a guest', async () => {
+  it('gates a signed-in shopper with an unreachable profile as a member, not a lockout', async () => {
     // `/auth/me` failed on the network: the token survives (only 401/403 drops
-    // the session), so who this is stays undecided — not "guest".
+    // the session), so this is almost certainly a member. No üyelik box, and —
+    // review round 6 — the submit must NOT stay disabled forever: a permanent
+    // auth_pending was a silent checkout lockout with no way out.
     auth.value = { customer: null, token: 'jwt-1', loading: false };
     seedStep2({ email: 'ada@example.com' });
     await arriveAtStep2();
 
     expect(boxLabelled('checkout.consent.uyelikPrefix')).toBeUndefined();
-    expect(proceedButton().disabled).toBe(true);
+    await waitFor(() => expect(proceedButton().disabled).toBe(false));
     fireEvent.click(proceedButton());
-    expect(apiMock.createOrder).not.toHaveBeenCalled();
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalled());
   });
 
   it('refuses to order while the auth state is still resolving', async () => {

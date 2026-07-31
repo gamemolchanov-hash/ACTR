@@ -78,9 +78,13 @@ export function checkoutAuthState(opts: {
   if (opts.hasCustomer) return 'member';
   // A token that never resolved into a profile: `/auth/me` failed on the network
   // or a 5xx, and only 401/403 drops the session (FBG-50 / D-04) — so the token
-  // is still there and this shopper is probably signed in. Calling that a guest
-  // would show them the üyelik consent and demand a guest email.
-  if (opts.hasToken) return 'pending';
+  // is still there and this shopper is almost certainly signed in. Gate them as
+  // a MEMBER (no üyelik box, no guest-email strictness): a permanent `pending`
+  // here was a silent checkout lockout (review round 6), and calling them a
+  // guest would collect a pointless consent. The page retries the profile once
+  // (see checkout/page.tsx); if the token is truly dead the BFF just treats the
+  // order as anonymous server-side — same outcome as a guest, no gate needed.
+  if (opts.hasToken) return 'member';
   return 'guest';
 }
 

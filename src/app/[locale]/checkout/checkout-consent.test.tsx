@@ -82,10 +82,11 @@ describe('checkoutAuthState', () => {
     ).toBe('member');
   });
 
-  it('stays pending when a token failed to resolve into a profile', () => {
+  it('gates a token without a profile as a member, not a locked pending', () => {
     // `/auth/me` died on the network or a 5xx: only 401/403 drops the session,
     // so the token is still here and this is very likely a signed-in shopper.
-    // Calling them a guest would demand a guest email and the üyelik consent.
+    // A permanent `pending` would disable submit forever with no way out
+    // (review round 6); a guest verdict would demand üyelik + strict email.
     expect(
       checkoutAuthState({
         hydrated: true,
@@ -93,7 +94,7 @@ describe('checkoutAuthState', () => {
         hasCustomer: false,
         hasToken: true,
       }),
-    ).toBe('pending');
+    ).toBe('member');
   });
 });
 
