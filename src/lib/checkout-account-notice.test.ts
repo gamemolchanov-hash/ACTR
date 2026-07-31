@@ -11,12 +11,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   clearAccountNotice,
-  clearPendingOrderId,
+  clearPendingOrder,
   readAccountNotice,
-  readPendingOrderId,
+  readPendingOrder,
   resolveAccountNotice,
   saveAccountNotice,
-  savePendingOrderId,
+  savePendingOrder,
   type AccountNotice,
 } from './checkout';
 
@@ -92,17 +92,29 @@ describe('account notice storage', () => {
 });
 
 describe('pending order marker', () => {
-  it('round-trips the booked order id', () => {
-    savePendingOrderId('ord-1');
-    expect(readPendingOrderId()).toBe('ord-1');
+  const PENDING = { orderId: 'ord-1', total: 150, currency: 'TRY' };
+
+  it('round-trips the booked order with the total ARM charged for it', () => {
+    savePendingOrder(PENDING);
+    expect(readPendingOrder()).toEqual(PENDING);
   });
 
   it('is absent before any order and after clearing', () => {
-    expect(readPendingOrderId()).toBe(null);
-    savePendingOrderId('ord-1');
-    clearPendingOrderId();
-    clearPendingOrderId();
-    expect(readPendingOrderId()).toBe(null);
+    expect(readPendingOrder()).toBe(null);
+    savePendingOrder(PENDING);
+    clearPendingOrder();
+    clearPendingOrder();
+    expect(readPendingOrder()).toBe(null);
+  });
+
+  it('ignores a corrupt or foreign payload instead of quoting a bogus total', () => {
+    sessionStorage.setItem('checkout_pending_order', '{not json');
+    expect(readPendingOrder()).toBe(null);
+    // The pre-FBG-477 shape was a bare id string — must not resurrect as an order.
+    sessionStorage.setItem('checkout_pending_order', 'ord-1');
+    expect(readPendingOrder()).toBe(null);
+    sessionStorage.setItem('checkout_pending_order', JSON.stringify({ orderId: 'ord-1' }));
+    expect(readPendingOrder()).toBe(null);
   });
 
   it('survives a sessionStorage that throws', () => {
@@ -112,8 +124,8 @@ describe('pending order marker', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    expect(() => savePendingOrderId('ord-1')).not.toThrow();
-    expect(readPendingOrderId()).toBe(null);
+    expect(() => savePendingOrder(PENDING)).not.toThrow();
+    expect(readPendingOrder()).toBe(null);
   });
 });
 

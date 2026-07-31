@@ -199,30 +199,56 @@ export function blockReasonKey(reason: CheckoutBlockReason | null): string | nul
 // ---------------------------------------------------------------------------
 
 /**
- * UUID of an order ARM has already booked but whose payment session hasn't been
- * created yet. It lives beside the `checkout_form` draft (same store, same
- * lifetime) because React state does not survive the reload a shopper reaches
- * for when a payment fails — and without it the next submit would place a
- * SECOND order for the same basket, with a live first one left behind.
+ * An order ARM has already booked but whose payment hasn't started yet. It lives
+ * beside the `checkout_form` draft (same store, same lifetime) because React
+ * state does not survive the reload a shopper reaches for when a payment fails —
+ * and without it the next submit would place a SECOND order for the same basket,
+ * with a live first one left behind.
+ *
+ * The amount travels with the id on purpose: from this point on the basket is no
+ * longer what is being paid for. ARM booked a fixed total, and the shopper can
+ * still change the cart from /basket or another tab — so any figure recomputed
+ * from the live basket would contradict what the payment actually charges.
  */
 const PENDING_ORDER_KEY = 'checkout_pending_order';
 
-export function savePendingOrderId(orderId: string): void {
+export interface PendingOrder {
+  orderId: string;
+  /** Total ARM booked for THIS order — never recomputed from the live basket. */
+  total: number;
+  currency: string;
+}
+
+function isPendingOrder(value: unknown): value is PendingOrder {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.orderId === 'string' &&
+    v.orderId.length > 0 &&
+    typeof v.total === 'number' &&
+    typeof v.currency === 'string'
+  );
+}
+
+export function savePendingOrder(order: PendingOrder): void {
   try {
-    sessionStorage.setItem(PENDING_ORDER_KEY, orderId);
+    sessionStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(order));
   } catch {}
 }
 
-export function readPendingOrderId(): string | null {
+export function readPendingOrder(): PendingOrder | null {
   try {
-    return sessionStorage.getItem(PENDING_ORDER_KEY) || null;
+    const raw = sessionStorage.getItem(PENDING_ORDER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return isPendingOrder(parsed) ? parsed : null;
   } catch {
     return null;
   }
 }
 
 /** Called at the terminal point of the checkout — see clearCheckoutDraft. */
-export function clearPendingOrderId(): void {
+export function clearPendingOrder(): void {
   try {
     sessionStorage.removeItem(PENDING_ORDER_KEY);
   } catch {}
@@ -246,7 +272,7 @@ export function clearCheckoutDraft(): void {
     sessionStorage.removeItem(CHECKOUT_STEP_KEY);
     sessionStorage.removeItem(CHECKOUT_PROMO_KEY);
   } catch {}
-  clearPendingOrderId();
+  clearPendingOrder();
 }
 
 // ---------------------------------------------------------------------------

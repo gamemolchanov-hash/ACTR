@@ -59,9 +59,10 @@ import {
   guestEmailRequired,
   looksLikeEmail,
   proceedButtonDisabled,
-  readPendingOrderId,
+  readPendingOrder,
   saveAccountNotice,
-  savePendingOrderId,
+  savePendingOrder,
+  type PendingOrder,
   shippingErrorKey,
   shippingPanelState,
   showUyelikConsent,
@@ -281,7 +282,8 @@ export default function CheckoutPage() {
   // irreversible — ARM has booked it and may already have mailed the guest their
   // new account — so everything after that point retries against THIS id and
   // never places a second order (FBG-477 review).
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(null);
+  const placedOrderId = pendingOrder?.orderId ?? null;
   // ARM won't open a payment session for this order without its owner's JWT:
   // the checkout phone belongs to a registered account, so ARM linked the order
   // to it (`account.status: 'linked'`) and answers 404 to everyone else. Retrying
@@ -305,7 +307,7 @@ export default function CheckoutPage() {
     setStep(loadFromSession(CHECKOUT_STEP_KEY, 1));
     // An order booked before a reload must be picked up again, or this submit
     // would create a duplicate for the same basket (FBG-477 review).
-    setPlacedOrderId(readPendingOrderId());
+    setPendingOrder(readPendingOrder());
     // Restore promo code from basket page
     try {
       const stored = sessionStorage.getItem(CHECKOUT_PROMO_KEY);
@@ -627,10 +629,17 @@ export default function CheckoutPage() {
           // raw tag — without it a Turkish buyer would get English copy.
           locale,
         });
-        orderId = orderRes.data.id;
-        setPlacedOrderId(orderId);
+        // The booked total travels with the id: from here on the live basket
+        // no longer describes what is being paid.
+        const placed: PendingOrder = {
+          orderId: orderRes.data.id,
+          total: orderRes.data.total,
+          currency: orderRes.data.currency,
+        };
+        orderId = placed.orderId;
+        setPendingOrder(placed);
         // Survives the reload a shopper reaches for when payment fails.
-        savePendingOrderId(orderId);
+        savePendingOrder(placed);
 
         // What ARM did with the buyer's account is reported here and nowhere else
         // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
@@ -898,35 +907,52 @@ export default function CheckoutPage() {
     </Alert>
   ) : null;
 
-  /* ---- Order booked, but the basket was emptied elsewhere (/basket, another
-         tab). The order still exists in ARM and is still unpaid, so the checkout
-         turns into a payment-retry screen instead of the "cart is empty" dead
-         end that would leave the shopper no way to finish (FBG-477 review). ---- */
-  if (placedOrderId && items.length === 0) {
+  /* ---- ARM has booked the order: from here the page is about THAT order and
+         nothing else. The basket is no longer what is being paid for (it can
+         still be edited from /basket or another tab), so the live summary would
+         quote a total the payment does not charge — the booked total is shown
+         instead. This is also the ONLY place a payment session is rendered, so
+         an embedded Stripe session can never end up with no host to mount in
+         (FBG-477 review). ---- */
+  if (pendingOrder) {
+    const embedded = paymentSession?.clientSecret && paymentSession.publishableKey;
     return (
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 1.5 }}>
           Checkout
         </Typography>
-        <Typography sx={{ ...textSm, color: c.main, mb: 2, maxWidth: 660 }}>
-          {t('checkout.pendingOrder.notice')}
-        </Typography>
         <Box sx={{ maxWidth: 660 }}>
+          <Typography sx={{ ...textSm, color: c.main, mb: 2 }}>
+            {t('checkout.pendingOrder.notice')}
+          </Typography>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
+            <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
+            <Typography sx={{ ...h2Sx, color: c.main }}>
+              {fmtMoney(pendingOrder.total, pendingOrder.currency, formatLocale)}
+            </Typography>
+          </Stack>
           {errorAlert}
-          <Button
-            variant="contained"
-            fullWidth
-            disabled={proceedButtonDisabled(gateOpts)}
-            onClick={handleSubmit}
-            sx={btnSx}
-          >
-            {submitting ? (
-              <CircularProgress size={24} sx={{ color: 'white' }} />
-            ) : (
-              'Proceed to Payment'
-            )}
-          </Button>
+          {embedded ? (
+            <StripeEmbeddedCheckout
+              clientSecret={paymentSession.clientSecret!}
+              publishableKey={paymentSession.publishableKey!}
+            />
+          ) : (
+            <Button
+              variant="contained"
+              fullWidth
+              disabled={proceedButtonDisabled(gateOpts)}
+              onClick={handleSubmit}
+              sx={btnSx}
+            >
+              {submitting ? (
+                <CircularProgress size={24} sx={{ color: 'white' }} />
+              ) : (
+                'Proceed to Payment'
+              )}
+            </Button>
+          )}
         </Box>
       </Box>
     );
@@ -1128,21 +1154,10 @@ export default function CheckoutPage() {
   );
 
   /* ---- Step 2: ARM Shipping rates selection + Payment ---- */
+  // A payment session only exists once the order is booked, and that state is
+  // rendered by the placed-order screen above — step 2 is purely pre-order.
   const step2Content = (
     <>
-      {/* If payment session is active, show Stripe Embedded Checkout */}
-      {paymentSession && paymentSession.clientSecret && paymentSession.publishableKey ? (
-        <Box sx={{ mt: 2 }}>
-          <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase', mb: 2 }}>
-            Payment
-          </Typography>
-          <StripeEmbeddedCheckout
-            clientSecret={paymentSession.clientSecret}
-            publishableKey={paymentSession.publishableKey}
-          />
-        </Box>
-      ) : (
-        <>
           {/* Shipping rates */}
           {shippingPanel === 'pending' ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -1310,12 +1325,10 @@ export default function CheckoutPage() {
           {/* Nudge to pick a rate — only when there is something to choose from.
               With an empty list the alert above already explains why, so this
               hint would contradict it (FBG-393). */}
-          {shippingRates.length > 0 && !selectedRateId && (
-            <Typography sx={{ ...info, color: c['40'], mt: 1, textAlign: 'center' }}>
-              {t('checkout.shipping.selectPrompt')}
-            </Typography>
-          )}
-        </>
+      {shippingRates.length > 0 && !selectedRateId && (
+        <Typography sx={{ ...info, color: c['40'], mt: 1, textAlign: 'center' }}>
+          {t('checkout.shipping.selectPrompt')}
+        </Typography>
       )}
     </>
   );

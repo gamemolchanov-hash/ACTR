@@ -60,8 +60,13 @@ vi.mock('@/lib/api', () => apiMock);
 // and every negative assertion below would pass vacuously.
 vi.mock('@/lib/prelaunch', () => ({ PRELAUNCH: false }));
 vi.mock('@/components/WalletWidget', () => ({ default: () => null }));
+vi.mock('@/components/StripeEmbeddedCheckout', () => ({
+  default: ({ clientSecret }: { clientSecret: string }) => (
+    <div data-testid="stripe-embedded">{clientSecret}</div>
+  ),
+}));
 
-import { readAccountNotice, readPendingOrderId, saveAccountNotice } from '@/lib/checkout';
+import { readAccountNotice, readPendingOrder, saveAccountNotice } from '@/lib/checkout';
 import CheckoutPage from './page';
 import CheckoutSuccessPage from './success/page';
 
@@ -357,6 +362,43 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     expect(apiMock.createPaymentSession.mock.calls.at(-1)![0]).toBe('ord-1');
   });
 
+  it('quotes the booked total, not the basket, and explains the freeze', async () => {
+    // The shopper can still change the basket from /basket or another tab; the
+    // payment charges what ARM booked, so that is the only figure shown.
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-1', number: 'N-1', total: 999, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockRejectedValueOnce(new Error('gateway down'));
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
+
+    // Cart is NOT empty here — the basket-derived summary must be gone anyway.
+    cleanup();
+    render(<CheckoutPage />);
+    await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
+    expect(document.body.textContent).toContain('999');
+    expect(screen.queryByText('Your Order')).toBeNull();
+  });
+
+  it('renders the embedded Stripe form instead of a dead retry button', async () => {
+    apiMock.createPaymentSession.mockResolvedValue({
+      data: { sessionId: 'cs_1', clientSecret: 'cs_secret_1', publishableKey: 'pk_test' },
+    });
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+
+    await waitFor(() => expect(screen.getByTestId('stripe-embedded')).toBeDefined());
+    expect(screen.getByTestId('stripe-embedded').textContent).toBe('cs_secret_1');
+    // Embedded checkout is not a redirect, and the retry button that would spawn
+    // further payment sessions is gone.
+    expect(assign).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Proceed to Payment' })).toBeNull();
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the draft and the pending marker until the buyer reaches success', async () => {
     apiMock.createOrder.mockResolvedValue({
       data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
@@ -368,7 +410,7 @@ describe('a booked order cannot be stranded by editing the basket', () => {
 
     // A payment session is not a payment: cancelling at the provider brings the
     // shopper back here, and a wiped draft would look like a fresh checkout.
-    expect(readPendingOrderId()).toBe('ord-1');
+    expect(readPendingOrder()?.orderId).toBe('ord-1');
     expect(sessionStorage.getItem('checkout_form')).not.toBeNull();
 
     cleanup();
@@ -476,7 +518,7 @@ describe('checkout → confirmation page, end to end', () => {
     expect(notice()!.textContent).toContain('checkout.account.createdSent');
     expect(notice()!.textContent).toContain('ada@example.com');
     // Terminal point: the draft and the duplicate guard are cleared only here.
-    await waitFor(() => expect(readPendingOrderId()).toBe(null));
+    await waitFor(() => expect(readPendingOrder()).toBe(null));
     expect(sessionStorage.getItem('checkout_form')).toBeNull();
     expect(sessionStorage.getItem('checkout_step')).toBeNull();
   });
