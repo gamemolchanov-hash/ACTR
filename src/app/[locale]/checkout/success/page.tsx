@@ -40,23 +40,29 @@ function SuccessContent() {
     pendingOrderId: string;
   } | null>(null);
 
+  // Read what the checkout handed over — the account outcome (createOrder
+  // reported it once; GET /orders/{id} never repeats it) and the pending-order
+  // marker, which is this page's only order id when ARM's configured
+  // `success_url` drops our `?order=` query.
+  //
+  // Kept first, kept once: the cleanup below consumes the marker, and React
+  // Strict Mode re-runs effects in dev — a second read would then find an empty
+  // slot and overwrite what the first one captured.
+  useEffect(() => {
+    setHandoff(
+      (prev) =>
+        prev ?? {
+          notice: readAccountNotice(),
+          pendingOrderId: readPendingOrder()?.orderId || '',
+        },
+    );
+  }, []);
+
   // Terminal point of the checkout: clear the cart and every draft it left
   // behind. The checkout page keeps its draft and its pending-order marker right
   // through the payment redirect on purpose — until the buyer lands here, going
   // back to /checkout must resume THAT order, not start a second one.
-  //
-  // The hand-off is read in the SAME effect, before the clear: the pending-order
-  // marker is this page's only order id when ARM's configured `success_url` drops
-  // our `?order=` query, and splitting the read into its own effect would make
-  // that depend on effect ordering. What ARM did with the buyer's account is read
-  // here too — createOrder reported it once and GET /orders/{id} never repeats
-  // it. That notice read is non-destructive by design (reload / Strict-Mode
-  // double mount must show the same block); only the NEXT order rewrites it.
   useEffect(() => {
-    setHandoff({
-      notice: readAccountNotice(),
-      pendingOrderId: readPendingOrder()?.orderId || '',
-    });
     clearCart();
     clearCheckoutDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps

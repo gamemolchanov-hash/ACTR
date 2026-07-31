@@ -9,7 +9,7 @@
  * A storefront without guest auto-registration sends no `account` at all — then
  * neither block may appear.
  */
-import type { ReactNode } from 'react';
+import { StrictMode, type ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 
@@ -125,6 +125,17 @@ describe('account notice on the confirmation page', () => {
     render(<CheckoutSuccessPage />);
     await waitFor(() => expect(notice()).not.toBeNull());
     expect(apiMock.fetchOrder).toHaveBeenCalledWith('ord-1');
+  });
+
+  it('keeps the hand-off when Strict Mode runs the effects twice', async () => {
+    // The cleanup below consumes the pending marker, so a second read would find
+    // an empty slot and blank what the first pass captured (dev-only, but it is
+    // the dev experience of every guest confirmation).
+    query.value = new URLSearchParams();
+    savePendingOrder({ orderId: 'ord-1', number: 'N-1', amountDue: 100, currency: 'TRY' });
+    render(<CheckoutSuccessPage />, { wrapper: StrictMode });
+
+    await waitFor(() => expect(apiMock.fetchOrder).toHaveBeenCalledWith('ord-1'));
   });
 
   it('falls back for orders with no account notice at all', async () => {

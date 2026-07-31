@@ -204,14 +204,29 @@ describe('guest submit gate', () => {
     expect(screen.queryByText('checkout.errors.invalid_email')).toBeNull();
   });
 
-  it('does not scold a member for leaving the optional email empty', async () => {
+  it('requires an email from a member too, without the format scolding', async () => {
+    // Email has always been mandatory for everyone; only the well-formedness
+    // rule is guest-specific (ARM builds them an account from it).
     auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
     seedStep2({ email: '' });
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    // An empty field is explained by its `*`, not by a format error.
     expect(screen.queryByText('checkout.errors.invalid_email')).toBeNull();
+
+    fireEvent.change(document.querySelector('input') as HTMLInputElement, {
+      target: { value: 'ada@example.com' },
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
   });
 
   it('refuses to order without the üyelik consent', async () => {
@@ -260,16 +275,30 @@ describe('guest-only UI', () => {
     ).not.toBeNull();
   });
 
-  it('hides it from a member, who can also order without an email', async () => {
+  it('hides it from a member, whose email is still required and still sent', async () => {
     auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
-    seedStep2({ email: '' });
+    seedStep2({ email: 'ada@example.com' });
     await arriveAtStep2();
 
     expect(boxLabelled('checkout.consent.uyelikPrefix')).toBeUndefined();
 
+    // Positive control: üyelik is not part of a member's gate, so this submits.
     fireEvent.click(proceedButton());
     await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
-    expect(apiMock.createOrder.mock.calls[0][0].customer.email).toBeUndefined();
+    expect(apiMock.createOrder.mock.calls[0][0].customer.email).toBe('ada@example.com');
+  });
+
+  it('marks the email field required for a member as well', async () => {
+    auth.value = { customer: { id: 'c1', name: 'Ada', email: '', phone: null }, loading: false };
+    seedStep2({ email: 'ada@example.com' });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
+    const emailLabel = Array.from(document.querySelectorAll('p')).find((el) =>
+      el.textContent?.startsWith('Email'),
+    );
+    expect(emailLabel?.textContent).toContain('*');
   });
 });
 
@@ -522,13 +551,40 @@ describe('what ARM says about the failed payment decides what is offered', () =>
       expect(screen.getByText(/checkout\.errors\.paymentSessionFailed/)).toBeDefined(),
     );
     expect(proceedButton().disabled).toBe(false);
-    expect(screen.queryByText('checkout.pendingOrder.startNew')).toBeNull();
   });
 
-  it('offers a way out of a payment that can never succeed', async () => {
-    // Without this the tab is bricked: basket frozen, empty-cart screen
-    // suppressed, step 1 out of reach, button dead.
-    await placeOrderWith(armError(404, 'Order not found'));
+  it('stops retrying a storefront with no payment provider configured', async () => {
+    // `provider: none` answers this 400 on every attempt — "press again" would
+    // loop forever.
+    await placeOrderWith(armError(400, 'No payment provider configured'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.paymentUnavailable/)).toBeDefined(),
+    );
+    expect(screen.queryByText(/checkout\.errors\.paymentSessionFailed/)).toBeNull();
+    expect(proceedButton().disabled).toBe(true);
+    fireEvent.click(proceedButton());
+    expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a way out of the pending screen at any time', async () => {
+    // The basket is frozen, the empty-cart screen is suppressed and step 1 is
+    // out of reach while this screen is up — a shopper who cancelled at the
+    // provider (its cancelUrl lands here) needs a way out even when the payment
+    // itself never failed.
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockRejectedValue(new Error('gateway down'));
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+    // A plain retryable failure — the button still works, and the way out is
+    // offered next to it.
+    await waitFor(() =>
+      expect(screen.getByText(/checkout\.errors\.paymentSessionFailed/)).toBeDefined(),
+    );
+    expect(proceedButton().disabled).toBe(false);
     await waitFor(() => expect(screen.getByText('checkout.pendingOrder.startNew')).toBeDefined());
 
     fireEvent.click(screen.getByText('checkout.pendingOrder.startNew'));

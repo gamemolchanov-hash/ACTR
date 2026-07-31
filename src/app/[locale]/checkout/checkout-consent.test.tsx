@@ -252,7 +252,7 @@ describe('paymentSessionFailure', () => {
   it('does not read every 400 as already-paid', () => {
     expect(
       paymentSessionFailure({ status: 400, serverError: 'Shipping cost cannot be zero', ...guest }),
-    ).toBe('retry');
+    ).toBe('unavailable');
   });
 
   it('reads a guest 404 as the ownership gate', () => {
@@ -272,8 +272,26 @@ describe('paymentSessionFailure', () => {
     );
   });
 
-  it('treats anything else as retryable', () => {
+  it('treats any other 4xx as unavailable — a retry would loop forever', () => {
+    // `provider: none` answers this on every single attempt.
+    expect(
+      paymentSessionFailure({
+        status: 400,
+        serverError: 'No payment provider configured',
+        ...guest,
+      }),
+    ).toBe('unavailable');
+    expect(paymentSessionFailure({ status: 403, serverError: 'Forbidden', ...member })).toBe(
+      'unavailable',
+    );
+  });
+
+  it('keeps a retry only for the transient failures', () => {
     expect(paymentSessionFailure({ status: 500, serverError: 'boom', ...guest })).toBe('retry');
+    expect(paymentSessionFailure({ status: 502, serverError: 'bad gateway', ...guest })).toBe(
+      'retry',
+    );
+    // No response at all (network) — worth another press.
     expect(paymentSessionFailure({ status: undefined, serverError: undefined, ...guest })).toBe(
       'retry',
     );
@@ -282,10 +300,12 @@ describe('paymentSessionFailure', () => {
   it('maps each failure to its own message, and only hopeless ones block', () => {
     expect(paymentFailureKey('owner_sign_in')).toBe('checkout.errors.ownerSignInRequired');
     expect(paymentFailureKey('unreachable')).toBe('checkout.errors.orderUnreachable');
+    expect(paymentFailureKey('unavailable')).toBe('checkout.errors.paymentUnavailable');
     expect(paymentFailureKey('retry')).toBe('checkout.errors.paymentSessionFailed');
 
     expect(paymentRetryHopeless('owner_sign_in')).toBe(true);
     expect(paymentRetryHopeless('unreachable')).toBe(true);
+    expect(paymentRetryHopeless('unavailable')).toBe(true);
     expect(paymentRetryHopeless('retry')).toBe(false);
     expect(paymentRetryHopeless(null)).toBe(false);
   });

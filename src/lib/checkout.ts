@@ -113,9 +113,17 @@ export function looksLikeEmail(value: string): boolean {
  *  - 404 for a signed-in buyer — their token SHOULD have opened that gate, so
  *    this is a stale session or an order that isn't theirs. Retrying can't fix
  *    it either, but "sign in, it's someone's account" would be a lie;
- *  - anything else — transient; a retry is the right offer.
+ *  - any OTHER 4xx — the request or the storefront config is wrong, not the
+ *    moment: `provider: none` answers 400 "No payment provider configured" on
+ *    every attempt, so "press again" would loop forever;
+ *  - 5xx / no response — transient; a retry is the right offer.
  */
-export type PaymentSessionFailure = 'already_paid' | 'owner_sign_in' | 'unreachable' | 'retry';
+export type PaymentSessionFailure =
+  | 'already_paid'
+  | 'owner_sign_in'
+  | 'unreachable'
+  | 'unavailable'
+  | 'retry';
 
 export function paymentSessionFailure(opts: {
   status: number | undefined;
@@ -125,6 +133,7 @@ export function paymentSessionFailure(opts: {
   const message = typeof opts.serverError === 'string' ? opts.serverError : '';
   if (opts.status === 400 && /already paid/i.test(message)) return 'already_paid';
   if (opts.status === 404) return opts.authState === 'member' ? 'unreachable' : 'owner_sign_in';
+  if (opts.status !== undefined && opts.status >= 400 && opts.status < 500) return 'unavailable';
   return 'retry';
 }
 
@@ -135,6 +144,8 @@ export function paymentFailureKey(failure: PaymentSessionFailure): string {
       return 'checkout.errors.ownerSignInRequired';
     case 'unreachable':
       return 'checkout.errors.orderUnreachable';
+    case 'unavailable':
+      return 'checkout.errors.paymentUnavailable';
     default:
       return 'checkout.errors.paymentSessionFailed';
   }
@@ -142,7 +153,7 @@ export function paymentFailureKey(failure: PaymentSessionFailure): string {
 
 /** Failures a retry can never resolve — the button must stop offering one. */
 export function paymentRetryHopeless(failure: PaymentSessionFailure | null): boolean {
-  return failure === 'owner_sign_in' || failure === 'unreachable';
+  return failure === 'owner_sign_in' || failure === 'unreachable' || failure === 'unavailable';
 }
 
 /** Why the order can't be placed yet, in the order the user should fix it. */

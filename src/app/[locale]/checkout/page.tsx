@@ -445,11 +445,15 @@ export default function CheckoutPage() {
     authLoading,
     hasCustomer: !!customer,
   });
-  const emailRequired = guestEmailRequired(authState);
+  // Email stays mandatory for everyone, as it always was. A guest gets one extra
+  // rule on top: ARM turns their checkout into a claimable account, so the
+  // address also has to be well-formed (`invalid_email` on the BFF border).
+  const guestEmailStrict = guestEmailRequired(authState);
   // A typo like "ada@example" passes every other check, so without this the
   // Continue button would just sit there dead with nothing explaining why. Only
   // flagged once something has been typed — an untouched field has its `*`.
-  const emailInvalid = emailRequired && form.email.trim() !== '' && !looksLikeEmail(form.email);
+  const emailInvalid =
+    guestEmailStrict && form.email.trim() !== '' && !looksLikeEmail(form.email);
 
   // The order payload is frozen while it is in flight — and stays frozen once
   // ARM has booked the order, because from then on the form no longer describes
@@ -476,7 +480,8 @@ export default function CheckoutPage() {
 
   const isStep1Valid = useMemo(() => {
     return !!(
-      (!emailRequired || looksLikeEmail(form.email)) &&
+      form.email &&
+      (!guestEmailStrict || looksLikeEmail(form.email)) &&
       form.name &&
       form.phone &&
       form.country &&
@@ -485,7 +490,7 @@ export default function CheckoutPage() {
       form.building &&
       form.zip
     );
-  }, [form, emailRequired]);
+  }, [form, guestEmailStrict]);
 
   const handleStep1Continue = () => {
     if (!isStep1Valid) return;
@@ -996,21 +1001,19 @@ export default function CheckoutPage() {
               )}
             </Button>
           )}
-          {/* Escape hatch. Without it a payment that can never be retried locks
-              this tab on the pending screen for good: the basket is frozen, the
-              empty-cart screen is suppressed and step 1 is out of reach. Offered
-              ONLY when the retry is hopeless, so it can't become a casual way to
-              duplicate an order. */}
-          {paymentBlocked && (
-            <Button
-              variant="text"
-              fullWidth
-              onClick={startNewOrder}
-              sx={{ mt: 2, ...btn, color: c.main, textTransform: 'none' }}
-            >
-              {t('checkout.pendingOrder.startNew')}
-            </Button>
-          )}
+          {/* Escape hatch, always available. While this screen is up the basket
+              is frozen, the empty-cart screen is suppressed and step 1 is out of
+              reach — so a shopper who cancelled at the payment provider (its
+              cancelUrl lands right here) or simply changed their mind would have
+              nowhere to go. The old order stays in ARM, unpaid. */}
+          <Button
+            variant="text"
+            fullWidth
+            onClick={startNewOrder}
+            sx={{ mt: 2, ...btn, color: c.main, textTransform: 'none' }}
+          >
+            {t('checkout.pendingOrder.startNew')}
+          </Button>
         </Box>
       </Box>
     );
@@ -1021,7 +1024,7 @@ export default function CheckoutPage() {
     <>
       {errorAlert}
       <Stack spacing={2.5}>
-        {field('Email', 'email', emailRequired, emailInvalid ? t('checkout.errors.invalid_email') : null)}
+        {field('Email', 'email', true, emailInvalid ? t('checkout.errors.invalid_email') : null)}
         {field('Full Name', 'name')}
         {field('Phone', 'phone')}
 

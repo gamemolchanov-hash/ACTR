@@ -163,6 +163,7 @@ describe('messages are next-intl-consumable (unflatten invariant)', () => {
       'checkout.pendingOrder.notice',
       'checkout.pendingOrder.startNew',
       'checkout.errors.orderUnreachable',
+      'checkout.errors.paymentUnavailable',
     ]) {
       const val = t(key);
       expect(val).not.toBe(key);
