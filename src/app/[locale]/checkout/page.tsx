@@ -638,12 +638,14 @@ export default function CheckoutPage() {
           // raw tag — without it a Turkish buyer would get English copy.
           locale,
         });
-        // The booked total travels with the id: from here on the live basket
-        // no longer describes what is being paid.
+        // The amount travels with the id: from here on the live basket no
+        // longer describes what is being paid. ARM charges the order total minus
+        // the wallet it already debited, so that is what gets stored — quoting
+        // the gross total above the Stripe form would name the wrong price.
         const placed: PendingOrder = {
           orderId: orderRes.data.id,
           number: orderRes.data.number,
-          total: orderRes.data.total,
+          amountDue: Math.max(0, orderRes.data.total - (orderRes.data.walletApplied ?? 0)),
           currency: orderRes.data.currency,
         };
         orderId = placed.orderId;
@@ -970,7 +972,7 @@ export default function CheckoutPage() {
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
             <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
-              {fmtMoney(pendingOrder.total, pendingOrder.currency, formatLocale)}
+              {fmtMoney(pendingOrder.amountDue, pendingOrder.currency, formatLocale)}
             </Typography>
           </Stack>
           {errorAlert}
@@ -1019,7 +1021,7 @@ export default function CheckoutPage() {
     <>
       {errorAlert}
       <Stack spacing={2.5}>
-        {field('Email', 'email', emailRequired, emailInvalid ? t('checkout.consent.emailRequired') : null)}
+        {field('Email', 'email', emailRequired, emailInvalid ? t('checkout.errors.invalid_email') : null)}
         {field('Full Name', 'name')}
         {field('Phone', 'phone')}
 

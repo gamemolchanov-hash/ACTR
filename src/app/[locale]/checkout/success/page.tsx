@@ -14,6 +14,7 @@ import type { ArmOrder } from '@/lib/arm-types';
 import {
   clearCheckoutDraft,
   readAccountNotice,
+  readPendingOrder,
   resolveAccountNotice,
   type AccountNotice,
 } from '@/lib/checkout';
@@ -33,29 +34,40 @@ function SuccessContent() {
   const [order, setOrder] = useState<ArmOrder | null>(null);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<AccountNotice | null>(null);
+  /** Everything the checkout handed over, read once BEFORE it is cleared. */
+  const [handoff, setHandoff] = useState<{
+    notice: AccountNotice | null;
+    pendingOrderId: string;
+  } | null>(null);
 
   // Terminal point of the checkout: clear the cart and every draft it left
   // behind. The checkout page keeps its draft and its pending-order marker right
   // through the payment redirect on purpose — until the buyer lands here, going
   // back to /checkout must resume THAT order, not start a second one.
+  //
+  // The hand-off is read in the SAME effect, before the clear: the pending-order
+  // marker is this page's only order id when ARM's configured `success_url` drops
+  // our `?order=` query, and splitting the read into its own effect would make
+  // that depend on effect ordering. What ARM did with the buyer's account is read
+  // here too — createOrder reported it once and GET /orders/{id} never repeats
+  // it. That notice read is non-destructive by design (reload / Strict-Mode
+  // double mount must show the same block); only the NEXT order rewrites it.
   useEffect(() => {
+    setHandoff({
+      notice: readAccountNotice(),
+      pendingOrderId: readPendingOrder()?.orderId || '',
+    });
     clearCart();
     clearCheckoutDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // What ARM did with the buyer's account (FBG-477) — createOrder reported it
-  // once and GET /orders/{id} doesn't repeat it, so it comes from the checkout
-  // hand-off. The read is non-destructive: a reload (or a Strict-Mode double
-  // mount) must show the same block, and only the NEXT order rewrites the slot.
-  useEffect(() => {
-    setNotice(resolveAccountNotice(readAccountNotice(), orderId));
-  }, [orderId]);
+  const notice = resolveAccountNotice(handoff?.notice ?? null, orderId);
 
-  // A payment provider configured with its own `success_url` sends the buyer
-  // back without our query, so the stored notice is then the only order id left.
-  const effectiveOrderId = orderId || notice?.orderId || '';
+  // A payment provider configured with its own `success_url` sends the buyer back
+  // without our query — then the checkout's own marker names the order, whoever
+  // placed it (the account notice only exists for auto-registered guests).
+  const effectiveOrderId = orderId || handoff?.pendingOrderId || notice?.orderId || '';
 
   // Fetch order details from ARM GET /orders/{id}
   useEffect(() => {

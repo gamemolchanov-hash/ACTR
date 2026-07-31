@@ -35,7 +35,7 @@ vi.mock('@/providers/CartProvider', () => ({ useCart: () => ({ clearCart: vi.fn(
 vi.mock('@/providers/CurrencyProvider', () => ({ useFormatLocale: () => 'tr-TR' }));
 vi.mock('@/lib/api', () => ({ fetchOrder: apiMock.fetchOrder }));
 
-import { saveAccountNotice } from '@/lib/checkout';
+import { readPendingOrder, saveAccountNotice, savePendingOrder } from '@/lib/checkout';
 import CheckoutSuccessPage from './page';
 
 const NOTICE = {
@@ -125,5 +125,20 @@ describe('account notice on the confirmation page', () => {
     render(<CheckoutSuccessPage />);
     await waitFor(() => expect(notice()).not.toBeNull());
     expect(apiMock.fetchOrder).toHaveBeenCalledWith('ord-1');
+  });
+
+  it('falls back for orders with no account notice at all', async () => {
+    // ARM prefers its configured success_url over ours, so the query can be
+    // missing for EVERY order — members, `linked`/`none`, storefronts without
+    // guest auto-registration. The checkout's own marker names the order, and it
+    // has to be read before this page clears the draft.
+    query.value = new URLSearchParams();
+    savePendingOrder({ orderId: 'ord-1', number: 'N-1', amountDue: 100, currency: 'TRY' });
+    render(<CheckoutSuccessPage />);
+
+    await waitFor(() => expect(apiMock.fetchOrder).toHaveBeenCalledWith('ord-1'));
+    expect(notice()).toBeNull();
+    // Still the terminal point: the marker does not survive the visit.
+    await waitFor(() => expect(readPendingOrder()).toBe(null));
   });
 });

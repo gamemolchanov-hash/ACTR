@@ -92,9 +92,9 @@ describe('account notice storage', () => {
 });
 
 describe('pending order marker', () => {
-  const PENDING = { orderId: 'ord-1', number: 'N-1', total: 150, currency: 'TRY' };
+  const PENDING = { orderId: 'ord-1', number: 'N-1', amountDue: 150, currency: 'TRY' };
 
-  it('round-trips the booked order with the total ARM charged for it', () => {
+  it('round-trips the booked order with the amount the payment will take', () => {
     savePendingOrder(PENDING);
     expect(readPendingOrder()).toEqual(PENDING);
   });

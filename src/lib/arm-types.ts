@@ -171,8 +171,15 @@ export interface ArmOrderCreateResponse {
   data: {
     id: string;
     number: string;
+    /** Order value: subtotal − discount + shipping. NOT what the card is charged. */
     total: number;
     currency: string;
+    /**
+     * Amount debited from the Creator Club wallet (FBG-380/385). Omitted when
+     * nothing was applied. The payment session charges `total − walletApplied`,
+     * so any figure shown before paying has to net it out.
+     */
+    walletApplied?: number;
     /** Present only on storefronts with `auto_register_guests` on. */
     account?: ArmOrderAccount;
   };

@@ -260,8 +260,13 @@ export interface PendingOrder {
   orderId: string;
   /** Human-readable number — what the buyer quotes to support if payment dies. */
   number: string;
-  /** Total ARM booked for THIS order — never recomputed from the live basket. */
-  total: number;
+  /**
+   * What the payment will actually take: the booked order total minus whatever
+   * ARM already debited from the Creator Club wallet. Storing the net (rather
+   * than the order value) is deliberate — this figure sits directly above the
+   * Stripe form, so it must be the same number the form charges.
+   */
+  amountDue: number;
   currency: string;
 }
 
@@ -272,7 +277,7 @@ function isPendingOrder(value: unknown): value is PendingOrder {
     typeof v.orderId === 'string' &&
     v.orderId.length > 0 &&
     typeof v.number === 'string' &&
-    typeof v.total === 'number' &&
+    typeof v.amountDue === 'number' &&
     typeof v.currency === 'string'
   );
 }

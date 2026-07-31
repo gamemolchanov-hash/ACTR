@@ -188,7 +188,7 @@ describe('guest submit gate', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined(),
     );
-    expect(screen.getByText('checkout.consent.emailRequired')).toBeDefined();
+    expect(screen.getByText('checkout.errors.invalid_email')).toBeDefined();
     expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
@@ -201,7 +201,7 @@ describe('guest submit gate', () => {
         (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled,
       ).toBe(false),
     );
-    expect(screen.queryByText('checkout.consent.emailRequired')).toBeNull();
+    expect(screen.queryByText('checkout.errors.invalid_email')).toBeNull();
   });
 
   it('does not scold a member for leaving the optional email empty', async () => {
@@ -211,7 +211,7 @@ describe('guest submit gate', () => {
     render(<CheckoutPage />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
-    expect(screen.queryByText('checkout.consent.emailRequired')).toBeNull();
+    expect(screen.queryByText('checkout.errors.invalid_email')).toBeNull();
   });
 
   it('refuses to order without the üyelik consent', async () => {
@@ -416,6 +416,24 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
     expect(document.body.textContent).toContain('999');
     expect(screen.queryByText('Your Order')).toBeNull();
+  });
+
+  it('quotes what the card will be charged, not the gross order value', async () => {
+    // ARM debits the Creator Club wallet at order creation and the session then
+    // charges `total − walletApplied`. Naming the gross total right above the
+    // Stripe form would promise a price the form does not ask for.
+    apiMock.createOrder.mockResolvedValue({
+      data: { id: 'ord-1', number: 'N-1', total: 150, walletApplied: 50, currency: 'TRY' },
+    });
+    apiMock.createPaymentSession.mockRejectedValueOnce(new Error('gateway down'));
+    seedStep2({ email: 'ada@example.com' });
+    await arriveAtStep2({ uyelik: true });
+    fireEvent.click(proceedButton());
+
+    await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
+    expect(readPendingOrder()?.amountDue).toBe(100);
+    expect(document.body.textContent).toContain('100');
+    expect(document.body.textContent).not.toContain('150');
   });
 
   it('renders the embedded Stripe form instead of a dead retry button', async () => {
