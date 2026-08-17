@@ -57,7 +57,7 @@ API** (`/public/arm/storefront/*`, как forza-brava.com). Отдельный s
   адаптер к типам компонентов AC.
 - **Турция:** KDV (НДС), KVKK (защита данных), «mesafeli satış» (дистанц. продажа), локальные
   перевозчики, ограниченная доступность Stripe — детали в
-  `autoCRM/docs/modules/arm/ACTR/{TZ,open-questions}.md`.
+  `docs/{TZ,open-questions}.md`.
 
 ## Constraints
 

@@ -151,7 +151,7 @@ None - no external service configuration required. This plan only wires an exist
 ## Next Phase Readiness
 
 - Code slice of DATA-01 is complete: `X-Currency` is now emitted on every catalog code path (SSR + client + proxy passthrough), matching the ARM contract.
-- **Deferred to the owner (D-01/D-04/D-05, not a blocker for this plan):** populate the local `demo` ARM tenant with a TRY distributor + storefront + products + `arm_storefront_distributors` links per `autoCRM/docs/modules/arm/ACTR/TZ.md` §6. After population, load `/catalog` on the ACTR dev server (`:3003`) and confirm no 500 in the browser console and ₺ prices render — this is the manual acceptance check (D-04), owner-verified, not gated by this plan's automated tests.
+- **Deferred to the owner (D-01/D-04/D-05, not a blocker for this plan):** populate the local `demo` ARM tenant with a TRY distributor + storefront + products + `arm_storefront_distributors` links per `docs/TZ.md` §6. After population, load `/catalog` on the ACTR dev server (`:3003`) and confirm no 500 in the browser console and ₺ prices render — this is the manual acceptance check (D-04), owner-verified, not gated by this plan's automated tests.
 - Pre-existing backlog item unchanged and not addressed here (by design, per 07-RESEARCH.md Open Question #1): the 3 `armToProduct`/fixture-mismatch failures in `server-api.test.ts` remain open as optional stretch work, tracked in STATE.md Pending Todos.
 
 ---

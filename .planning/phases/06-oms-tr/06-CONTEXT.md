@@ -112,7 +112,7 @@ ARM/TR-модели.
 ### ARM contract (для research по отзывам — D-09)
 - `../autoCRM/packs/arm/bff/docs/openapi.yaml` — OpenAPI ARM storefront (`/public/arm/storefront/*`);
   подтвердить отсутствие reviews-поля/эндпоинта. (Читать только для верификации контракта; НЕ править.)
-- `../autoCRM/docs/modules/arm/ACTR/open-questions.md` — деплой-трек (перевозчик TR, оплата) — для
+- `docs/open-questions.md` — деплой-трек (перевозчик TR, оплата) — для
   контекста по `/delivery` рерайту.
 
 ### Prior phase context (совместимость)

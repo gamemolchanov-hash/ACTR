@@ -469,7 +469,7 @@ curl -sI http://localhost:3003/help/delivery | head -1    # expect 404 (removed,
   `README.md` documents.
 - CDEK (Russian courier network) as the sole delivery-options vocabulary in `/delivery` — being
   replaced with neutral TR delivery language (real carrier is a deploy-track open question per
-  `autoCRM/docs/modules/arm/ACTR/open-questions.md`, out of this phase's scope per CONTEXT.md).
+  `docs/open-questions.md`, out of this phase's scope per CONTEXT.md).
 
 ## Assumptions Log
 

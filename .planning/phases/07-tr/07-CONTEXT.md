@@ -85,8 +85,8 @@
   код не трогаем); TR/TRY/EN+TR; деплой отложен.
 
 ### ARM data model / provisioning (для владельца — как заводить; для research — контракт; read-only)
-- `../../autoCRM/docs/modules/arm/ACTR/TZ.md` §6 «Бэкенд-предпосылки» (абс.
-  `/home/lexun/work/autoCRM/docs/modules/arm/ACTR/TZ.md`) — **точный рецепт** заведения:
+- `docs/TZ.md` §6 «Бэкенд-предпосылки» (абс.
+  `/home/lexun/work/puz/ACTR/docs/TZ.md`) — **точный рецепт** заведения:
   `arm_distributors(currency='TRY')`, `arm_storefronts(currency,'TRY',locale,payment_config)`,
   `POST /api/arm/storefronts/:id/generate-key`, `arm_storefront_distributors((storefront,'TRY')→
   distributor, is_default=true)`, `arm_products` + `arm_distributor_products(price TRY,

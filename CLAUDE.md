@@ -80,6 +80,7 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > `docs/` — симлинк в Obsidian vault (`W/AutoCRM/ACTR`), в git НЕ входит. Если диск W: не смонтирован — docs/ нечитаем.
 
 - [docs/TZ.md](docs/TZ.md) — полное ТЗ (включая §6 «Бэкенд-предпосылки»: рецепт заведения TRY-дистрибьютора/витрины в ARM)
+- [docs/legal-docs.md](docs/legal-docs.md) — юр-пакет TR: карта документов/страниц, каноны (SRV199 assets/legal-20260727), ответы юриста, остатки (cookie-баннер FBG-395, чекбоксы согласий FBG-410)
 - [docs/open-questions.md](docs/open-questions.md) — деплой-трек открытых вопросов (Stripe в TR, перевозчик, e-fatura)
 - [docs/roadmap.md](docs/roadmap.md) — roadmap
 - [docs/GlitchTip.md](docs/GlitchTip.md) — error tracking
