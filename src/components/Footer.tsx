@@ -256,9 +256,22 @@ export function Footer() {
             borderTop: '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          <Typography sx={{ fontSize: 16, color: palette.primaryLight }}>
-            {new Date().getFullYear()} &copy; American Creator
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography sx={{ fontSize: 16, color: palette.primaryLight }}>
+              {new Date().getFullYear()} &copy; American Creator
+            </Typography>
+            {/* ETBİS Kayıt Belgesi (сертификат получен 06.08.2026): вместо QR —
+                прямая ссылка на документ, номер = официальный Site Kayıt No. */}
+            <MuiLink
+              href="/legal/etbis-kayit-belgesi.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="none"
+              sx={{ fontSize: 13, color: palette.footerSecondary, '&:hover': { opacity: 0.8 } }}
+            >
+              ETBİS Site Kayıt No: 8512155175
+            </MuiLink>
+          </Box>
           <Box
             sx={{
               display: 'flex',
