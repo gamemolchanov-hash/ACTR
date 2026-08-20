@@ -4,6 +4,10 @@
  * Failure handling is the crux (FBG-67 review): a genuine 404 must read as
  * "absent" (→ null), while a transient/5xx/network failure must throw so the
  * caller never noindexes a live product or publishes a truncated sitemap.
+ *
+ * FBG-609: a transient blip (Cloudflare 522/503, dropped connection) is now
+ * retried up to 3 attempts before that throw. Every test that drives a failing
+ * BFF injects an instant `delay` so the suite never sleeps on the real backoff.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
@@ -15,6 +19,22 @@ import {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+/** Instant retry backoff: keeps failing-BFF tests off the real ~1.2 s timer. */
+const noDelay = async (): Promise<void> => {};
+
+/** Instant backoff that records the requested pauses (FBG-609 budget assertions). */
+function recordingDelay(): { waits: number[]; delay: (ms: number) => Promise<void> } {
+  const waits: number[] = [];
+  return { waits, delay: async (ms: number) => void waits.push(ms) };
+}
+
+/** Minimal `fetch` response stub. */
+const respond = (status: number, body: unknown = {}) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: async () => body,
 });
 
 describe('fetchProductServer', () => {
@@ -80,7 +100,9 @@ describe('fetchProductServer', () => {
       'fetch',
       vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}) })),
     );
-    await expect(fetchProductServer('p1')).rejects.toBeInstanceOf(BffUnavailableError);
+    await expect(fetchProductServer('p1', undefined, noDelay)).rejects.toBeInstanceOf(
+      BffUnavailableError,
+    );
   });
 
   it('throws when fetch itself rejects (BFF down)', async () => {
@@ -90,7 +112,9 @@ describe('fetchProductServer', () => {
         throw new Error('ECONNREFUSED');
       }),
     );
-    await expect(fetchProductServer('x')).rejects.toBeInstanceOf(BffUnavailableError);
+    await expect(fetchProductServer('x', undefined, noDelay)).rejects.toBeInstanceOf(
+      BffUnavailableError,
+    );
   });
 
   // Phase 7 (DATA-01/D-06): X-Currency must be sent on the SSR product-detail
@@ -135,7 +159,7 @@ describe('fetchCategoriesServer', () => {
       'fetch',
       vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })),
     );
-    await expect(fetchCategoriesServer()).rejects.toBeInstanceOf(BffUnavailableError);
+    await expect(fetchCategoriesServer(noDelay)).rejects.toBeInstanceOf(BffUnavailableError);
   });
 });
 
@@ -176,7 +200,7 @@ describe('fetchAllProductsServer', () => {
       'fetch',
       vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) })),
     );
-    await expect(fetchAllProductsServer()).rejects.toBeInstanceOf(BffUnavailableError);
+    await expect(fetchAllProductsServer(noDelay)).rejects.toBeInstanceOf(BffUnavailableError);
   });
 
   // Phase 7 (DATA-01/D-06): X-Currency must be sent on the all-products walk
@@ -198,5 +222,116 @@ describe('fetchAllProductsServer', () => {
     }
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect((init.headers as Record<string, string>)['X-Currency']).toBe('TRY');
+  });
+});
+
+/**
+ * FBG-609 — a single Cloudflare 522 (edge↔origin blip, prod 17.08 / 19.08) must not
+ * turn into a 500 for the visitor: idempotent GETs are retried up to 3 attempts.
+ * Only transport-level failures are retried — a 4xx (incl. 404) and a 500
+ * (application error in the BFF) are final on the first response.
+ */
+describe('bffGet retry on a transient BFF failure (FBG-609)', () => {
+  const PRODUCT_BODY = { data: { id: 'p1', price: '10.00', product: { name: 'BASE GEL' } } };
+
+  it('survives a 522 → 522 → 200 sequence and returns the product', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(respond(522))
+      .mockResolvedValueOnce(respond(522))
+      .mockResolvedValue(respond(200, PRODUCT_BODY));
+    vi.stubGlobal('fetch', fetchMock);
+    const { waits, delay } = recordingDelay();
+
+    const product = await fetchProductServer('198', 'tr', delay);
+
+    expect(product?.id).toBe('p1');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // Each retry must be a NEW request: Next memoizes GET responses per render by
+    // url + headers, so a byte-identical replay would be answered with the cached
+    // 522 instead of reaching the BFF.
+    const headersOf = (call: number) =>
+      (fetchMock.mock.calls[call] as unknown as [string, RequestInit])[1].headers as Record<
+        string,
+        string
+      >;
+    expect(headersOf(0)['X-Retry-Attempt']).toBeUndefined();
+    expect(headersOf(1)['X-Retry-Attempt']).toBe('1');
+    expect(headersOf(2)['X-Retry-Attempt']).toBe('2');
+    // The tenant/currency contract is untouched by the retry.
+    expect(headersOf(2)['X-Currency']).toBe('TRY');
+    expect(headersOf(2)['X-Tenant-ID']).toBeTruthy();
+    // Backoff stays inside the ~1.5 s budget the SSR render can afford.
+    expect(waits).toHaveLength(2);
+    expect(waits.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(1500);
+    expect(waits[0]).toBeGreaterThanOrEqual(300);
+    expect(waits[1]).toBeGreaterThan(waits[0]);
+  });
+
+  it('gives up after 3 attempts and throws the original status (522)', async () => {
+    const fetchMock = vi.fn(async () => respond(522));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchProductServer('198', undefined, noDelay)).rejects.toMatchObject({
+      name: 'BffUnavailableError',
+      status: 522,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a rejected fetch (dropped connection) and succeeds on the retry', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('ECONNRESET'))
+      .mockResolvedValue(respond(200, PRODUCT_BODY));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const product = await fetchProductServer('198', undefined, noDelay);
+
+    expect(product?.id).toBe('p1');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does NOT retry a 404 — absent product still resolves to null at once', async () => {
+    const fetchMock = vi.fn(async () => respond(404));
+    vi.stubGlobal('fetch', fetchMock);
+    const { waits, delay } = recordingDelay();
+
+    expect(await fetchProductServer('missing', undefined, delay)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(waits).toHaveLength(0);
+  });
+
+  it('does NOT retry a 500 (application error in the BFF) nor a 403', async () => {
+    for (const status of [500, 403]) {
+      const fetchMock = vi.fn(async () => respond(status));
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(fetchProductServer('p1', undefined, noDelay)).rejects.toMatchObject({ status });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('retries the sitemap fetchers too (categories 503, products page 522)', async () => {
+    const categoriesMock = vi
+      .fn()
+      .mockResolvedValueOnce(respond(503))
+      .mockResolvedValue(respond(200, { data: [{ id: 'c1', slug: 'base_gel' }] }));
+    vi.stubGlobal('fetch', categoriesMock);
+    expect(await fetchCategoriesServer(noDelay)).toHaveLength(1);
+    expect(categoriesMock).toHaveBeenCalledTimes(2);
+
+    const productsMock = vi
+      .fn()
+      .mockResolvedValueOnce(respond(522))
+      .mockResolvedValue(
+        respond(200, {
+          data: [{ id: 'p1', price: '1.00', product: { name: 'P1' } }],
+          meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
+        }),
+      );
+    vi.stubGlobal('fetch', productsMock);
+    expect(await fetchAllProductsServer(noDelay)).toHaveLength(1);
+    expect(productsMock).toHaveBeenCalledTimes(2);
   });
 });

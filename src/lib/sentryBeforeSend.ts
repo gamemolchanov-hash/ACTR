@@ -2,26 +2,58 @@
  * Storefront Sentry `beforeSend` hook — извлечён из `sentry.client.config.ts` в
  * тестируемую фабрику (FBG-138).
  *
- * Логика (порядок и побочки) идентична инлайновой версии из FBG-126/FBG-127:
- *   1. транзиентный `ChunkLoadError` до перезагрузки → drop + breadcrumb;
+ * Порядок проверок и побочки (инлайновая версия FBG-126/FBG-127 + шумовые фильтры FBG-609):
+ *   1. шум моста Outlook SafeLinks/расширений (`Object Not Found Matching Id…`,
+ *      FBG-609) → drop + breadcrumb;
+ *   2. `ChunkLoadError` от краулера (FBG-609) → drop + breadcrumb; проверяется ДО п.3, иначе
+ *      бот со старым HTML получил бы тег `persistent` и уехал в GlitchTip;
+ *   3. транзиентный `ChunkLoadError` до перезагрузки → drop + breadcrumb;
  *      персистентный (после перезагрузки) → tag `chunk_load_failure=persistent`, пропускаем;
- *   2. восстановимая ошибка гидратации React (#418/#419/#422/#423/#425) → drop + breadcrumb;
- *   3. ошибка инъецированного нативного моста (`window.webkit.messageHandlers`, FBG-175) → drop + breadcrumb;
- *   4. всё остальное → событие как есть.
+ *   4. восстановимая ошибка гидратации React (#418/#419/#422/#423/#425) → drop + breadcrumb;
+ *   5. ошибка инъецированного нативного моста (`window.webkit.messageHandlers`,
+ *      FBG-175) → drop + breadcrumb;
+ *   6. всё остальное → событие как есть.
  *
  * `addBreadcrumb` инжектится параметром (а не берётся из `Sentry`-синглтона), чтобы wiring
  * хука — порядок проверок, возврат `null`/event, вызовы breadcrumb — покрывался юнит-тестом
  * без инициализации Sentry. См. `sentryBeforeSend.test.ts`.
  */
 import type { Breadcrumb, ErrorEvent, EventHint } from '@sentry/nextjs';
+import { isBotChunkLoadEvent } from './botChunkNoise';
 import { classifyChunkEvent } from './chunkReload';
 import { isRecoverableHydrationEvent } from './hydrationNoise';
 import { isNativeBridgeNoiseEvent } from './nativeBridgeNoise';
+import { isSafeLinksBridgeNoiseEvent } from './safeLinksNoise';
 
 type AddBreadcrumb = (breadcrumb: Breadcrumb) => void;
 
 export function makeStorefrontBeforeSend(addBreadcrumb: AddBreadcrumb) {
   return (event: ErrorEvent, hint: EventHint): ErrorEvent | null => {
+    // Сломанный postMessage-мост Outlook SafeLinks / расширения браузера — не-Error rejection
+    // с сигнатурой `Object Not Found Matching Id:N, MethodName:X, ParamCount:N`; таких строк в
+    // коде витрины нет (см. lib/safeLinksNoise, FBG-609). Глушим как шум, оставляя breadcrumb.
+    if (isSafeLinksBridgeNoiseEvent(hint?.originalException, event.exception?.values)) {
+      addBreadcrumb({
+        category: 'third-party',
+        level: 'warning',
+        message: 'Outlook SafeLinks / extension RPC bridge noise (dropped)',
+      });
+      return null;
+    }
+
+    // ChunkLoadError краулера: бот держит старый HTML и нашу recovery-перезагрузку не делает,
+    // поэтому под classifyChunkEvent он попал бы в `persist` (см. lib/botChunkNoise, FBG-609).
+    // Проверяем СТРОГО раньше — так бот не получает тег `persistent` и не шумит в GlitchTip.
+    const headers = event.request?.headers;
+    if (isBotChunkLoadEvent(hint?.originalException, event.exception?.values, headers)) {
+      addBreadcrumb({
+        category: 'bot',
+        level: 'warning',
+        message: 'ChunkLoadError from a crawler (stale HTML, no reload) — dropped as noise',
+      });
+      return null;
+    }
+
     // ChunkLoadError после редеплоя — транзиентная гонка stale-chunk (см. lib/chunkReload).
     const decision = classifyChunkEvent(hint?.originalException, event.exception?.values);
     if (decision === 'drop') {
