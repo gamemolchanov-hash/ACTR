@@ -1,30 +1,38 @@
 /**
- * Self-hosted Futura PT (FBG-225).
+ * Self-hosted Futura PT (FBG-225; Turkish glyph fix 2026-08-28).
  *
  * Replaces the render-blocking third-party stylesheet `fonts.cdnfonts.com/css/futura-pt`
- * (est. 730 ms on the critical path, no `font-display`) with local `.woff` faces served
- * from `/public/fonts`. Removing the third party also drops it from the critical request
+ * (est. 730 ms on the critical path, no `font-display`) with local faces served from
+ * `/public/fonts`. Removing the third party also drops it from the critical request
  * chain (reliability + KVKK).
  *
  * The six weights mirror exactly the faces the storefront renders (300/400/450/500/600/700),
  * mapped 1:1 to the CDN's `FuturaCyrillic*` faces so nothing changes visually. `font-display:swap`
  * keeps text visible immediately (no FOIT). The primary body face (Book/400) is preloaded.
+ *
+ * 2026-08-28 — files swapped from the cdnfonts `FuturaCyrillic*` .woff cut to woff2 subsets of the
+ * original Paratype Futura PT v1.007 OTFs (same version/metrics: upm 1000, hhea 982/-300,
+ * OS/2 weights 300/400/450/500/600/700). Reason: the cdnfonts cut is ASCII + Cyrillic ONLY — it
+ * has NO Latin-1/Latin-Ext glyphs, so every Turkish letter (Ç ç Ğ ğ İ ı Ö ö Ş ş Ü ü) fell through
+ * per-glyph to the size-adjusted Arial fallback and read visibly thinner/foreign ("Çok yakında
+ * açılıyoruz" — customer complaint). The subsets keep Latin, Latin-1, Latin Ext-A/B, Cyrillic,
+ * punctuation, currency, № ™ and the fi/fl ligatures, with kerning (GPOS) intact.
  */
 
 type FontFace = { weight: number; file: string };
 
-// weight → local .woff. This mirrors EXACTLY the @font-face rules that
+// weight → local .woff2. This mirrors EXACTLY the @font-face rules that
 // `fonts.cdnfonts.com/css/futura-pt` served — and that american-creator.ru (our 1:1
 // design reference, which loads the very same stylesheet) renders with — so self-hosting
 // changes no pixels. Verified against the live CDN CSS:
 //
 //   cdnfonts @font-face        →  this file
-//   font-weight:300  Light     →  FuturaPT-Light.woff
-//   font-weight:400  Book      →  FuturaPT-Book.woff
-//   font-weight:450  Medium    →  FuturaPT-Medium.woff
-//   font-weight:500  Demi      →  FuturaPT-Demi.woff
-//   font-weight:600  Heavy     →  FuturaPT-Heavy.woff
-//   font-weight:700  Bold      →  FuturaPT-Bold.woff
+//   font-weight:300  Light     →  FuturaPT-Light.woff2
+//   font-weight:400  Book      →  FuturaPT-Book.woff2
+//   font-weight:450  Medium    →  FuturaPT-Medium.woff2
+//   font-weight:500  Demi      →  FuturaPT-Demi.woff2
+//   font-weight:600  Heavy     →  FuturaPT-Heavy.woff2
+//   font-weight:700  Bold      →  FuturaPT-Bold.woff2
 //
 // Note: cdnfonts assigns Medium→450 and Demi→500 — NOT the "Medium 500 / Demi 600"
 // shorthand in the ticket. The storefront's most-used weights are 500 (59×) and 450 (36×);
@@ -33,21 +41,21 @@ type FontFace = { weight: number; file: string };
 // the reference) — a real 1:1 regression. So we mirror the CDN's actual weights, not the
 // ticket's naming. See the weight→file assertions in fonts.test.ts.
 const FUTURA_FACES: FontFace[] = [
-  { weight: 300, file: 'FuturaPT-Light.woff' },
-  { weight: 400, file: 'FuturaPT-Book.woff' },
-  { weight: 450, file: 'FuturaPT-Medium.woff' },
-  { weight: 500, file: 'FuturaPT-Demi.woff' },
-  { weight: 600, file: 'FuturaPT-Heavy.woff' },
-  { weight: 700, file: 'FuturaPT-Bold.woff' },
+  { weight: 300, file: 'FuturaPT-Light.woff2' },
+  { weight: 400, file: 'FuturaPT-Book.woff2' },
+  { weight: 450, file: 'FuturaPT-Medium.woff2' },
+  { weight: 500, file: 'FuturaPT-Demi.woff2' },
+  { weight: 600, file: 'FuturaPT-Heavy.woff2' },
+  { weight: 700, file: 'FuturaPT-Bold.woff2' },
 ];
 
 /** Primary body face — preloaded so first paint can use real Futura where installed/cached. */
-export const FUTURA_PRELOAD_HREF = '/fonts/FuturaPT-Book.woff';
+export const FUTURA_PRELOAD_HREF = '/fonts/FuturaPT-Book.woff2';
 
 const futuraFaces = FUTURA_FACES.map(
   ({ weight, file }) =>
     `@font-face{font-family:"Futura PT";font-style:normal;font-weight:${weight};` +
-    `font-display:swap;src:local("Futura PT"),url("/fonts/${file}") format("woff");}`,
+    `font-display:swap;src:local("Futura PT"),url("/fonts/${file}") format("woff2");}`,
 ).join('');
 
 /**

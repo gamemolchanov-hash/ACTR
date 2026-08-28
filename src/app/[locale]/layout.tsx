@@ -100,7 +100,7 @@ export default async function LocaleLayout({
           rel="preload"
           href={FUTURA_PRELOAD_HREF}
           as="font"
-          type="font/woff"
+          type="font/woff2"
           crossOrigin="anonymous"
         />
         <style dangerouslySetInnerHTML={{ __html: FONT_FACE_CSS }} />

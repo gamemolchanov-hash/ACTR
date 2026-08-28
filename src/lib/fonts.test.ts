@@ -32,10 +32,9 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
       expect(url.endsWith('.woff') || url.endsWith('.woff2')).toBe(true);
       expect(existsSync(resolve(PUBLIC, `.${url}`))).toBe(true);
     }
-    // The six Futura PT weight faces stay plain .woff; only the LiraFix ₺ subset is .woff2.
-    const woff2 = urls.filter((u) => u.endsWith('.woff2'));
-    expect(woff2).toEqual(['/fonts/lira-subset.woff2']);
-    expect(urls.filter((u) => u.endsWith('.woff')).length).toBeGreaterThanOrEqual(6);
+    // Everything is woff2 since the 2026-08-28 swap to the Paratype OTF subsets (no plain .woff left).
+    expect(urls.every((u) => u.endsWith('.woff2'))).toBe(true);
+    expect(urls.filter((u) => u.startsWith('/fonts/FuturaPT-')).length).toBe(6);
   });
 
   it('pulls in no third-party font host (cdnfonts / googleapis)', () => {
@@ -54,16 +53,16 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
     ];
     const byWeight = Object.fromEntries(faces.map((m) => [Number(m[1]), m[2]]));
     expect(byWeight).toEqual({
-      300: 'FuturaPT-Light.woff',
-      400: 'FuturaPT-Book.woff',
-      450: 'FuturaPT-Medium.woff',
-      500: 'FuturaPT-Demi.woff',
-      600: 'FuturaPT-Heavy.woff',
-      700: 'FuturaPT-Bold.woff',
+      300: 'FuturaPT-Light.woff2',
+      400: 'FuturaPT-Book.woff2',
+      450: 'FuturaPT-Medium.woff2',
+      500: 'FuturaPT-Demi.woff2',
+      600: 'FuturaPT-Heavy.woff2',
+      700: 'FuturaPT-Bold.woff2',
     });
     // Guard the two weights the reviewer flagged: intentionally Demi / Heavy, not Medium / Demi.
-    expect(byWeight[500]).toBe('FuturaPT-Demi.woff');
-    expect(byWeight[600]).toBe('FuturaPT-Heavy.woff');
+    expect(byWeight[500]).toBe('FuturaPT-Demi.woff2');
+    expect(byWeight[600]).toBe('FuturaPT-Heavy.woff2');
   });
 
   it('defines a metric-adjusted Arial fallback to curb swap CLS', () => {
@@ -96,9 +95,23 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
   });
 });
 
+// 2026-08-28: the previous cdnfonts "FuturaCyrillic" .woff cut had NO Latin-1/Latin-Ext glyphs, so
+// Turkish letters silently fell through to the Arial fallback. Guard the cmap of every shipped face.
+describe('Futura PT faces cover the Turkish alphabet', () => {
+  // Minimal WOFF2 header parse is overkill here — we assert on the subset manifest instead:
+  // every face must be the Paratype subset (>= 25 KB, woff2 magic), and the Book face must
+  // decode to a cmap that covers Ç ç Ğ ğ İ ı Ö ö Ş ş Ü ü (checked via fontTools in
+  // scripts/check-font-coverage.py during the swap; here we pin the file identity).
+  it.each(['Light', 'Book', 'Medium', 'Demi', 'Heavy', 'Bold'])('FuturaPT-%s.woff2 is a woff2 file', (w) => {
+    const buf = readFileSync(resolve(PUBLIC, `./fonts/FuturaPT-${w}.woff2`));
+    expect(buf.subarray(0, 4).toString('latin1')).toBe('wOF2');
+    expect(buf.length).toBeGreaterThan(25_000);
+  });
+});
+
 describe('FUTURA_PRELOAD_HREF', () => {
   it('points at the Book (400) face and that file exists', () => {
-    expect(FUTURA_PRELOAD_HREF).toBe('/fonts/FuturaPT-Book.woff');
+    expect(FUTURA_PRELOAD_HREF).toBe('/fonts/FuturaPT-Book.woff2');
     expect(FONT_FACE_CSS).toContain(`url("${FUTURA_PRELOAD_HREF}")`);
     expect(existsSync(resolve(PUBLIC, `.${FUTURA_PRELOAD_HREF}`))).toBe(true);
   });
