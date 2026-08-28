@@ -149,6 +149,7 @@
   "catalog.newArrivals": "New Arrivals",
   "catalog.noProducts": "No products found",
   "catalog.sortBy": "Sort by",
+  "catalog.sortByPopular": "By Popularity",
   "catalog.sortByName": "By Name",
   "catalog.sortByNameDesc": "By Name (Z–A)",
   "catalog.sortByPriceAsc": "By Price (Low–High)",

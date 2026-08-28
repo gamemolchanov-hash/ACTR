@@ -149,6 +149,7 @@
   "catalog.newArrivals": "Yeni Ürünler",
   "catalog.noProducts": "Ürün bulunamadı",
   "catalog.sortBy": "Sıralama",
+  "catalog.sortByPopular": "Popülerliğe Göre",
   "catalog.sortByName": "İsme Göre (A–Z)",
   "catalog.sortByNameDesc": "İsme Göre (Z–A)",
   "catalog.sortByPriceAsc": "Fiyata Göre (Artan)",

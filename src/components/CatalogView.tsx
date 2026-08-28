@@ -41,7 +41,8 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
   const restoredRef = useRef(false);
 
   const page = parseInt(searchParams.get('page') || '1', 10);
-  const sort = searchParams.get('sort') || 'name';
+  // Default = popularity rank (`popular` → ARM adp.sort, seeded from .ru paid-order frequency).
+  const sort = searchParams.get('sort') || 'popular';
   const search = searchParams.get('search') || searchParams.get('q') || undefined;
   const inStock = searchParams.get('inStock') || undefined;
   const inStockOnly = inStock === '1';
@@ -107,7 +108,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
 
   const navigateToCategory = (slug?: string) => {
     const params = new URLSearchParams();
-    if (sort !== 'name') params.set('sort', sort);
+    if (sort !== 'popular') params.set('sort', sort);
     if (inStockOnly) params.set('inStock', '1');
     const qs = params.toString();
     const base = slug ? `/catalog/${slug}` : '/catalog';
@@ -281,6 +282,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 '& .MuiOutlinedInput-notchedOutline': { borderColor: palette.primary },
               }}
             >
+              <MenuItem value="popular">{t('catalog.sortByPopular')}</MenuItem>
               <MenuItem value="name">{t('catalog.sortByName')}</MenuItem>
               <MenuItem value="-name">{t('catalog.sortByNameDesc')}</MenuItem>
               <MenuItem value="price">{t('catalog.sortByPriceAsc')}</MenuItem>
@@ -348,6 +350,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   '& .MuiSelect-icon': { color: palette.primary },
                 }}
               >
+                <MenuItem value="popular">{t('catalog.sortByPopular')}</MenuItem>
                 <MenuItem value="name">{t('catalog.sortByName')}</MenuItem>
                 <MenuItem value="-name">{t('catalog.sortByNameDesc')}</MenuItem>
                 <MenuItem value="price">{t('catalog.sortByPriceAsc')}</MenuItem>
