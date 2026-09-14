@@ -24,7 +24,7 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
-import { getMyOrder, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
+import { getMyOrder, getMyOrderDocument, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
 import { useTranslations } from 'next-intl';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
@@ -35,6 +35,29 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 export default function OrderDetailPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const [docBusy, setDocBusy] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+  // PDF под bearer: blob → сохранение файла (попап-блокер не мешает клику пользователя).
+  const openDocument = async (kind: string) => {
+    if (!order) return;
+    setDocBusy(kind);
+    setDocError(null);
+    try {
+      const { blob, filename } = await getMyOrderDocument(order.id, kind);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      setDocError(t('documentError'));
+    } finally {
+      setDocBusy(null);
+    }
+  };
   const formatLocale = useFormatLocale();
 
   const { customer, loading: authLoading } = useAuth();
@@ -169,6 +192,33 @@ export default function OrderDetailPage() {
                 </Tooltip>
               )}
             </Box>
+
+            {/* Юридические документы заказа (ÖBF, MSS): § 18 договора — доступ из кабинета */}
+            {order.documents && order.documents.length > 0 && (
+              <Box sx={{ mb: 3 }} data-testid="order-documents">
+                <Typography sx={{ fontFamily: fontMain, fontWeight: 500, color: palette.primary, mb: 1 }}>
+                  {t('documentsTitle')}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {order.documents.map((doc) => (
+                    <Button
+                      key={doc.kind}
+                      variant="outlined"
+                      size="small"
+                      disabled={docBusy === doc.kind}
+                      onClick={() => void openDocument(doc.kind)}
+                      sx={{ borderRadius: '10px', textTransform: 'none', fontFamily: fontBody, color: palette.primary, borderColor: palette.primary }}
+                      data-testid={`order-document-${doc.kind}`}
+                    >
+                      {doc.title} · {t('documentOpen')}
+                    </Button>
+                  ))}
+                </Box>
+                {docError && (
+                  <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: '#c62828', mt: 1 }}>{docError}</Typography>
+                )}
+              </Box>
+            )}
 
             {/* Items table */}
             <TableContainer

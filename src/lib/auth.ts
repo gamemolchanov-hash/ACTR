@@ -88,6 +88,8 @@ export interface CustomerOrder {
     unit_price: number;
     product: { name: string } | null;
   }>;
+  /** Юридические документы заказа (ÖBF, MSS) — ссылки на PDF под тем же JWT; нет — поля нет. */
+  documents?: Array<{ kind: string; code: string; title: string; created_at: string | null; url: string }>;
 }
 
 export interface LoginResult {
@@ -231,6 +233,23 @@ export async function addMyAddress(
 
 export async function deleteMyAddress(id: string): Promise<void> {
   await api.delete(ENDPOINTS.auth.address(id), { headers: bearerHeader() });
+}
+
+/**
+ * PDF юридического документа заказа (`GET /me/orders/:id/documents/:kind`).
+ * Под bearer, поэтому не `<a href>`, а blob — вызывающий сохраняет/открывает.
+ */
+export async function getMyOrderDocument(
+  orderId: string,
+  kind: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await api.get(`${ENDPOINTS.auth.orders}/${encodeURIComponent(orderId)}/documents/${encodeURIComponent(kind)}`, {
+    headers: bearerHeader(),
+    responseType: 'blob',
+  });
+  const disposition = String(res.headers?.['content-disposition'] ?? '');
+  const m = /filename="([^"]+)"/.exec(disposition);
+  return { blob: res.data as Blob, filename: m?.[1] ?? `${kind}.pdf` };
 }
 
 export async function getMyOrders(

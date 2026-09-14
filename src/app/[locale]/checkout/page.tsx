@@ -78,6 +78,7 @@ import {
   type BuildOnBilgilendirmeInput,
 } from '@/lib/on-bilgilendirme';
 import { buildMesafeliSatisData, renderMesafeliSatis } from '@/lib/mesafeli-satis';
+import { buildLegalPayload } from '@/lib/legal-snapshot';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
@@ -546,10 +547,9 @@ export default function CheckoutPage() {
   // buyer. Recomputed whenever any input changes so neither document shows stale
   // figures; only built once the modal has been opened (obfGeneratedAt set, which
   // also fixes the draft ref and date-time).
-  const legalDocInput = useMemo<BuildOnBilgilendirmeInput | null>(() => {
-    if (!obfGeneratedAt) return null;
-    return {
-      generatedAt: obfGeneratedAt,
+  // Один сборщик на превью в модале и на снимок для ARM при отправке заказа.
+  const buildLegalDocInput = (generatedAt: Date): BuildOnBilgilendirmeInput => ({
+      generatedAt,
       customer: { name: form.name, phone: form.phone, email: form.email },
       address: formatObfAddress(form),
       currencyLabel: currency === 'TRY' ? 'TL' : currency,
@@ -579,8 +579,11 @@ export default function CheckoutPage() {
           }
         : null,
       kvkkNoticeUrl: 'https://american-creator.tr/legal/kvkk',
-    };
-  }, [
+  });
+  const legalDocInput = useMemo<BuildOnBilgilendirmeInput | null>(
+    () => (obfGeneratedAt ? buildLegalDocInput(obfGeneratedAt) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- сборщик читает те же входы, что перечислены ниже
+    [
     obfGeneratedAt,
     validated,
     subtotal,
@@ -636,6 +639,10 @@ export default function CheckoutPage() {
           .join(', ');
 
         const email = form.email.trim();
+        // Снимок принятых документов: форма могла не открываться — тогда она
+        // формируется сейчас, моментом принятия (§ 6 договора: бремя доказательства на продавце).
+        const acceptedAt = new Date();
+        const legal = buildLegalPayload(legalDocInput ?? buildLegalDocInput(acceptedAt), acceptedAt);
         const orderRes = await createOrder({
           customer: {
             name: form.name,
@@ -662,6 +669,7 @@ export default function CheckoutPage() {
           // ARM addresses the guest welcome ("set your password") email with this
           // raw tag — without it a Turkish buyer would get English copy.
           locale,
+          legal,
         });
         // The amount travels with the id: from here on the live basket no
         // longer describes what is being paid. ARM charges the order total minus

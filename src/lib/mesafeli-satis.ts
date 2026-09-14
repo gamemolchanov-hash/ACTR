@@ -34,6 +34,9 @@ import {
 import { ON_BILGILENDIRME_DOC_CODE } from './on-bilgilendirme-formu-content';
 
 /** Same order snapshot the OBF is built from; the contract adds no new inputs. */
+/** Код версии договора юриста (шапка шаблона `mesafeli-satis-content.ts`); уходит в снимок заказа. */
+export const MESAFELI_SATIS_DOC_CODE = 'KK-MSS-2026-V4';
+
 export type BuildMesafeliSatisInput = BuildOnBilgilendirmeInput;
 
 export interface MesafeliSatisData {

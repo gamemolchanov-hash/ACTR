@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { OrderLegalPayload } from './legal-snapshot';
 
 import {
   ENDPOINTS,
@@ -256,6 +257,12 @@ export interface CreateOrderPayload {
    * omitting it hands a Turkish buyer an English email.
    */
   locale: string;
+  /**
+   * Снимок принятых юридических документов (Ön Bilgilendirme + Mesafeli Satış,
+   * `legal-snapshot.ts`): ARM хранит их на заказе, прикладывает PDF к письму
+   * подтверждения и отдаёт в кабинете.
+   */
+  legal?: OrderLegalPayload;
 }
 
 /**
@@ -281,6 +288,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
   if (hasJwt && typeof payload.walletAmountToApply === 'number' && payload.walletAmountToApply > 0) {
     body.walletAmountToApply = payload.walletAmountToApply;
   }
+  if (payload.legal) body.legal = payload.legal;
   const { data } = await api.post(ENDPOINTS.orders, body, {
     headers: { ...currencyHeader(), ...auth },
   });
