@@ -36,7 +36,6 @@ const baseProduct: Product = {
   slug: '198',
   description: 'Базовое покрытие для гель-лака. Надёжное сцепление.',
   price: 1100,
-  wholesale_price: 770,
   weight: 0.03,
   volume: 0.000015,
   length: 80,

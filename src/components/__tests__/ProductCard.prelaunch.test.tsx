@@ -46,7 +46,6 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     slug: 'test-product',
     description: null,
     price: 1000,
-    wholesale_price: null,
     weight: null,
     volume: null,
     length: null,

@@ -50,7 +50,6 @@ export function armToProduct(dp: ArmDistributorProduct): Product {
     video_url: p.video_url ?? null,
     volume_ml: p.volume_ml ?? null,
     price: Number(dp.price),
-    wholesale_price: dp.wholesale_price ?? null,
     weight: p.weight ?? null,
     volume: null,
     length: null,

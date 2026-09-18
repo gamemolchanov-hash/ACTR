@@ -24,7 +24,6 @@ const product: Product = {
   usage_text: XSS_PAYLOAD,
   application_text: XSS_PAYLOAD,
   price: 1000,
-  wholesale_price: null,
   weight: null,
   volume: null,
   length: null,

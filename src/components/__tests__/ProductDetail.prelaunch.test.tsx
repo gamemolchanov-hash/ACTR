@@ -33,7 +33,6 @@ const product: Product = {
   usage_text: null,
   application_text: null,
   price: 1250,
-  wholesale_price: null,
   weight: null,
   volume: null,
   length: null,

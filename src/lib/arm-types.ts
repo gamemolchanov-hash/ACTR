@@ -33,7 +33,6 @@ export interface ArmProductInner {
 export interface ArmDistributorProduct {
   id: string;
   price: string | number;
-  wholesale_price?: number | null;
   compare_at_price?: number | null;
   stock_available: number | null;
   badge?: string | null;

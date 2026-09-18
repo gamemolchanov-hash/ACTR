@@ -28,7 +28,6 @@ const products: Product[] = [
     slug: '198',
     description: null,
     price: 1100,
-    wholesale_price: null,
     weight: null,
     volume: null,
     length: null,

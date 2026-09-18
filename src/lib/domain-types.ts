@@ -27,7 +27,6 @@ export interface Product {
   video_url?: string | null;
   volume_ml?: number | null;
   price: number;
-  wholesale_price: number | null;
   weight: number | null;
   volume: number | null;
   length: number | null;
