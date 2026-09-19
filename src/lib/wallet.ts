@@ -89,6 +89,8 @@ const CHECKOUT_ERROR_CODES = new Set([
   'wallet_unavailable',
   'token_revoked',
   'account_deactivated',
+  // 19.09.2026: the destination is outside the zone of the warehouse.
+  'unsupported_destination',
 ]);
 
 /** i18n key for a known checkout error code, or null → use the server text. */

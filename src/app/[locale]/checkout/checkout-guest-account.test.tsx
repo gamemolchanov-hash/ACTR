@@ -26,6 +26,8 @@ const apiMock = vi.hoisted(() => ({
   createOrder: vi.fn(),
   createPaymentSession: vi.fn(),
   fetchOrder: vi.fn(),
+  // One-country warehouse: the form picks TR itself, as the page defaulted before.
+  fetchCountries: vi.fn(async () => [{ code: 'TR', name: 'Turkey' }]),
 }));
 const assign = vi.hoisted(() => vi.fn());
 const query = vi.hoisted(() => ({ value: new URLSearchParams() }));

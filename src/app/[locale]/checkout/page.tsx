@@ -38,6 +38,8 @@ import {
   validateCart,
   validatePromo,
   fetchShippingRates,
+  fetchCountries,
+  type ShippingCountry,
   createOrder,
   createPaymentSession,
   type ValidatedCartItem,
@@ -163,7 +165,7 @@ interface FormData {
   email: string;
   name: string;
   phone: string;
-  /** ISO-3166-1 alpha-2, default TR */
+  /** ISO-3166-1 alpha-2; empty until picked (or the warehouse ships to one country only). */
   country: string;
   city: string;
   street: string;
@@ -177,7 +179,7 @@ const INITIAL_FORM: FormData = {
   email: '',
   name: '',
   phone: '',
-  country: 'TR',
+  country: '',
   city: '',
   street: '',
   building: '',
@@ -186,22 +188,17 @@ const INITIAL_FORM: FormData = {
   zip: '',
 };
 
-/** Countries available in the TR-focused checkout. ISO-2 code + display name. */
-const COUNTRIES: { code: string; name: string }[] = [
-  { code: 'TR', name: 'Turkey' },
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'FR', name: 'France' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'AE', name: 'United Arab Emirates' },
-];
+/**
+ * The countries the warehouse ships to come from ARM (`GET /countries`,
+ * 19.09.2026) — the zone of the `ac-tr` warehouse. Until they load, or if the
+ * read fails, the select is empty and the form cannot proceed past the address:
+ * a country the warehouse does not serve is refused by ARM anyway
+ * (`unsupported_destination`).
+ */
 
 /** Single-line address for the Ön Bilgilendirme Formu (billing == shipping here). */
-function formatObfAddress(f: FormData): string {
-  const countryName = COUNTRIES.find((ct) => ct.code === f.country)?.name || f.country;
+function formatObfAddress(f: FormData, countries: ShippingCountry[]): string {
+  const countryName = countries.find((ct) => ct.code === f.country)?.name || f.country;
   return [
     f.street,
     f.building && `No: ${f.building}`,
@@ -243,6 +240,31 @@ export default function CheckoutPage() {
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
+
+  // Shipping destinations of the warehouse; refetched when the currency (and so
+  // the warehouse) changes.
+  const [countries, setCountries] = useState<ShippingCountry[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetchCountries()
+      .then((list) => {
+        if (!alive) return;
+        setCountries(list);
+        setForm((prev) => {
+          if (list.length === 1) return { ...prev, country: list[0].code };
+          if (prev.country && !list.some((ct) => ct.code === prev.country)) {
+            return { ...prev, country: '' };
+          }
+          return prev;
+        });
+      })
+      .catch(() => {
+        if (alive) setCountries([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [currency]);
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -551,7 +573,7 @@ export default function CheckoutPage() {
   const buildLegalDocInput = (generatedAt: Date): BuildOnBilgilendirmeInput => ({
       generatedAt,
       customer: { name: form.name, phone: form.phone, email: form.email },
-      address: formatObfAddress(form),
+      address: formatObfAddress(form, countries),
       currencyLabel: currency === 'TRY' ? 'TL' : currency,
       items: validated
         .filter((v) => v.valid)
@@ -1094,7 +1116,7 @@ export default function CheckoutPage() {
               renderValue={(selected) =>
                 selected ? (
                   <Typography sx={{ color: c.main, fontSize: '16px' }}>
-                    {COUNTRIES.find((ct) => ct.code === selected)?.name || selected}
+                    {countries.find((ct) => ct.code === selected)?.name || selected}
                   </Typography>
                 ) : (
                   <Typography sx={{ color: c['20'], fontSize: '16px' }}>Select country</Typography>
@@ -1102,7 +1124,7 @@ export default function CheckoutPage() {
               }
               sx={selectSx}
             >
-              {COUNTRIES.map((ct) => (
+              {countries.map((ct) => (
                 <MenuItem key={ct.code} value={ct.code}>
                   {ct.name}
                 </MenuItem>

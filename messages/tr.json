@@ -180,6 +180,7 @@
   "checkout.errors.paymentSessionFailed": "Siparişiniz oluşturuldu ancak ödemeyi başlatamadık. Ödemeyi yeniden denemek için düğmeye tekrar basın — ikinci bir sipariş oluşturulmaz.",
   "checkout.errors.paymentUnavailable": "Siparişiniz oluşturuldu ancak ödemesini başlatamıyoruz — ödeme için lütfen bizimle iletişime geçin veya aşağıdan yeni bir sipariş oluşturun.",
   "checkout.errors.token_revoked": "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.",
+  "checkout.errors.unsupported_destination": "Bu ülkeye bu depodan gönderim yapamıyoruz. Lütfen başka bir ülke seçin.",
   "checkout.errors.wallet_promo_conflict": "Promosyon kodu ve cüzdan ödemesi birlikte kullanılamaz. Devam etmek için birini kaldırın.",
   "checkout.errors.wallet_requires_auth": "Cüzdanınızla ödemek için lütfen giriş yapın.",
   "checkout.errors.wallet_unavailable": "Cüzdan ödemesi şu anda kullanılamıyor — tutarın tamamını kartla ödeyebilirsiniz.",

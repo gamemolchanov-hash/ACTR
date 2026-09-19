@@ -120,6 +120,24 @@ export async function fetchProduct(id: string, locale?: string): Promise<{ data:
   return { data: armToProduct(data.data) };
 }
 
+/** A shipping destination of the current warehouse — `GET /countries`. */
+export interface ShippingCountry {
+  code: string;
+  name: string;
+}
+
+/**
+ * Countries the current warehouse ships to (19.09.2026). ARM resolves the
+ * warehouse from X-Currency, so the list follows the currency — refetch when
+ * it changes. Sorted by ARM (`sort`, name).
+ */
+export async function fetchCountries(): Promise<ShippingCountry[]> {
+  const { data } = await api.get<{ data: ShippingCountry[] }>(ENDPOINTS.countries, {
+    headers: currencyHeader(),
+  });
+  return Array.isArray(data?.data) ? data.data : [];
+}
+
 export async function fetchCategories(): Promise<{ data: Category[] }> {
   if (USE_MOCKS) return { data: MOCK_CATEGORIES };
   const { data } = await api.get<{ data: ArmCategory[] }>(ENDPOINTS.categories, {

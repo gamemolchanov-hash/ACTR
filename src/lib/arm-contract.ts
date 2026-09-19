@@ -88,6 +88,9 @@ export const ENDPOINTS = {
   product: (idOrSlug: string) => `/products/${idOrSlug}`,
   categories: '/categories',
   config: '/config',
+  // Shipping destinations of the current warehouse (19.09.2026): the checkout's
+  // country list comes from here, not from a list in the page.
+  countries: '/countries',
   cartValidate: '/cart/validate',
   promoValidate: '/promo/validate',
   walletValidate: '/wallet/validate',
