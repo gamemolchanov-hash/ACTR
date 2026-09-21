@@ -136,7 +136,7 @@ export function Footer() {
             {/* FBG-229: intrinsic width/height (480×114) let the browser reserve the
                 aspect-ratio box before the PNG loads → no footer shift (CLS). */}
             <img
-              src="/icons/logo-white.svg"
+              src="/icons/logo-white.svg?v=2"
               alt="American Creator"
               width={480}
               height={114}
@@ -208,7 +208,7 @@ export function Footer() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* FBG-229: intrinsic size reserves the aspect-ratio box (see desktop logo). */}
             <img
-              src="/icons/logo-white.svg"
+              src="/icons/logo-white.svg?v=2"
               alt="American Creator"
               width={480}
               height={114}

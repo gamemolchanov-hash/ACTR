@@ -175,7 +175,7 @@ export function Header() {
         }}
       >
         <Link href="/">
-          <img src="/logo.svg" alt="American Creator" style={{ width: 240, height: 57 }} />
+          <img src="/logo.svg?v=2" alt="American Creator" style={{ width: 240, height: 57 }} />
         </Link>
 
         <Box sx={{ ml: 3, display: { xs: 'none', lg: 'block' } }}>
@@ -460,7 +460,7 @@ export function Header() {
       >
         <Link href="/" style={{ flexShrink: 0 }}>
           {/* Smaller mark on xs so logo + name + EN/TR + cart + burger fit 320px (FBG-429) */}
-          <img src="/logo.svg" alt="American Creator" style={{ height: 24, width: 'auto' }} />
+          <img src="/logo.svg?v=2" alt="American Creator" style={{ height: 24, width: 'auto' }} />
         </Link>
         <Box sx={{ flex: 1 }} />
         {!!customer ? (

@@ -49,7 +49,7 @@ describe('Footer CLS (FBG-229)', () => {
   it('reserves the correct aspect ratio for both logos (intrinsic 480×114)', () => {
     const { container } = render(<Footer />);
     const logos = Array.from(
-      container.querySelectorAll('img[src="/icons/logo-white.svg"]'),
+      container.querySelectorAll('img[src="/icons/logo-white.svg?v=2"]'),
     );
 
     // Desktop + mobile variants are both in the DOM (toggled via CSS display).
