@@ -29,6 +29,7 @@ import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
 import { FitText } from '@/components/FitText';
+import { CartQtyBadge } from '@/components/CartQtyBadge';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -194,7 +195,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
-  const { addItem } = useCart();
+  const { addItem, items: cartItems = [] } = useCart();
   const { items: recentlyViewed, addViewed } = useRecentlyViewed(productId);
   const recentScrollRef = useRef<HTMLDivElement>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -823,28 +824,31 @@ export function ProductDetail({ productId }: ProductDetailProps) {
               </IconButton>
             </Box>
 
-            {/* Add to cart button */}
-            <Button
-              variant="contained"
-              startIcon={<ShoppingCartOutlinedIcon />}
-              onClick={handleAddToCart}
-              disabled={available <= 0}
-              sx={{
-                bgcolor: palette.primary,
-                borderRadius: '10px',
-                px: '40px',
-                py: '15px',
-                fontFamily: fontMain,
-                fontWeight: 500,
-                fontSize: 18,
-                lineHeight: '21px',
-                textTransform: 'none',
-                height: '51px',
-                '&:hover': { bgcolor: '#2a3d85' },
-              }}
-            >
-              {t('product.addToCart')}
-            </Button>
+            {/* Add to cart — красный кружок с количеством этого товара в корзине (порт с ACRU 22.09) */}
+            <CartQtyBadge count={cartItems.find((c) => c.productId === product.id)?.quantity ?? 0}>
+              <Button
+                data-testid="sf-product-add-to-cart"
+                variant="contained"
+                startIcon={<ShoppingCartOutlinedIcon />}
+                onClick={handleAddToCart}
+                disabled={available <= 0}
+                sx={{
+                  bgcolor: palette.primary,
+                  borderRadius: '10px',
+                  px: '40px',
+                  py: '15px',
+                  fontFamily: fontMain,
+                  fontWeight: 500,
+                  fontSize: 18,
+                  lineHeight: '21px',
+                  textTransform: 'none',
+                  height: '51px',
+                  '&:hover': { bgcolor: '#2a3d85' },
+                }}
+              >
+                {t('product.addToCart')}
+              </Button>
+            </CartQtyBadge>
           </Box>
         </Grid>
       </Grid>

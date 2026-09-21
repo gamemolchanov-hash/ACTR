@@ -73,7 +73,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     }
   }, [searchParams, categorySlug]);
 
-  const { addItem } = useCart();
+  const { addItem, items: cartItems = [] } = useCart();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const { data: categoriesData } = useQuery({
@@ -506,6 +506,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                     product={product}
                     index={i}
                     onAddToCart={addItem}
+                    inCartQuantity={cartItems.find((c) => c.productId === product.id)?.quantity ?? 0}
                   />
                 ))}
               </Box>

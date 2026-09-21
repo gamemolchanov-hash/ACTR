@@ -12,10 +12,13 @@ import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
+import { CartQtyBadge } from '@/components/CartQtyBadge';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (productId: string, quantity: number) => void;
+  /** Сколько этого товара уже в корзине — красный кружок на кнопке (0 — без кружка). */
+  inCartQuantity?: number;
   /** 0-based position in the catalog grid. Leading cards get LCP priority. */
   index?: number;
 }
@@ -27,7 +30,7 @@ interface ProductCardProps {
  */
 const PRIORITY_CARD_COUNT = 4;
 
-export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 0 }: ProductCardProps) {
   const t = useTranslations();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
@@ -213,32 +216,34 @@ export function ProductCard({ product, onAddToCart, index = 0 }: ProductCardProp
             </IconButton>
           </Box>
 
-          {/* Add to cart */}
-          <Box
-            component="button"
-            onClick={() => onAddToCart?.(product.id, quantity)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: `1px solid ${palette.primary}`,
-              borderRadius: '10px',
-              height: 40,
-              flex: 1,
-              bgcolor: palette.primary,
-              color: 'white',
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
-              fontSize: 14,
-              fontWeight: 450,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              '&:hover': { bgcolor: '#2a3d85' },
-              '&:disabled': { opacity: 0.5, cursor: 'default' },
-            }}
-            disabled={available <= 0}
-          >
-            {t('catalog.addToCart')}
-          </Box>
+          {/* Add to cart — красный кружок с количеством этого товара в корзине (порт с ACRU 22.09) */}
+          <CartQtyBadge count={inCartQuantity} sx={{ flex: 1, display: 'flex' }}>
+            <Box
+              component="button"
+              onClick={() => onAddToCart?.(product.id, quantity)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${palette.primary}`,
+                borderRadius: '10px',
+                height: 40,
+                width: '100%',
+                bgcolor: palette.primary,
+                color: 'white',
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+                fontSize: 14,
+                fontWeight: 450,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                '&:hover': { bgcolor: '#2a3d85' },
+                '&:disabled': { opacity: 0.5, cursor: 'default' },
+              }}
+              disabled={available <= 0}
+            >
+              {t('catalog.addToCart')}
+            </Box>
+          </CartQtyBadge>
         </Box>
       </Box>
     </Card>
