@@ -26,13 +26,20 @@ export interface Product {
   badge?: string | null;
   video_url?: string | null;
   volume_ml?: number | null;
+  /** Активная авто-акция каталога (ARM `active_promo`): чип «1+1». */
+  active_promo?: { code: string; label: string; discount_type: string } | null;
   price: number;
+  /** Creator Club: цена участника и его ставка — только залогиненному на «цветники». */
+  member_price?: number | null;
+  member_discount_rate?: number | null;
   weight: number | null;
   volume: number | null;
   length: number | null;
   width: number | null;
   height: number | null;
   bp_available: number | null;
+  /** Цветовая группа цветника (фильтр «Цвет» каталога) */
+  color_group?: string | null;
   category: { id: string; name: string; slug: string } | null;
   images?: ProductImage[];
   date_created: string;

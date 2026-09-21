@@ -23,6 +23,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useRouter as useNextRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { routing } from '@/i18n/routing';
+
+// Телефон витрины — build-time env; у american-creator.ru публичного телефона нет,
+// поэтому пустое значение просто прячет блок (часы работы остаются).
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE || '';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { palette } from '@/lib/theme';
@@ -31,6 +36,7 @@ import { imgThumb } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import { useLoyaltyProgram } from '@/providers/LoyaltyProgramProvider';
 import { persistLocalePreference } from '@/lib/consent';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
@@ -46,12 +52,24 @@ export function Header() {
   const locale = useLocale();
   const t = useTranslations();
   const { totalQuantity } = useCart();
-  const { customer, signOut } = useAuth();
+  const { customer, signOut, loyalty } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Компактная шапка при прокрутке (образец — forza-brava.com, владелец 21.09): на телефоне
+  // сервисная строка (меню / «Войти») схлопывается, остаётся строка логотип/поиск/корзина.
+  // Порог с ГИСТЕРЕЗИСОМ (вкл при > 90, выкл при < 30): одиночный порог зацикливается —
+  // схлопывание меняет высоту шапки (~20 px) → сдвиг scrollY → повторное пересечение порога.
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const onScroll = () =>
+      setCompact((prev) => (prev ? window.scrollY > 30 : window.scrollY > 90));
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   // React 19 types: useRef requires an initial value (no zero-arg overload).
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -153,8 +171,11 @@ export function Header() {
     <AppBar
       position="sticky"
       elevation={0}
+      data-compact={compact ? 'true' : 'false'}
       sx={{
-        // Телефон: «мутное стекло» как у forza-brava.com (порт с ACRU 22.09) — фон 45 % + blur 24 px.
+        // Телефон: «мутное стекло» как у forza-brava.com — там фона у шапки нет вовсе, только
+        // backdrop-blur 24 px; здесь лёгкий белый оттенок ради читаемости логотипа (владелец 21.09:
+        // «прозрачнее, как на forza-brava»).
         bgcolor: { xs: 'rgba(255,255,255,0.45)', sm: 'white' },
         backdropFilter: { xs: 'blur(24px) saturate(1.3)', sm: 'none' },
         WebkitBackdropFilter: { xs: 'blur(24px) saturate(1.3)', sm: 'none' },
@@ -179,31 +200,26 @@ export function Header() {
         </Link>
 
         <Box sx={{ ml: 3, display: { xs: 'none', lg: 'block' } }}>
-          <Typography
-            sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-              fontSize: 20,
-              fontWeight: 500,
-              lineHeight: '26px',
-              color: palette.primary,
-            }}
-          >
-            +90 538 608 96 04
-          </Typography>
-          <Typography
-            sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-              fontSize: 14,
-              fontWeight: 300,
-              lineHeight: '14px',
-              color: palette.primary,
-            }}
-          >
-            {t('common.workingHours')}
-          </Typography>
+          {CONTACT_PHONE && (
+            <Typography
+              sx={{
+                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                fontSize: 20,
+                fontWeight: 500,
+                lineHeight: '26px',
+                color: palette.primary,
+              }}
+            >
+              {CONTACT_PHONE}
+            </Typography>
+          )}
+
         </Box>
 
-        <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
+        {/* touchEvent=false: десктопный и мобильный списки делят одно состояние, и на телефоне
+            скрытый «чужой» ClickAwayListener закрывал подсказки по touchend — раньше click,
+            тап проваливался в баннер под списком (/delivery). Закрываем только по click. */}
+        <ClickAwayListener onClickAway={() => setShowSuggestions(false)} touchEvent={false}>
           <Box sx={{ position: 'relative', flex: 1, maxWidth: { lg: 530 } }}>
             <Box
               sx={{
@@ -363,9 +379,10 @@ export function Header() {
           </Box>
         </ClickAwayListener>
 
-        {/* Language switcher */}
+        {/* Language switcher — только когда локалей больше одной (ACRU: ru) */}
+        {routing.locales.length > 1 && (
         <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-          {(['en', 'tr'] as const).map((lng) => (
+          {routing.locales.map((lng) => (
             <Box
               key={lng}
               component="button"
@@ -388,6 +405,69 @@ export function Header() {
             </Box>
           ))}
         </Box>
+        )}
+
+        {/* Пилюля Creator Club как на american-creator.ru: баланс + XP у участника,
+            «Вступить» у гостя; только у подтверждённой программы (FBG-469). */}
+        {loyaltyProgram === CASHBACK_WALLET_PROGRAM && (!customer || loyalty) && (
+          <Box
+            component={Link}
+            href="/rewards"
+            data-testid="sf-header-club-pill"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              height: 44,
+              px: 1.5,
+              borderRadius: '999px',
+              border: `1px solid ${palette.primary}40`,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'border-color 0.15s',
+              '&:hover': { borderColor: palette.primary },
+            }}
+          >
+            <StarBorderRoundedIcon sx={{ fontSize: 20, color: palette.primary }} />
+            {customer && loyalty ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <Typography
+                  sx={{
+                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    lineHeight: '16px',
+                    color: palette.primary,
+                  }}
+                >
+                  {fmtMoney(Number(loyalty.wallet_balance) || 0, currency, formatLocale)}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 400,
+                    lineHeight: '12px',
+                    color: palette.primaryLight,
+                  }}
+                >
+                  {`${(Number(loyalty.xp_active) || 0).toLocaleString(formatLocale)} XP`}
+                </Typography>
+              </Box>
+            ) : (
+              <Typography
+                sx={{
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: palette.primary,
+                }}
+              >
+                {t('common.clubJoin')}
+              </Typography>
+            )}
+          </Box>
+        )}
 
         {!!customer ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -407,6 +487,7 @@ export function Header() {
             <MuiLink
               component="button"
               onClick={signOut}
+              data-testid="sf-header-logout"
               underline="none"
               sx={{
                 fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
@@ -422,7 +503,11 @@ export function Header() {
             </MuiLink>
           </Box>
         ) : (
-          <Link href="/login" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link
+            href="/login"
+            data-testid="sf-header-login"
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
             <img src="/icons/login.svg" alt={t('common.signIn')} style={{ width: 86, height: 33 }} />
           </Link>
         )}
@@ -447,55 +532,71 @@ export function Header() {
         </Link>
       </Box>
 
-      {/* ===== MOBILE (xs only): two rows ===== */}
-      {/* Mobile: single row — logo + sign in + cart + burger */}
+      {/* ===== MOBILE (xs only): сервисная строка + логотип/поиск/корзина (образец — forza-brava.com, 21.09.2026) ===== */}
+      <Box sx={{ display: { xs: 'block', sm: 'none' }, px: 1.5, pt: 0.5, pb: 1 }}>
+      {/* Row 1: меню слева, язык и вход/имя справа */}
       <Box
+        data-testid="sf-header-utility-row"
+        aria-hidden={compact}
         sx={{
-          display: { xs: 'flex', sm: 'none' },
+          display: 'flex',
           alignItems: 'center',
-          px: 1.5,
-          height: 56,
-          gap: 0.75,
+          justifyContent: 'space-between',
+          // Полоса вдвое тоньше (владелец 21.09): 16 px вместо 30, иконка меню 20 px.
+          // При прокрутке (compact) строка схлопывается в 0 — как верхняя строка forza-brava.com.
+          height: compact ? 0 : 16,
+          mb: compact ? 0 : 0.5,
+          opacity: compact ? 0 : 1,
+          visibility: compact ? 'hidden' : 'visible',
+          overflow: 'hidden',
+          transition: 'height .3s ease, margin .3s ease, opacity .3s ease, visibility .3s',
+          gap: 1,
         }}
       >
-        <Link href="/" style={{ flexShrink: 0 }}>
-          {/* Smaller mark on xs so logo + name + EN/TR + cart + burger fit 320px (FBG-429) */}
-          <img src="/logo.svg?v=2" alt="American Creator" style={{ height: 24, width: 'auto' }} />
-        </Link>
-        <Box sx={{ flex: 1 }} />
-        {!!customer ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: -0.75 }}>
+        <IconButton
+          onClick={() => setMenuOpen(true)}
+          data-testid="sf-header-menu"
+          sx={{ p: 0, flexShrink: 0, height: 20 }}
+        >
+          <MenuIcon sx={{ fontSize: 20, color: palette.primary }} />
+        </IconButton>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
+        {!!customer && (
           <MuiLink
             component={Link}
             href="/account"
+            data-testid="sf-header-account"
             underline="none"
             sx={{
               fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-              fontSize: 14,
+              fontSize: 13,
               color: palette.primary,
               whiteSpace: 'nowrap',
+              maxWidth: 120,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: 96,
-              minWidth: 0,
-              flexShrink: 1,
             }}
           >
             {customer?.name?.split(' ')[0] || t('common.cabinet')}
           </MuiLink>
-        ) : (
+        )}
+        {!customer && (
           <MuiLink
             component={Link}
             href="/login"
+            data-testid="sf-header-login"
             underline="none"
             sx={{
+              display: 'flex',
+              alignItems: 'center',
+              minHeight: 16,
               fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-              fontSize: 14,
+              fontSize: 13,
+              lineHeight: '16px',
               color: palette.primary,
               whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              minWidth: 0,
-              flexShrink: 1,
             }}
           >
             {t('common.signIn')}
@@ -503,8 +604,9 @@ export function Header() {
         )}
 
         {/* Language switcher — replaces Sign Out on mobile (FBG-429); Sign Out moved to Drawer */}
+        {routing.locales.length > 1 && (
         <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-          {(['en', 'tr'] as const).map((lng) => (
+          {routing.locales.map((lng) => (
             <Box
               key={lng}
               component="button"
@@ -528,34 +630,20 @@ export function Header() {
             </Box>
           ))}
         </Box>
-        <Link href="/basket" style={{ flexShrink: 0, display: 'flex' }}>
-          <Badge
-            badgeContent={totalQuantity}
-            invisible={totalQuantity === 0}
-            sx={{
-              '& .MuiBadge-badge': {
-                bgcolor: palette.cartBadge,
-                color: 'white',
-                fontSize: 10,
-                minWidth: 16,
-                height: 16,
-                top: 4,
-                right: 4,
-              },
-            }}
-          >
-            <img src="/icons/cart.svg" alt={t('common.cart')} style={{ width: 28, height: 26 }} />
-          </Badge>
-        </Link>
-        <IconButton onClick={() => setMenuOpen(true)} sx={{ p: 0.25, flexShrink: 0 }}>
-          <MenuIcon sx={{ fontSize: 24, color: palette.primary }} />
-        </IconButton>
+        )}
+        </Box>
       </Box>
 
-      {/* Mobile row 2: search bar */}
-      <Box sx={{ display: { xs: 'block', sm: 'none' }, px: 1.5, pb: 1 }}>
-        <ClickAwayListener onClickAway={() => setShowSuggestions(false)}>
-          <Box sx={{ position: 'relative' }}>
+      {/* Row 2: логотип + поиск + клуб + корзина */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: 48 }}>
+        <Link href="/" style={{ flexShrink: 0, display: 'flex' }}>
+          <img src="/logo.svg?v=2" alt="American Creator" style={{ height: 8, width: 'auto' }} />
+        </Link>
+        {/* touchEvent=false: десктопный и мобильный списки делят одно состояние, и на телефоне
+            скрытый «чужой» ClickAwayListener закрывал подсказки по touchend — раньше click,
+            тап проваливался в баннер под списком (/delivery). Закрываем только по click. */}
+        <ClickAwayListener onClickAway={() => setShowSuggestions(false)} touchEvent={false}>
+          <Box sx={{ position: 'relative', flex: 1, minWidth: 0 }}>
             <Box
               sx={{
                 display: 'flex',
@@ -564,8 +652,8 @@ export function Header() {
                 borderRadius: '10px',
                 px: 1.5,
                 width: '100%',
-                height: 36,
-                // Полупрозрачное поле — сквозь «стекло» виден каталог
+                height: 40,
+                // Полупрозрачное поле — сквозь «стекло» шапки виден каталог (как у forza-brava.com).
                 bgcolor: 'rgba(255,255,255,0.35)',
               }}
             >
@@ -713,6 +801,98 @@ export function Header() {
             )}
           </Box>
         </ClickAwayListener>
+        {loyaltyProgram === CASHBACK_WALLET_PROGRAM && !customer && (
+          <MuiLink
+            component={Link}
+            href="/rewards"
+            data-testid="sf-header-club-pill"
+            underline="none"
+            sx={{
+              // Круглая кнопка со звездой без слова — не отъедает место у поиска
+              // (владелец 21.09); подпись «Вступить» — в aria-label и title.
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              // Круглая кнопка: светло-синий контур и контурная звезда, как у пилюли клуба
+              // на десктопе (первый вариант, выбран владельцем 21.09).
+              border: `1px solid ${palette.primary}40`,
+              bgcolor: 'white',
+              flexShrink: 0,
+              color: palette.primary,
+              '&:hover': { borderColor: palette.primary },
+            }}
+            aria-label={t('common.clubJoin')}
+            title={t('common.clubJoin')}
+          >
+            <StarBorderRoundedIcon sx={{ fontSize: 20 }} />
+          </MuiLink>
+        )}
+        {/* Участник клуба: баланс · XP одной строкой (имя — справа, «Выйти» — в бургер-меню) */}
+        {loyaltyProgram === CASHBACK_WALLET_PROGRAM && !!customer && loyalty && (
+          <Box
+            component={Link}
+            href="/rewards"
+            data-testid="sf-header-club-pill"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              height: 36,
+              px: 1,
+              borderRadius: '999px',
+              border: `1px solid ${palette.primary}40`,
+              flexShrink: 0,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+            }}
+          >
+            {/* Две строки мелким шрифтом, чтобы не отъедать место у поиска (владелец 21.09). */}
+            <StarBorderRoundedIcon sx={{ fontSize: 14, color: palette.primary }} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, lineHeight: '12px', color: palette.primary, fontFamily: 'inherit' }}>
+                {fmtMoney(Number(loyalty.wallet_balance) || 0, currency, formatLocale)}
+              </Typography>
+              <Typography sx={{ fontSize: 9, lineHeight: '11px', color: palette.primaryLight, fontFamily: 'inherit' }}>
+                {`${(Number(loyalty.xp_active) || 0).toLocaleString(formatLocale)} XP`}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+        <Link
+          href="/basket"
+          data-testid="sf-header-cart"
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 40,
+            minHeight: 40,
+          }}
+        >
+          <Badge
+            badgeContent={totalQuantity}
+            invisible={totalQuantity === 0}
+            sx={{
+              '& .MuiBadge-badge': {
+                bgcolor: palette.cartBadge,
+                color: 'white',
+                fontSize: 10,
+                minWidth: 16,
+                height: 16,
+                top: 4,
+                right: 4,
+              },
+            }}
+          >
+            <img src="/icons/cart.svg" alt={t('common.cart')} style={{ width: 28, height: 26 }} />
+          </Badge>
+        </Link>
+      </Box>
       </Box>
 
       {/* ===== DESKTOP NAV BAR (sm+) ===== */}
@@ -788,8 +968,9 @@ export function Header() {
         </Box>
 
         {/* Mobile language switcher */}
+        {routing.locales.length > 1 && (
         <Box sx={{ display: 'flex', gap: 1, px: 2, pb: 1 }}>
-          {(['en', 'tr'] as const).map((lng) => (
+          {routing.locales.map((lng) => (
             <Box
               key={lng}
               component="button"
@@ -815,6 +996,7 @@ export function Header() {
             </Box>
           ))}
         </Box>
+        )}
 
         <List>
           {NAV_ITEMS.map((item) => {

@@ -87,6 +87,7 @@ export const ENDPOINTS = {
   products: '/products',
   product: (idOrSlug: string) => `/products/${idOrSlug}`,
   categories: '/categories',
+  colorGroups: '/color-groups',
   config: '/config',
   // Shipping destinations of the current warehouse (19.09.2026): the checkout's
   // country list comes from here, not from a list in the page.

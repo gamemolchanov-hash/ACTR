@@ -71,6 +71,8 @@ export async function fetchProducts(params?: {
   search?: string;
   sort?: string;
   inStock?: string;
+  /** Ключ цветовой группы (фильтр «Цвет») */
+  colorGroup?: string;
 }): Promise<PaginatedResponse<Product>> {
   if (USE_MOCKS) {
     let items = [...MOCK_PRODUCTS];
@@ -136,6 +138,23 @@ export async function fetchCountries(): Promise<ShippingCountry[]> {
     headers: currencyHeader(),
   });
   return Array.isArray(data?.data) ? data.data : [];
+}
+
+/** Фасет фильтра по цвету: группа, метка, число товаров в текущей выборке (порт с ACRU). */
+export interface ColorGroupFacet {
+  key: string;
+  label: string;
+  count: number;
+}
+
+/** Какие цветовые группы есть в категории (пусто — фильтр не показывать). */
+export async function fetchColorGroups(params: {
+  category?: string;
+  inStock?: string;
+}): Promise<{ data: ColorGroupFacet[] }> {
+  if (USE_MOCKS) return { data: [] };
+  const { data } = await api.get(ENDPOINTS.colorGroups, { params, headers: currencyHeader() });
+  return data;
 }
 
 export async function fetchCategories(): Promise<{ data: Category[] }> {

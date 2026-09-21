@@ -30,6 +30,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 // Hook
 // ---------------------------------------------------------------------------
 
+export function useCustomerId(): string | null {
+  return useContext(AuthContext)?.customer?.id ?? null;
+}
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

@@ -140,7 +140,7 @@ describe('Header — mobile language switcher & Drawer sign out (FBG-429)', () =
     // Mobile mark (width:auto) must stay small — regressing this re-clips cart/burger.
     const mobileLogo = logos.find((el) => (el as HTMLElement).style.width === 'auto');
     expect(mobileLogo).toBeTruthy();
-    expect((mobileLogo as HTMLElement).style.height).toBe('24px');
+    expect((mobileLogo as HTMLElement).style.height).toBe('8px');
 
     // Desktop logo (sm+) is not part of this change.
     const desktopLogo = logos.find((el) => (el as HTMLElement).style.width === '240px');

@@ -432,5 +432,10 @@
   "ticariIleti.savedEmail": "E-posta ileti tercihiniz kaydedildi.",
   "ticariIleti.savedMesaj": "Mesaj ileti tercihiniz kaydedildi.",
   "ticariIleti.smsLabel": "American Creator tarafından kampanya, indirim, yeni ürün, yeniden stok ve özel tekliflere ilişkin ticari elektronik iletilerin cep telefonuma mesaj (SMS) yoluyla gönderilmesini kabul ediyorum. Ticari Elektronik İleti Bilgilendirmesi’ni inceledim; onayımı dilediğim zaman ücretsiz olarak geri alabileceğimi biliyorum.",
-  "ticariIleti.whatsappLabel": "American Creator tarafından kampanya, indirim, yeni ürün ve özel tekliflere ilişkin ticari elektronik iletilerin WhatsApp hesabıma gönderilmesini kabul ediyorum. Bu seçimin İYS’de “MESAJ” kanalıyla yönetileceğini ve onayımı ücretsiz olarak geri alabileceğimi biliyorum."
+  "ticariIleti.whatsappLabel": "American Creator tarafından kampanya, indirim, yeni ürün ve özel tekliflere ilişkin ticari elektronik iletilerin WhatsApp hesabıma gönderilmesini kabul ediyorum. Bu seçimin İYS’de “MESAJ” kanalıyla yönetileceğini ve onayımı ücretsiz olarak geri alabileceğimi biliyorum.",
+  "catalog.allShort": "All",
+  "catalog.productsCount": "{count, plural, one {# product} other {# products}}",
+  "catalog.volumeMl": "{ml} ml",
+  "common.clubJoin": "Join",
+  "memberPrice.badge": "−{percent}% Creator Club"
 }

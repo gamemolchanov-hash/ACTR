@@ -2,6 +2,7 @@
 
 import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
@@ -12,6 +13,8 @@ import { imgCard } from '@/lib/image-url';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
+import { memberPriceOf } from '@/lib/member-price';
+import { MemberPriceBadge } from '@/components/MemberPriceBadge';
 import { CartQtyBadge } from '@/components/CartQtyBadge';
 
 interface ProductCardProps {
@@ -31,6 +34,8 @@ interface ProductCardProps {
 const PRIORITY_CARD_COUNT = 4;
 
 export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 0 }: ProductCardProps) {
+  // Creator Club member price of this row (server-side figure; null = list price).
+  const memberPrice = memberPriceOf(product.price, product.member_price);
   const t = useTranslations();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
@@ -44,6 +49,8 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
 
   return (
     <Card
+      data-testid="sf-catalog-product-card"
+      data-sku={product.sku}
       sx={{
         width: '100%',
         display: 'flex',
@@ -59,30 +66,53 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
         <Box
           sx={{
             position: 'absolute',
-            top: 12,
-            left: 16,
+            top: { xs: 8, md: 12 },
+            left: { xs: 8, md: 16 },
             zIndex: 1,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: { xs: '4px', md: '6px' },
             border: `1px solid ${palette.primaryLight}`,
             borderRadius: '40px',
-            px: 1.5,
-            py: '4px',
+            px: { xs: 1, md: 1.5 },
+            py: { xs: '3px', md: '4px' },
             bgcolor: 'white',
           }}
         >
-          <img src="/icons/trending-topic.png" alt="" style={{ width: 17, height: 17 }} />
+          <img src="/icons/trending-topic.png" alt="" style={{ width: 14, height: 14 }} />
           <Typography
             sx={{
               fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
-              fontSize: 12,
+              fontSize: { xs: 11, md: 12 },
               color: palette.primary,
               lineHeight: 1,
             }}
           >
             {t('catalog.bestSeller')}
           </Typography>
+        </Box>
+      )}
+
+      {product.active_promo && (
+        <Box
+          data-testid="sf-promo-chip"
+          sx={{
+            position: 'absolute',
+            top: { xs: 8, md: 12 },
+            right: { xs: 8, md: 12 },
+            zIndex: 1,
+            px: 1.2,
+            py: 0.4,
+            borderRadius: '12px',
+            bgcolor: palette.primary,
+            color: '#fff',
+            fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+            fontSize: { xs: 11, md: 13 },
+            fontWeight: 600,
+            lineHeight: 1.2,
+          }}
+        >
+          {product.active_promo.label}
         </Box>
       )}
 
@@ -124,8 +154,9 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            p: 2,
-            '&:last-child': { pb: 2 },
+            p: { xs: 1.25, md: 2 },
+            pb: { xs: 0.5, md: 2 },
+            '&:last-child': { pb: { xs: 0.5, md: 2 } },
           }}
         >
           {/* Name */}
@@ -133,40 +164,110 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
             sx={{
               fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
               fontWeight: 500,
-              fontSize: 16,
-              lineHeight: '22px',
+              fontSize: { xs: 13, md: 16 },
+              lineHeight: { xs: '17px', md: '22px' },
               textTransform: 'uppercase',
               color: palette.primary,
               mb: '4px',
-              textAlign: 'center',
+              textAlign: { xs: 'left', md: 'center' },
             }}
           >
             {product.name}
           </Typography>
+          {/* Подпись: объём или категория (компактная карточка телефона, образец FBG) */}
+          {(Number(product.volume_ml) > 0 || product.category?.name) && (
+            <Typography
+              data-testid="sf-catalog-product-subtitle"
+              sx={{
+                fontFamily: '"Open Sans", Helvetica, sans-serif',
+                fontSize: 12,
+                lineHeight: '16px',
+                color: palette.primaryLight,
+                textAlign: { xs: 'left', md: 'center' },
+              }}
+            >
+              {Number(product.volume_ml) > 0
+                ? t('catalog.volumeMl', { ml: Math.round(Number(product.volume_ml)) })
+                : product.category?.name}
+            </Typography>
+          )}
         </CardContent>
       </Link>
 
-      <Box sx={{ px: 2, pb: 2 }}>
+      <Box
+        sx={{
+          px: { xs: 1.25, md: 2 },
+          pb: { xs: 1.25, md: 2 },
+          display: 'flex',
+          flexDirection: { xs: 'row', md: 'column' },
+          // Узкий экран: кнопка переносится под цену, а не вылезает из карточки (21.09).
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          alignItems: { xs: 'center', md: 'stretch' },
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
         {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01).
             Pre-launch (FBG-427): show "coming soon" instead of the price and
             hide the (now meaningless) KDV Dahil line. */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: '12px' }}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 400,
-              color: palette.primary,
-              textAlign: 'center',
-            }}
-          >
-            {PRELAUNCH ? t('prelaunch.comingSoon') : fmtMoney(product.price, currency, formatLocale)}
-          </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: { xs: 'flex-start', md: 'center' },
+            mb: { xs: 0, md: '12px' },
+            minWidth: 0,
+          }}
+        >
+          {/* Creator Club (порт .ru): участнику на «цветник» — цена участника,
+              зачёркнутый прайс и плашка «−N% Creator Club»; нет member_price → как раньше. */}
+          {memberPrice !== null && !PRELAUNCH ? (
+            <>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'center',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Typography
+                  data-testid="sf-member-price"
+                  sx={{ fontSize: 16, fontWeight: 500, color: palette.primary, textAlign: 'center' }}
+                >
+                  {fmtMoney(memberPrice, currency, formatLocale)}
+                </Typography>
+                <Typography
+                  component="s"
+                  data-testid="sf-catalog-product-list-price"
+                  sx={{ fontSize: 13, fontWeight: 400, color: 'rgba(51,74,159,0.45)' }}
+                >
+                  {fmtMoney(product.price, currency, formatLocale)}
+                </Typography>
+              </Box>
+              <MemberPriceBadge listPrice={product.price} memberPrice={memberPrice} sx={{ mt: '4px' }} />
+            </>
+          ) : (
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 400,
+                color: palette.primary,
+                textAlign: 'center',
+              }}
+            >
+              {PRELAUNCH ? t('prelaunch.comingSoon') : fmtMoney(product.price, currency, formatLocale)}
+            </Typography>
+          )}
+          {/* ACTR: подпись «KDV Dahil» под ценой (D-01), в pre-launch скрыта */}
           {!PRELAUNCH && (
             <Typography
               sx={{
                 fontSize: 11,
                 color: palette.primaryLight,
                 fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                textAlign: 'center',
               }}
             >
               {t('price.kdvDahil')}
@@ -175,11 +276,11 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
         </Box>
 
         {/* Actions: quantity + "Add to cart" */}
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 'auto' }}>
-          {/* Quantity selector */}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: { xs: 0, md: 'auto' }, flexShrink: 0 }}>
+          {/* Quantity selector — на телефоне скрыт, «в корзину» кладёт одну штуку */}
           <Box
             sx={{
-              display: 'flex',
+              display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
               justifyContent: 'center',
               border: `1px solid ${palette.primary}`,
@@ -216,8 +317,8 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
             </IconButton>
           </Box>
 
-          {/* Add to cart — красный кружок с количеством этого товара в корзине (порт с ACRU 22.09) */}
-          <CartQtyBadge count={inCartQuantity} sx={{ flex: 1, display: 'flex' }}>
+          {/* Add to cart — красный кружок с количеством этого товара в корзине (владелец 22.09) */}
+          <CartQtyBadge count={inCartQuantity} sx={{ flex: { xs: '0 0 auto', md: 1 }, display: 'flex' }}>
             <Box
               component="button"
               onClick={() => onAddToCart?.(product.id, quantity)}
@@ -227,8 +328,9 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
                 justifyContent: 'center',
                 border: `1px solid ${palette.primary}`,
                 borderRadius: '10px',
-                height: 40,
-                width: '100%',
+                height: { xs: 36, md: 40 },
+                flex: 1,
+                width: { xs: 44, md: '100%' },
                 bgcolor: palette.primary,
                 color: 'white',
                 fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
@@ -240,8 +342,12 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
                 '&:disabled': { opacity: 0.5, cursor: 'default' },
               }}
               disabled={available <= 0}
+              aria-label={t('catalog.addToCart')}
             >
-              {t('catalog.addToCart')}
+              <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                {t('catalog.addToCart')}
+              </Box>
+              <ShoppingCartOutlinedIcon sx={{ display: { xs: 'block', md: 'none' }, fontSize: 18 }} />
             </Box>
           </CartQtyBadge>
         </Box>

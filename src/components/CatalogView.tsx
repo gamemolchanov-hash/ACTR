@@ -13,16 +13,15 @@ import {
   CircularProgress,
   Breadcrumbs,
   Link as MuiLink,
-  Drawer,
-  IconButton,
 } from '@mui/material';
-import TuneIcon from '@mui/icons-material/Tune';
-import CloseIcon from '@mui/icons-material/Close';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
-import { fetchProducts, fetchCategories } from '@/lib/api';
+import { fetchProducts, fetchCategories, fetchColorGroups } from '@/lib/api';
+import { CategoryChips } from '@/components/CategoryChips';
+import { ColorSwatchFilter } from '@/components/ColorSwatchFilter';
 import { ProductCard } from '@/components/ProductCard';
+import { useCustomerId } from '@/lib/auth-context';
 import { useCart } from '@/providers/CartProvider';
 import { palette } from '@/lib/theme';
 
@@ -44,6 +43,8 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
   const search = searchParams.get('search') || searchParams.get('q') || undefined;
   const inStock = searchParams.get('inStock') || undefined;
   const inStockOnly = inStock === '1';
+  // Фильтр по цвету (паритет с .ru BS-10) — только внутри категории.
+  const colorGroup = (categorySlug && searchParams.get('colorGroup')) || undefined;
 
   // Restore filters from sessionStorage when URL has no params
   useEffect(() => {
@@ -81,8 +82,13 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     queryFn: fetchCategories,
   });
 
-  // Автоподгрузка при прокрутке вместо пагинации (порт с ACRU 22.09): страницы копятся
-  // в useInfiniteQuery, следующая — когда «страж» под сеткой входит в зону видимости.
+  // Creator Club: участнику каталог отдаёт member-цены (запрос с JWT) — ключ
+  // включает покупателя, чтобы гость и участник не делили кеш.
+  const customerId = useCustomerId();
+  // Автоподгрузка при прокрутке вместо пагинации (владелец 21.09.2026): страницы
+  // копятся в useInfiniteQuery, следующая запрашивается, когда «страж» под сеткой
+  // входит в зону видимости (IntersectionObserver с запасом ~600 px). `?page=` в URL
+  // больше не используется — фильтры/сортировка сбрасывают список на первую страницу.
   const {
     data: productsData,
     isLoading,
@@ -90,9 +96,17 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['products', { category: categorySlug, sort, search, inStock }],
+    queryKey: ['products', { category: categorySlug, sort, search, inStock, colorGroup, customerId }],
     queryFn: ({ pageParam }) =>
-      fetchProducts({ page: pageParam, limit: ITEMS_PER_PAGE, category: categorySlug, sort, search, inStock }),
+      fetchProducts({
+        page: pageParam,
+        limit: ITEMS_PER_PAGE,
+        category: categorySlug,
+        sort,
+        search,
+        inStock,
+        colorGroup,
+      }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.meta.page < lastPage.meta.totalPages ? lastPage.meta.page + 1 : undefined,
@@ -114,6 +128,14 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     io.observe(el);
     return () => io.disconnect();
   }, [hasNextPage, loadMore, productsData?.pages.length]);
+
+  // Фасеты цвета текущей категории: пустой список — фильтр не рендерится.
+  const { data: colorGroupsData } = useQuery({
+    queryKey: ['color-groups', { category: categorySlug, inStock }],
+    queryFn: () => fetchColorGroups({ category: categorySlug, inStock }),
+    enabled: !!categorySlug,
+  });
+  const colorGroups = colorGroupsData?.data ?? [];
 
   const categories = categoriesData?.data ?? [];
   const products = productsData?.pages.flatMap((p) => p.data) ?? [];
@@ -158,6 +180,9 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
             alignSelf: 'flex-start',
             position: 'sticky',
             top: 180,
+            // Липкая колонка не выше видимой области — длинный список категорий прокручивается внутри.
+            maxHeight: 'calc(100vh - 196px)',
+            overflowY: 'auto',
             display: { xs: 'none', md: 'block' },
           }}
         >
@@ -227,10 +252,13 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
         </Box>
 
         {/* Right column: breadcrumbs + title + product grid */}
-        <Box sx={{ flex: 1 }}>
+        {/* minWidth 0 — иначе ряд чипов с прокруткой растягивает колонку и страницу вширь */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Breadcrumbs */}
           <Breadcrumbs
             sx={{
+              // На телефоне крошек и заголовка нет (владелец 21.09): сразу чипы категорий.
+              display: { xs: 'none', md: 'flex' },
               mb: '-4px',
               '& .MuiBreadcrumbs-separator': { color: palette.primaryLight },
               '& .MuiBreadcrumbs-ol': { marginBottom: 0 },
@@ -317,62 +345,70 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
             </Select>
           </Box>
 
-          {/* Narrow: title + filter/sort buttons */}
-          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
-            <Typography
-              sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-                fontWeight: 450,
-                fontSize: 30,
-                lineHeight: '38px',
-                textTransform: 'uppercase',
-                color: palette.primary,
-                mb: 1.5,
-              }}
-            >
-              {pageTitle}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
-              {/* Filter button */}
-              <Box
-                component="button"
-                onClick={() => setFilterDrawerOpen(true)}
+          {/* Narrow: компактный заголовок + чипы категорий + свотчи цвета + счётчик/сортировка
+              (мобильный каталог по образцу forza-brava.com, владелец 21.09.2026) */}
+          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2, mt: 0.5 }}>
+            <CategoryChips
+              categories={categories}
+              activeSlug={categorySlug}
+              allLabel={t('catalog.allShort')}
+              onSelect={(slug) => navigateToCategory(slug)}
+            />
+            <ColorSwatchFilter
+              groups={colorGroups}
+              value={colorGroup}
+              onChange={(key) => updateParams({ colorGroup: key, page: '1' })}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+              <Typography
+                data-testid="sf-catalog-count"
                 sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  bgcolor: 'white',
-                  border: `1px solid ${palette.primary}`,
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  px: 2,
-                  py: 1,
-                  color: palette.primary,
-                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
-                  fontSize: 16,
-                  fontWeight: 450,
+                  fontFamily: '"Open Sans", Helvetica, sans-serif',
+                  fontSize: 12,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: palette.primaryLight,
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <TuneIcon sx={{ fontSize: 18 }} />
-                {t('catalog.filter')}
+                {t('catalog.productsCount', { count: meta?.total ?? products.length })}
+              </Typography>
+              <Box sx={{ flex: 1 }} />
+              <Box
+                component="button"
+                type="button"
+                data-testid="sf-catalog-instock-chip"
+                aria-pressed={inStockOnly}
+                onClick={() => updateParams({ inStock: inStockOnly ? undefined : '1', page: '1' })}
+                sx={{
+                  height: 32,
+                  px: 1.25,
+                  borderRadius: '999px',
+                  border: `1px solid ${inStockOnly ? palette.primary : 'rgba(51,74,159,0.3)'}`,
+                  bgcolor: inStockOnly ? palette.primary : 'white',
+                  color: inStockOnly ? 'white' : palette.primary,
+                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t('catalog.inStock')}
               </Box>
-
-              {/* Sort select */}
               <Select
                 value={sort}
                 onChange={(e) => updateParams({ sort: e.target.value, page: '1' })}
                 size="small"
                 variant="outlined"
-                displayEmpty
-                renderValue={() => t('catalog.sortBy')}
+                data-testid="sf-catalog-sort"
                 sx={{
-                  borderRadius: '10px',
-                  fontSize: 16,
-                  fontWeight: 450,
+                  borderRadius: '999px',
+                  fontSize: 13,
                   fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
                   color: palette.primary,
-                  height: 40,
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: palette.primary },
+                  height: 32,
+                  '& .MuiSelect-select': { py: 0, pl: 1.5 },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(51,74,159,0.3)' },
                   '& .MuiSelect-icon': { color: palette.primary },
                 }}
               >
@@ -384,101 +420,16 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 <MenuItem value="-date_created">{t('catalog.newArrivals')}</MenuItem>
               </Select>
             </Box>
+          </Box>
 
-            {/* Filter Drawer */}
-            <Drawer
-              anchor="left"
-              open={filterDrawerOpen}
-              onClose={() => setFilterDrawerOpen(false)}
-              PaperProps={{
-                sx: { width: 310, p: 3, bgcolor: palette.bgLight },
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h2">{t('catalog.categories')}</Typography>
-                <IconButton onClick={() => setFilterDrawerOpen(false)}>
-                  <CloseIcon sx={{ color: palette.primary }} />
-                </IconButton>
-              </Box>
-              <Divider sx={{ borderColor: palette.primary, borderWidth: '0.5px', mb: 2 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-                <MuiLink
-                  component="button"
-                  underline="none"
-                  onClick={() => {
-                    navigateToCategory(undefined);
-                    setFilterDrawerOpen(false);
-                  }}
-                  sx={{
-                    fontSize: 18,
-                    color: palette.primary,
-                    fontWeight: !categorySlug ? 700 : 400,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    background: 'none',
-                    border: 'none',
-                    p: 0,
-                  }}
-                >
-                  {t('catalog.allProducts')}
-                </MuiLink>
-                {categories.map((cat) => (
-                  <MuiLink
-                    key={cat.id}
-                    component="button"
-                    underline="none"
-                    onClick={() => {
-                      navigateToCategory(cat.slug);
-                      setFilterDrawerOpen(false);
-                    }}
-                    sx={{
-                      fontSize: 18,
-                      color: palette.primary,
-                      fontWeight: categorySlug === cat.slug ? 700 : 400,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      p: 0,
-                    }}
-                  >
-                    {cat.name}
-                  </MuiLink>
-                ))}
-              </Box>
-
-              <Divider sx={{ borderColor: palette.primary, opacity: 0.3, my: 2 }} />
-
-              <Typography variant="h2" sx={{ mb: 2 }}>
-                {t('catalog.filters')}
-              </Typography>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={inStockOnly}
-                    onChange={(e) =>
-                      updateParams({ inStock: e.target.checked ? '1' : undefined, page: '1' })
-                    }
-                    sx={{
-                      color: palette.primary,
-                      '&.Mui-checked': { color: palette.primary },
-                    }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: 18, color: palette.primary }}>
-                    {t('catalog.inStock')}
-                  </Typography>
-                }
-              />
-            </Drawer>
+          {/* Desktop: свотчи цвета над сеткой (владелец 22.09: чипы «Цвет» внизу липкого
+              сайдбара на экранах 768 px не доскролливались — сайдбар выше видимой области). */}
+          <Box sx={{ display: { xs: 'none', md: 'block' }, mb: 3 }}>
+            <ColorSwatchFilter
+              groups={colorGroups}
+              value={colorGroup}
+              onChange={(key) => updateParams({ colorGroup: key, page: '1' })}
+            />
           </Box>
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -495,8 +446,9 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-                  gap: { xs: 2, lg: 3 },
+                  // Телефон 2 в ряд, планшет (от 600 px) 3 в ряд, как у forza-brava.com (21.09).
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
+                  gap: { xs: 1.5, sm: 2, lg: 3 },
                   mb: 4,
                 }}
               >
@@ -511,6 +463,8 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 ))}
               </Box>
 
+              {/* Страж автоподгрузки + индикатор: пока есть следующая страница, наблюдатель
+                  подгружает её при приближении к концу списка. */}
               {hasNextPage && (
                 <Box
                   ref={sentinelRef}
