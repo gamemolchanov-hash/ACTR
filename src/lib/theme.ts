@@ -5,6 +5,8 @@ import { createTheme } from '@mui/material/styles';
 // too; re-exported below to keep existing `@/lib/theme` importers working.
 import { palette } from './palette';
 
+const MOBILE_MAX = '599.95px';
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -19,12 +21,15 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+    // Телефон (< 600 px): заголовки ужимаются вместе с окном (clamp от ширины экрана), чтобы
+    // «ОФОРМЛЕНИЕ ЗАКАЗА» и названия товаров не ломали блоки на узких экранах (владелец 21.09).
     h1: {
       fontWeight: 450,
       fontSize: '40px',
       lineHeight: '50px',
       textTransform: 'uppercase',
       color: palette.primary,
+      [`@media (max-width:${MOBILE_MAX})`]: { fontSize: 'clamp(24px, 8vw, 40px)', lineHeight: 1.2 },
     },
     h2: {
       fontWeight: 450,
@@ -32,6 +37,7 @@ const theme = createTheme({
       lineHeight: '31px',
       textTransform: 'uppercase',
       color: palette.primary,
+      [`@media (max-width:${MOBILE_MAX})`]: { fontSize: 'clamp(17px, 5.5vw, 24px)', lineHeight: 1.25 },
     },
     h3: {
       fontWeight: 500,
@@ -39,6 +45,7 @@ const theme = createTheme({
       lineHeight: '26px',
       textTransform: 'uppercase',
       color: palette.primary,
+      [`@media (max-width:${MOBILE_MAX})`]: { fontSize: 'clamp(15px, 4.8vw, 20px)', lineHeight: 1.25 },
     },
     body1: {
       fontWeight: 400,

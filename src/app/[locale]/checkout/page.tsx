@@ -104,20 +104,27 @@ const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbedded
 
 /* ---- Figma design tokens ---- */
 const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+// Телефон: размеры ужимаются вместе с окном (clamp от ширины экрана), чтобы заголовок и
+// названия товаров в «Вашем заказе» не ломали блоки на узких экранах (владелец 21.09, 364 px).
 const h1Sx = {
   fontFamily: font,
   fontWeight: 500,
-  fontSize: { xs: 30, md: 40 },
-  lineHeight: { xs: '35px', md: '50px' },
+  fontSize: { xs: 'clamp(22px, 7.5vw, 30px)', md: 40 },
+  lineHeight: { xs: 1.15, md: '50px' },
 } as const;
 const h2Sx = {
   fontFamily: font,
   fontWeight: 500,
-  fontSize: { xs: 20, md: 24 },
-  lineHeight: { xs: 'normal', md: '31px' },
+  fontSize: { xs: 'clamp(16px, 5vw, 20px)', md: 24 },
+  lineHeight: { xs: 1.25, md: '31px' },
 } as const;
-const text = { fontFamily: font, fontWeight: 400, fontSize: 18, lineHeight: '20px' } as const;
-const textSm = { fontFamily: font, fontWeight: 400, fontSize: 16 } as const;
+const text = {
+  fontFamily: font,
+  fontWeight: 400,
+  fontSize: { xs: 'clamp(14px, 4.4vw, 18px)', md: 18 },
+  lineHeight: { xs: 1.2, md: '20px' },
+} as const;
+const textSm = { fontFamily: font, fontWeight: 400, fontSize: { xs: 'clamp(13px, 4vw, 16px)', md: 16 } } as const;
 const btn = { fontFamily: font, fontWeight: 500, fontSize: 18 } as const;
 const info = { fontFamily: font, fontWeight: 300, fontSize: 14, lineHeight: '14px' } as const;
 
@@ -1514,8 +1521,8 @@ export default function CheckoutPage() {
               >
                 <Box
                   sx={{
-                    width: 90,
-                    height: 90,
+                    width: { xs: 72, sm: 90 },
+                    height: { xs: 72, sm: 90 },
                     bgcolor: palette.bgLight,
                     borderRadius: '10px',
                     flexShrink: 0,
@@ -1537,7 +1544,15 @@ export default function CheckoutPage() {
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase' }}>
+                  <Typography
+                    sx={{
+                      ...h2Sx,
+                      fontSize: { xs: 'clamp(14px, 4.5vw, 20px)', md: 24 },
+                      color: c.main,
+                      textTransform: 'uppercase',
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
                     {item.name}
                   </Typography>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
