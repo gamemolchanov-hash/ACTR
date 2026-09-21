@@ -40,6 +40,7 @@ describe('FBG-227 — public/ static Cache-Control', () => {
     // payment-sprite.svg + trending-topic.png live under /icons.
     expect(cacheValue(bySource('/icons/:path*'))).toBe(IMMUTABLE_ONE_YEAR);
     expect(cacheValue(bySource('/logo.png'))).toBe(IMMUTABLE_ONE_YEAR);
+    expect(cacheValue(bySource('/logo.svg'))).toBe(IMMUTABLE_ONE_YEAR);
   });
 
   it('keeps favicon.ico cacheable but revalidatable, never immutable', () => {

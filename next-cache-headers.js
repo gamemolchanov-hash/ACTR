@@ -39,6 +39,11 @@ const STATIC_CACHE_HEADERS = [
     headers: [{ key: 'Cache-Control', value: IMMUTABLE_ONE_YEAR }],
   },
   {
+    // Vector logo (21.09.2026) — same fixed-path contract as logo.png.
+    source: '/logo.svg',
+    headers: [{ key: 'Cache-Control', value: IMMUTABLE_ONE_YEAR }],
+  },
+  {
     // Fixed root path → can't be renamed; cacheable but revalidatable (1 week).
     source: '/favicon.ico',
     headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }],
