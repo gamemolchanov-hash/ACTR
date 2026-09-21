@@ -17,15 +17,45 @@ export interface RecentlyViewedProduct {
   images: string[];
 }
 
+/**
+ * Пути картинок ARM — `<uuid товара>/<hash>.<ext>` в бакете витрины. Витрина OMS
+ * (american-creator.ru до 06.09.2026) хранила под тем же ключом Bitrix-пути `iblock/...`
+ * и цену строкой: таких файлов у ARM нет (404 «Image not found»), а строка цены
+ * рендерится с копейками. Такие записи — мусор прошлой витрины, не история просмотров.
+ */
+export function isArmRecentlyViewed(value: unknown): value is RecentlyViewedProduct {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.id !== 'string' || typeof v.name !== 'string') return false;
+  if (typeof v.price !== 'number' || !Number.isFinite(v.price)) return false;
+  const paths = [
+    ...(typeof v.image === 'string' ? [v.image] : []),
+    ...(Array.isArray(v.images) ? v.images : []),
+  ];
+  return paths.every((fp) => typeof fp === 'string' && !fp.startsWith('iblock/'));
+}
+
+export function sanitizeStoredItems(parsed: unknown): RecentlyViewedProduct[] {
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isArmRecentlyViewed).slice(0, MAX_ITEMS);
+}
+
 export function useRecentlyViewed(excludeId?: string) {
   const [items, setItems] = useState<RecentlyViewedProduct[]>([]);
   const skipPersist = useRef(true);
 
-  // Hydrate from localStorage
+  // Hydrate from localStorage. Записи чужого формата (старая витрина OMS на этом же
+  // домене писала тот же ключ) отбрасываются и тут же вычищаются из хранилища.
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setItems(JSON.parse(stored));
+      if (!stored) return;
+      const parsed: unknown = JSON.parse(stored);
+      const valid = sanitizeStoredItems(parsed);
+      if (!Array.isArray(parsed) || valid.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
+      }
+      if (valid.length) setItems(valid);
     } catch {
       /* ignore */
     }
