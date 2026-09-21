@@ -28,6 +28,7 @@ import { useCart } from '@/providers/CartProvider';
 import { useRecentlyViewed } from '@/lib/useRecentlyViewed';
 import { fmtMoney } from '@/lib/money';
 import { PRELAUNCH } from '@/lib/prelaunch';
+import { FitText } from '@/components/FitText';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -213,6 +214,20 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   });
 
   const product = data?.data;
+
+  // Панели «Описание / Применение / Нанесение»: свёрнуты, одна раскрыта по клику (порт с ACRU 22.09).
+  const [openPanel, setOpenPanel] = useState<'detail' | 'usage' | 'application' | null>(null);
+  const infoPanels = useMemo(
+    () =>
+      (
+        [
+          { key: 'detail' as const, label: t('product.description'), html: product?.detail_text },
+          { key: 'usage' as const, label: t('product.usage'), html: product?.usage_text },
+          { key: 'application' as const, label: t('product.application'), html: product?.application_text },
+        ] as const
+      ).filter((p): p is typeof p & { html: string } => !!p.html),
+    [product?.detail_text, product?.usage_text, product?.application_text, t],
+  );
 
   // Track in recently viewed
   useEffect(() => {
@@ -676,15 +691,15 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             </Box>
           )}
 
-          {/* Title */}
-          <Typography
-            variant="h1"
-            sx={{
-              mb: 1,
-            }}
+          {/* Title — в одну строку: шрифт ужимается под ширину колонки (порт с ACRU 22.09) */}
+          <FitText
+            component="h1"
+            data-testid="sf-product-name"
+            minPx={16}
+            sx={(theme) => ({ ...theme.typography.h1, m: 0, mb: 1 })}
           >
             {product.name}
-          </Typography>
+          </FitText>
 
           {/* Subtitle / short description */}
           {product.description && (
@@ -768,7 +783,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           </Box>
 
           {/* Quantity + Add to cart */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 4, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* Quantity selector */}
             <Box
               sx={{
@@ -834,76 +849,76 @@ export function ProductDetail({ productId }: ProductDetailProps) {
         </Grid>
       </Grid>
 
-      {/* ── Info Panels (Description + Usage + Application) ── */}
-      {(product.detail_text || product.usage_text || product.application_text) && (
-        <Grid container spacing={2} sx={{ mt: 4 }}>
-          {product.detail_text && (
-            <Grid item xs={12} md={3}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  borderRadius: '20px',
-                  borderColor: palette.primaryLight,
-                  p: 3,
-                  minHeight: { md: 452 },
-                }}
-              >
-                <Typography variant="h3" sx={{ mb: 2 }}>
-                  {t('product.description')}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ lineHeight: '20px' }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.detail_text) }}
-                />
-              </Paper>
-            </Grid>
-          )}
-          {product.usage_text && (
-            <Grid item xs={12} md={3}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  borderRadius: '20px',
-                  borderColor: palette.primaryLight,
-                  p: 3,
-                  minHeight: { md: 452 },
-                }}
-              >
-                <Typography variant="h3" sx={{ mb: 2 }}>
-                  {t('product.usage')}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ lineHeight: '20px' }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.usage_text) }}
-                />
-              </Paper>
-            </Grid>
-          )}
-          {product.application_text && (
-            <Grid item xs={12} md={6}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  borderRadius: '20px',
-                  borderColor: palette.primaryLight,
-                  p: 3,
-                  minHeight: { md: 452 },
-                }}
-              >
-                <Typography variant="h3" sx={{ mb: 2 }}>
-                  {t('product.application')}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{ lineHeight: '20px' }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.application_text) }}
-                />
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
+      {/* ── Info Panels (Description + Usage + Application) ──
+          Свёрнуты: три кнопки в одну строку, клик разворачивает текст под ними
+          (владелец 21.09.2026); тела всегда в DOM (SEO, санитизация), скрыты `hidden`. */}
+      {infoPanels.length > 0 && (
+        <Box data-testid="sf-product-panels" sx={{ mt: { xs: 2, md: 4 } }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {infoPanels.map((panel) => {
+              const active = openPanel === panel.key;
+              return (
+                <Box
+                  key={panel.key}
+                  component="button"
+                  type="button"
+                  data-testid="sf-product-panel-tab"
+                  data-panel={panel.key}
+                  aria-expanded={active}
+                  aria-controls={`sf-product-panel-${panel.key}`}
+                  onClick={() => setOpenPanel(active ? null : panel.key)}
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: 44,
+                    px: { xs: 0.5, sm: 1 },
+                    borderRadius: '10px',
+                    border: `1px solid ${palette.primary}`,
+                    bgcolor: active ? palette.primary : 'white',
+                    color: active ? 'white' : palette.primary,
+                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+                    // Вес 400 — как у «Войти» в шапке (владелец 22.09: кнопки выглядели жирнее)
+                    fontWeight: 400,
+                    // 319 px: «Применение» в кнопке ~90 px шириной → ~11 px (владелец: без переносов)
+                    fontSize: { xs: 'clamp(11px, 3.6vw, 16px)', sm: 16 },
+                    // «Описание», не «ОПИСАНИЕ» (владелец 22.09)
+                    textTransform: 'none',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition: 'background-color .15s, color .15s',
+                    '&:hover': { bgcolor: active ? '#2a3d85' : palette.bgLight },
+                  }}
+                >
+                  {panel.label}
+                </Box>
+              );
+            })}
+          </Box>
+          {infoPanels.map((panel) => (
+            <Paper
+              key={panel.key}
+              id={`sf-product-panel-${panel.key}`}
+              data-testid="sf-product-panel"
+              data-panel={panel.key}
+              hidden={openPanel !== panel.key}
+              variant="outlined"
+              sx={{
+                mt: 2,
+                borderRadius: '20px',
+                borderColor: palette.primaryLight,
+                p: 3,
+                '&[hidden]': { display: 'none' },
+              }}
+            >
+              <Typography
+                variant="body1"
+                sx={{ lineHeight: '20px' }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(panel.html) }}
+              />
+            </Paper>
+          ))}
+        </Box>
       )}
 
       {/* ── Recently Viewed ── */}

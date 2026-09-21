@@ -6,6 +6,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { CartProvider } from '@/providers/CartProvider';
+import { StickyCartBar } from '@/components/StickyCartBar';
 import { CookieConsentProvider } from '@/providers/CookieConsentProvider';
 import { CurrencyProvider } from '@/providers/CurrencyProvider';
 import { LoyaltyProgramProvider } from '@/providers/LoyaltyProgramProvider';
@@ -126,6 +127,7 @@ export default async function LocaleLayout({
                           <Header />
                           <main style={{ minHeight: 'calc(100vh - 400px)' }}>{children}</main>
                           <Footer />
+                          <StickyCartBar />
                         </LoyaltyProgramProvider>
                       </CookieConsentProvider>
                     </CartProvider>

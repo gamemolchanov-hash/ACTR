@@ -150,7 +150,17 @@ export function Header() {
   };
 
   return (
-    <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white' }}>
+    <AppBar
+      position="sticky"
+      elevation={0}
+      sx={{
+        // Телефон: «мутное стекло» как у forza-brava.com (порт с ACRU 22.09) — фон 45 % + blur 24 px.
+        bgcolor: { xs: 'rgba(255,255,255,0.45)', sm: 'white' },
+        backdropFilter: { xs: 'blur(24px) saturate(1.3)', sm: 'none' },
+        WebkitBackdropFilter: { xs: 'blur(24px) saturate(1.3)', sm: 'none' },
+        borderBottom: { xs: '1px solid rgba(0,0,0,0.06)', sm: 'none' },
+      }}
+    >
       {/* ===== DESKTOP (sm+): single row ===== */}
       <Box
         sx={{
@@ -555,7 +565,8 @@ export function Header() {
                 px: 1.5,
                 width: '100%',
                 height: 36,
-                bgcolor: 'white',
+                // Полупрозрачное поле — сквозь «стекло» виден каталог
+                bgcolor: 'rgba(255,255,255,0.35)',
               }}
             >
               <InputBase

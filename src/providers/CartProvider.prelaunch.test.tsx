@@ -87,8 +87,8 @@ describe('CartProvider addItem — pre-launch gate', () => {
 
     expect(screen.getByTestId('count').textContent).toBe('1');
     expect(screen.getByTestId('qty').textContent).toBe('2');
-    // "Item added" modal, not the pre-launch notice.
-    expect(screen.getByText('cart.added')).toBeTruthy();
+    // Модалки «добавлено» больше нет (пульс липкой панели корзины, порт с ACRU 22.09) — и без уведомления pre-launch.
+    expect(screen.queryByText('cart.added')).toBeNull();
     expect(screen.queryByText('prelaunch.message')).toBeNull();
 
     await waitFor(() => {

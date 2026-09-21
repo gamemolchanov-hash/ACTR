@@ -85,6 +85,7 @@ import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
 import { PRELAUNCH } from '@/lib/prelaunch';
+import { FitText } from '@/components/FitText';
 import type {
   ArmShippingRate,
   ArmShippingUnavailableReason,
@@ -1523,6 +1524,7 @@ export default function CheckoutPage() {
                   sx={{
                     width: { xs: 72, sm: 90 },
                     height: { xs: 72, sm: 90 },
+                    '@media (max-width:359.95px)': { width: 56, height: 56 },
                     bgcolor: palette.bgLight,
                     borderRadius: '10px',
                     flexShrink: 0,
@@ -1544,23 +1546,20 @@ export default function CheckoutPage() {
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      ...h2Sx,
-                      fontSize: { xs: 'clamp(14px, 4.5vw, 20px)', md: 24 },
-                      color: c.main,
-                      textTransform: 'uppercase',
-                      overflowWrap: 'anywhere',
-                    }}
+                  {/* Название и цена в одну строку: шрифт ужимается под колонку (порт с ACRU 22.09) */}
+                  <FitText
+                    data-testid="sf-checkout-item-name"
+                    minPx={8}
+                    sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase' }}
                   >
                     {item.name}
-                  </Typography>
+                  </FitText>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
                     {item.quantity} pcs
                   </Typography>
-                  <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
+                  <FitText data-testid="sf-checkout-item-price" minPx={8} sx={{ color: c.main, ...textSm, mt: 0.5 }}>
                     {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'} /pc
-                  </Typography>
+                  </FitText>
                 </Box>
                 {/* The basket is part of the order payload: it freezes with the
                     rest of the form, and stays frozen once ARM has booked the

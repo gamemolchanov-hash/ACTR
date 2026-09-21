@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
   Checkbox,
   FormControlLabel,
   Divider,
-  Pagination,
   Select,
   MenuItem,
   CircularProgress,
@@ -40,7 +39,6 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
   const searchParams = useSearchParams();
   const restoredRef = useRef(false);
 
-  const page = parseInt(searchParams.get('page') || '1', 10);
   // Default = popularity rank (`popular` → ARM adp.sort, seeded from .ru paid-order frequency).
   const sort = searchParams.get('sort') || 'popular';
   const search = searchParams.get('search') || searchParams.get('q') || undefined;
@@ -83,15 +81,43 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     queryFn: fetchCategories,
   });
 
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ['products', { page, category: categorySlug, sort, search, inStock }],
-    queryFn: () =>
-      fetchProducts({ page, limit: ITEMS_PER_PAGE, category: categorySlug, sort, search, inStock }),
+  // Автоподгрузка при прокрутке вместо пагинации (порт с ACRU 22.09): страницы копятся
+  // в useInfiniteQuery, следующая — когда «страж» под сеткой входит в зону видимости.
+  const {
+    data: productsData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['products', { category: categorySlug, sort, search, inStock }],
+    queryFn: ({ pageParam }) =>
+      fetchProducts({ page: pageParam, limit: ITEMS_PER_PAGE, category: categorySlug, sort, search, inStock }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages ? lastPage.meta.page + 1 : undefined,
   });
 
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { rootMargin: '600px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, loadMore, productsData?.pages.length]);
+
   const categories = categoriesData?.data ?? [];
-  const products = productsData?.data ?? [];
-  const meta = productsData?.meta;
+  const products = productsData?.pages.flatMap((p) => p.data) ?? [];
+  const meta = productsData?.pages[0]?.meta;
 
   const updateParams = (updates: Record<string, string | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -484,27 +510,13 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 ))}
               </Box>
 
-              {/* Pagination */}
-              {meta && meta.totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                  <Pagination
-                    count={meta.totalPages}
-                    page={page}
-                    onChange={(_, newPage) => updateParams({ page: String(newPage) })}
-                    shape="rounded"
-                    sx={{
-                      '& .MuiPaginationItem-root': {
-                        color: palette.primaryLight,
-                        borderColor: palette.primaryLight,
-                        fontSize: 16,
-                        '&.Mui-selected': {
-                          color: palette.primary,
-                          borderColor: palette.primary,
-                          bgcolor: 'transparent',
-                        },
-                      },
-                    }}
-                  />
+              {hasNextPage && (
+                <Box
+                  ref={sentinelRef}
+                  data-testid="sf-catalog-load-more"
+                  sx={{ display: 'flex', justifyContent: 'center', py: 3, minHeight: 56 }}
+                >
+                  {isFetchingNextPage && <CircularProgress size={28} sx={{ color: palette.primary }} />}
                 </Box>
               )}
             </>

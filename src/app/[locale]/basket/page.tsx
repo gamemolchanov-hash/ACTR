@@ -314,21 +314,24 @@ export default function BasketPage() {
 
         {/* Summary card — right, aligned with Price/Qty/Total columns */}
         <Box
+          data-testid="sf-basket-summary"
           sx={{
             bgcolor: c.bg,
             borderRadius: '20px',
-            px: 4,
-            py: 3,
-            display: { xs: 'flex', md: 'flex' },
-            alignItems: 'center',
-            justifyContent: { xs: 'center', md: 'space-between' },
-            gap: 4,
+            px: { xs: 2.5, md: 4 },
+            py: { xs: 2.5, md: 3 },
+            display: 'flex',
+            // Телефон: суммы в столбик на всю ширину, кнопка под ними (порт с ACRU 22.09)
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' },
+            justifyContent: { xs: 'flex-start', md: 'space-between' },
+            gap: { xs: 2, md: 4 },
             flexShrink: 0,
             width: { md: COL_RIGHT_TOTAL },
             boxSizing: 'border-box',
           }}
         >
-          <Box>
+          <Box sx={{ minWidth: 0 }}>
             {promoDiscount > 0 && (
               <>
                 <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
@@ -351,12 +354,13 @@ export default function BasketPage() {
             sx={{
               bgcolor: c.main,
               borderRadius: '10px',
-              px: 5,
+              px: { xs: 3, md: 5 },
               py: '15px',
               ...btn,
               color: 'white',
               textTransform: 'none',
               whiteSpace: 'nowrap',
+              width: { xs: '100%', md: 'auto' },
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >

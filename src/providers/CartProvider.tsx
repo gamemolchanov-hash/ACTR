@@ -20,6 +20,8 @@ import { PRELAUNCH } from '@/lib/prelaunch';
 interface CartContextValue {
   items: CartItem[];
   totalQuantity: number;
+  /** ~1,2 с после добавления — липкая панель корзины пульсирует (порт ACRU/OMS/forza-brava). */
+  justAdded: boolean;
   addItem: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -61,6 +63,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items]);
 
+  const [justAdded, setJustAdded] = useState(false);
+  const justAddedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(
+    () => () => {
+      if (justAddedTimer.current) clearTimeout(justAddedTimer.current);
+    },
+    [],
+  );
+
   const addItem = useCallback((productId: string, quantity: number) => {
     // Pre-launch (FBG-416): ordering is disabled — don't touch the cart,
     // just surface the "store is getting ready" notice on the active locale.
@@ -77,7 +88,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { productId, quantity }];
     });
-    setModalOpen(true);
+    // Модалка «добавлено» снята — вместо неё пульс липкой панели корзины (порт с ACRU 22.09).
+    setJustAdded(true);
+    if (justAddedTimer.current) clearTimeout(justAddedTimer.current);
+    justAddedTimer.current = setTimeout(() => setJustAdded(false), 1200);
   }, []);
 
   const removeItem = useCallback((productId: string) => {
@@ -93,8 +107,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalQuantity = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
 
   const value = useMemo<CartContextValue>(
-    () => ({ items, totalQuantity, addItem, removeItem, updateQuantity, clearCart }),
-    [items, totalQuantity, addItem, removeItem, updateQuantity, clearCart],
+    () => ({ items, totalQuantity, justAdded, addItem, removeItem, updateQuantity, clearCart }),
+    [items, totalQuantity, justAdded, addItem, removeItem, updateQuantity, clearCart],
   );
 
   return (

@@ -140,6 +140,7 @@
   "auth.wrongCaptcha": "Yanlış cevap. Lütfen tekrar deneyin.",
   "cart.added": "Ürün sepete eklendi",
   "cart.checkout": "Siparişi Tamamla",
+  "cart.stickyBuy": "Satın al",
   "cart.continueShopping": "Alışverişe Devam",
   "cart.total": "Sepetteki toplam ürün: {count}",
   "catalog.addToCart": "Sepete Ekle",

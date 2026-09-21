@@ -140,6 +140,7 @@
   "auth.wrongCaptcha": "Wrong answer. Please try again.",
   "cart.added": "Item added to cart",
   "cart.checkout": "Checkout",
+  "cart.stickyBuy": "Buy",
   "cart.continueShopping": "Continue Shopping",
   "cart.total": "Total items in cart: {count}",
   "catalog.addToCart": "Add to Cart",
