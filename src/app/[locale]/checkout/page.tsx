@@ -74,6 +74,7 @@ import {
   shippingPanelState,
   showUyelikConsent,
 } from '@/lib/checkout';
+import { iyzicoReturnErrorKey } from '@/lib/iyzico-return';
 import {
   buildOnBilgilendirmeData,
   renderOnBilgilendirmeFormu,
@@ -278,6 +279,22 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Back from iyzico's payment page with a verdict (`/api/payments/iyzico/callback`
+  // → `?payment=declined|error`, 22.09.2026): say why the buyer is here and
+  // drop the flag from the URL so a reload does not repeat it. The draft and
+  // the pending-order marker are untouched — paying again resumes THAT order.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const verdict = url.searchParams.get('payment');
+    if (!verdict) return;
+    const key = iyzicoReturnErrorKey(verdict);
+    if (key) setError(t(key));
+    url.searchParams.delete('payment');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Saved addresses (logged-in)
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
