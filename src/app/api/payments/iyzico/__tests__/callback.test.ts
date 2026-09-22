@@ -14,9 +14,10 @@ vi.stubGlobal('fetch', mockFetch);
 
 process.env.ARM_STOREFRONT_KEY = 'sf-key-test';
 process.env.BFF_INTERNAL_URL = 'https://api.example.test';
+process.env.NEXT_PUBLIC_SITE_URL = '';
 
 const { POST, GET } = await import('../callback/route');
-const { redirectPathFor, iyzicoReturnErrorKey, isPlausibleToken } = await import('@/lib/iyzico-return');
+const { redirectPathFor, iyzicoReturnErrorKey, isPlausibleToken, publicOrigin } = await import('@/lib/iyzico-return');
 
 const TOKEN = '90aecbd9-1e8b-491a-934d-00bc9a6af200';
 
@@ -91,5 +92,19 @@ describe('iyzico-return helpers', () => {
     expect(iyzicoReturnErrorKey('nope')).toBeNull();
     expect(isPlausibleToken(TOKEN)).toBe(true);
     expect(isPlausibleToken('a b')).toBe(false);
+  });
+});
+
+describe('publicOrigin', () => {
+  it('prefers the built site URL, then the forwarded host, never the bind address', () => {
+    const behindProxy = new NextRequest('https://0.0.0.0:3003/api/payments/iyzico/callback', {
+      headers: { host: 'actr-stage.devloc.su', 'x-forwarded-proto': 'https' },
+    });
+    expect(publicOrigin(behindProxy.headers, behindProxy.nextUrl.origin)).toBe('https://actr-stage.devloc.su');
+    const bare = new NextRequest('https://0.0.0.0:3003/x', { headers: { host: '0.0.0.0:3003' } });
+    expect(publicOrigin(bare.headers, bare.nextUrl.origin)).toBe('https://0.0.0.0:3003');
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://american-creator.tr/';
+    expect(publicOrigin(bare.headers, bare.nextUrl.origin)).toBe('https://american-creator.tr');
+    process.env.NEXT_PUBLIC_SITE_URL = '';
   });
 });

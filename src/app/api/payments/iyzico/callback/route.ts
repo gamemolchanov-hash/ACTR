@@ -16,6 +16,7 @@ import { tenantId, ARM_STOREFRONT_BASE_PATH } from '@/lib/arm-contract';
 import {
   isPlausibleToken,
   localeFromCookie,
+  publicOrigin,
   redirectPathFor,
   type IyzicoCallbackStatus,
 } from '@/lib/iyzico-return';
@@ -47,8 +48,9 @@ async function readToken(req: NextRequest): Promise<string | null> {
 async function handle(req: NextRequest): Promise<Response> {
   const locale = localeFromCookie(req.cookies.get('NEXT_LOCALE')?.value);
   const token = await readToken(req);
+  const origin = publicOrigin(req.headers, req.nextUrl.origin);
   const redirect = (status: IyzicoCallbackStatus, orderId: string | null) =>
-    NextResponse.redirect(new URL(redirectPathFor(status, orderId, locale), req.nextUrl.origin), 303);
+    NextResponse.redirect(new URL(redirectPathFor(status, orderId, locale), origin), 303);
 
   if (!isPlausibleToken(token)) return redirect('error', null);
 

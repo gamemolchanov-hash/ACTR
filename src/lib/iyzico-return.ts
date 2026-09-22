@@ -63,3 +63,20 @@ export function iyzicoReturnErrorKey(verdict: string | null | undefined): string
   if (verdict === 'error') return 'checkout.errors.paymentReturnError';
   return null;
 }
+
+/**
+ * Public origin for the callback's 303. Behind Caddy/cloudflared the standalone
+ * server sees its own bind address (`req.nextUrl.origin` = `https://0.0.0.0:3003`,
+ * stage 22.09.2026), so the site URL baked at build time wins, then the proxy's
+ * forwarded host/proto, and the request origin only as the last resort.
+ */
+export function publicOrigin(headers: Headers, requestOrigin: string): string {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, '');
+  if (/^https?:\/\//.test(site)) return site;
+  const host = headers.get('x-forwarded-host') || headers.get('host');
+  if (host && !/^(0\.0\.0\.0|127\.0\.0\.1|localhost)(:|$)/.test(host)) {
+    const proto = headers.get('x-forwarded-proto') || 'https';
+    return `${proto}://${host}`;
+  }
+  return requestOrigin;
+}
