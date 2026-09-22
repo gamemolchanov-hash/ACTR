@@ -20,8 +20,20 @@ export async function POST(req: NextRequest): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': req.headers.get('content-type') || 'application/json',
   };
-  const signature = req.headers.get('x-iyz-signature-v3');
-  if (signature) headers['X-IYZ-SIGNATURE-V3'] = signature;
+  // Every iyzico header travels verbatim (V3 today; whatever they add next).
+  // The first live sandbox delivery (22.09.2026) reached ARM with NO
+  // signature header at all — so when none arrives, the header names are
+  // logged to tell «iyzico did not send it» from «someone stripped it».
+  let sawIyzHeader = false;
+  req.headers.forEach((value, name) => {
+    if (name.toLowerCase().startsWith('x-iyz')) {
+      headers[name] = value;
+      sawIyzHeader = true;
+    }
+  });
+  if (!sawIyzHeader) {
+    console.warn('[iyzico webhook] no x-iyz-* header; incoming header names:', [...req.headers.keys()].sort().join(','));
+  }
   const xff = req.headers.get('x-forwarded-for');
   if (xff) headers['X-Forwarded-For'] = xff;
 
