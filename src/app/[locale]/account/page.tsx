@@ -19,7 +19,7 @@ import { CASHBACK_WALLET_PROGRAM, fetchLoyaltyConfig } from '@/lib/loyalty';
 import { ACTIVE_CHANNELS } from '@/lib/ticari-ileti';
 import { useTranslations } from 'next-intl';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function AccountPage() {

@@ -40,7 +40,7 @@ import {
 } from '@/lib/loyalty';
 import { useTranslations } from 'next-intl';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 const CREDIT = '#2e7d32';

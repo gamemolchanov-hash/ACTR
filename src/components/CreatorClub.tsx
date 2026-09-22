@@ -39,7 +39,7 @@ import {
   type LoyaltyTier,
 } from '@/lib/loyalty';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 /** Ink on the light card — same pairing as the account/loyalty cards. */

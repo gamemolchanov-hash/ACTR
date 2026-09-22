@@ -313,7 +313,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
           >
             <Typography
               sx={{
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif',
                 fontWeight: 450,
                 fontSize: 30,
                 lineHeight: '38px',
@@ -387,7 +387,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                   border: `1px solid ${inStockOnly ? palette.primary : 'rgba(51,74,159,0.3)'}`,
                   bgcolor: inStockOnly ? palette.primary : 'white',
                   color: inStockOnly ? 'white' : palette.primary,
-                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif',
                   fontSize: 13,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -404,7 +404,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                 sx={{
                   borderRadius: '999px',
                   fontSize: 13,
-                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif',
+                  fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif',
                   color: palette.primary,
                   height: 32,
                   '& .MuiSelect-select': { py: 0, pl: 1.5 },

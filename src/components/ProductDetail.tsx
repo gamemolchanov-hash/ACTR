@@ -36,7 +36,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { imgDetail, imgThumb, imgCard, imgOriginal } from '@/lib/image-url';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 
 interface ProductDetailProps {
   productId: string;
@@ -157,7 +157,7 @@ function RecentlyViewedCard({
           {/* Name */}
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
               fontWeight: 500,
               fontSize: 16,
               lineHeight: '20px',
@@ -678,7 +678,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 <img src="/icons/check-circle.svg" alt="" width={22} height={22} />
                 <Typography
                   sx={{
-                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                    fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica',
                     fontWeight: 450,
                     color: palette.primary,
                     fontSize: 14,
@@ -774,7 +774,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 sx={{
                   fontSize: 12,
                   color: palette.primaryLight,
-                  fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                  fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica',
                   mt: 0.5,
                 }}
               >
@@ -880,7 +880,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                     border: `1px solid ${palette.primary}`,
                     bgcolor: active ? palette.primary : 'white',
                     color: active ? 'white' : palette.primary,
-                    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+                    fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
                     // Вес 400 — как у «Войти» в шапке (владелец 22.09: кнопки выглядели жирнее)
                     fontWeight: 400,
                     // 319 px: «Применение» в кнопке ~90 px шириной → ~11 px (владелец: без переносов)

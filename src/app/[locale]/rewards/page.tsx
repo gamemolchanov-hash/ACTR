@@ -55,7 +55,7 @@ import {
   type LoyaltyConfig,
 } from '@/lib/loyalty';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 /** Neutral tier medallions in brand palette — cycled so any tier count works. */

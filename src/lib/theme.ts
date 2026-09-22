@@ -20,7 +20,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+    fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
     // Телефон (< 600 px): заголовки ужимаются вместе с окном (clamp от ширины экрана), чтобы
     // «ОФОРМЛЕНИЕ ЗАКАЗА» и названия товаров не ломали блоки на узких экранах (владелец 21.09).
     h1: {
@@ -76,7 +76,7 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: 10,
-          fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Jost", sans-serif',
+          fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Jost", sans-serif',
           fontWeight: 450,
           fontSize: '18px',
           padding: '12px 20px',
@@ -108,7 +108,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 40,
-          fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", "Jost", sans-serif',
+          fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Jost", sans-serif',
           fontWeight: 450,
           fontSize: '14px',
         },

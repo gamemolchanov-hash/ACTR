@@ -35,7 +35,7 @@ import { PRELAUNCH } from '@/lib/prelaunch';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
-const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 const h1 = { fontFamily: font, fontWeight: 500, fontSize: 40, lineHeight: '50px' } as const;
 const h2 = { fontFamily: font, fontWeight: 500, fontSize: 24 } as const;
 const h3 = { fontFamily: font, fontWeight: 400, fontSize: 20 } as const;

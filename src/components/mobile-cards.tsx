@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { Box, Stack, Typography, useMediaQuery } from '@mui/material';
 import { palette } from '@/lib/theme';
 
-export const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+export const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 export const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 /** Телефон (MUI xs, < 600 px). В SSR/jsdom без matchMedia — false (таблица). */

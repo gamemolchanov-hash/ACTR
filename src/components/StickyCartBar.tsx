@@ -28,7 +28,7 @@ import { fmtMoney } from '@/lib/money';
 import { palette } from '@/lib/theme';
 import { PRELAUNCH } from '@/lib/prelaunch';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif';
 
 function cartKey(items: CartItem[]): string {
   return items

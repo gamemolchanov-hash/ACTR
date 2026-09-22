@@ -105,7 +105,7 @@ const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbedded
 });
 
 /* ---- Figma design tokens ---- */
-const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 // Телефон: размеры ужимаются вместе с окном (clamp от ширины экрана), чтобы заголовок и
 // названия товаров в «Вашем заказе» не ломали блоки на узких экранах (владелец 21.09, 364 px).
 const h1Sx = {

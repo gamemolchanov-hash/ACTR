@@ -4,7 +4,7 @@ import { Box } from '@mui/material';
 import { palette } from '@/lib/theme';
 import { categoryShortName } from '@/lib/category-short-names';
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", "Ubuntu", Arial, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif';
 
 export interface CategoryChipsProps {
   categories: Array<{ id: string; slug: string; name: string }>;

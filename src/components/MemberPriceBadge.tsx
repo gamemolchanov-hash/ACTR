@@ -49,7 +49,7 @@ export function MemberPriceBadge({
     >
       <Typography
         sx={{
-          fontFamily: '"Futura PT", Helvetica, sans-serif',
+          fontFamily: '"Jost", Helvetica, sans-serif',
           fontWeight: 500,
           fontSize: 12,
           lineHeight: '16px',

@@ -1,86 +1,73 @@
 /**
- * Self-hosted Futura PT (FBG-225; Turkish glyph fix 2026-08-28).
+ * Self-hosted Jost (variable, SIL OFL 1.1) — the storefront's display/body typeface.
  *
- * Replaces the render-blocking third-party stylesheet `fonts.cdnfonts.com/css/futura-pt`
- * (est. 730 ms on the critical path, no `font-display`) with local faces served from
- * `/public/fonts`. Removing the third party also drops it from the critical request
- * chain (reliability + KVKK).
+ * 2026-09-22 — replaces Futura PT (ParaType, commercial; the previous files were an unlicensed
+ * cut, fsType=4 "preview & print" — not embeddable on the web). Jost is a Futura-inspired
+ * geometric sans by Indestructible Type (https://github.com/indestructible-type/Jost), free for
+ * web embedding under the OFL — see `public/fonts/OFL-Jost.txt`. Files are the Google Fonts
+ * variable build (wght 100–900) split by script, so a page only downloads the subsets it uses:
+ * `latin` (preloaded — every page), `latin-ext` (Turkish/EU diacritics), `cyrillic` (RU copy).
  *
- * The six weights mirror exactly the faces the storefront renders (300/400/450/500/600/700),
- * mapped 1:1 to the CDN's `FuturaCyrillic*` faces so nothing changes visually. `font-display:swap`
- * keeps text visible immediately (no FOIT). The primary body face (Book/400) is preloaded.
- *
- * 2026-08-28 — files swapped from the cdnfonts `FuturaCyrillic*` .woff cut to woff2 subsets of the
- * original Paratype Futura PT v1.007 OTFs (same version/metrics: upm 1000, hhea 982/-300,
- * OS/2 weights 300/400/450/500/600/700). Reason: the cdnfonts cut is ASCII + Cyrillic ONLY — it
- * has NO Latin-1/Latin-Ext glyphs, so every Turkish letter (Ç ç Ğ ğ İ ı Ö ö Ş ş Ü ü) fell through
- * per-glyph to the size-adjusted Arial fallback and read visibly thinner/foreign ("Çok yakında
- * açılıyoruz" — customer complaint). The subsets keep Latin, Latin-1, Latin Ext-A/B, Cyrillic,
- * punctuation, currency, № ™ and the fi/fl ligatures, with kerning (GPOS) intact.
+ * The storefront styles request weights 300/400/450/500/600/700; a single variable face with
+ * `font-weight:100 900` serves all of them exactly (no synthetic bold, no nearest-weight snapping).
+ * `font-display:swap` keeps text visible immediately (no FOIT).
  */
 
-type FontFace = { weight: number; file: string };
+type FontSubset = { name: string; file: string; unicodeRange: string };
 
-// weight → local .woff2. This mirrors EXACTLY the @font-face rules that
-// `fonts.cdnfonts.com/css/futura-pt` served — and that american-creator.ru (our 1:1
-// design reference, which loads the very same stylesheet) renders with — so self-hosting
-// changes no pixels. Verified against the live CDN CSS:
-//
-//   cdnfonts @font-face        →  this file
-//   font-weight:300  Light     →  FuturaPT-Light.woff2
-//   font-weight:400  Book      →  FuturaPT-Book.woff2
-//   font-weight:450  Medium    →  FuturaPT-Medium.woff2
-//   font-weight:500  Demi      →  FuturaPT-Demi.woff2
-//   font-weight:600  Heavy     →  FuturaPT-Heavy.woff2
-//   font-weight:700  Bold      →  FuturaPT-Bold.woff2
-//
-// Note: cdnfonts assigns Medium→450 and Demi→500 — NOT the "Medium 500 / Demi 600"
-// shorthand in the ticket. The storefront's most-used weights are 500 (59×) and 450 (36×);
-// with an exact match present the browser renders 500=Demi and 450=Medium on the reference.
-// Renumbering to the ticket's labels would make 500 resolve to Medium (visibly LIGHTER than
-// the reference) — a real 1:1 regression. So we mirror the CDN's actual weights, not the
-// ticket's naming. See the weight→file assertions in fonts.test.ts.
-const FUTURA_FACES: FontFace[] = [
-  { weight: 300, file: 'FuturaPT-Light.woff2' },
-  { weight: 400, file: 'FuturaPT-Book.woff2' },
-  { weight: 450, file: 'FuturaPT-Medium.woff2' },
-  { weight: 500, file: 'FuturaPT-Demi.woff2' },
-  { weight: 600, file: 'FuturaPT-Heavy.woff2' },
-  { weight: 700, file: 'FuturaPT-Bold.woff2' },
+/** Google Fonts subset split (unicode-range copied from the served CSS, v20). */
+const JOST_SUBSETS: FontSubset[] = [
+  {
+    name: 'latin',
+    file: 'Jost-latin.woff2',
+    unicodeRange:
+      'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,' +
+      'U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD',
+  },
+  {
+    name: 'latin-ext',
+    file: 'Jost-latin-ext.woff2',
+    unicodeRange:
+      'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,' +
+      'U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF',
+  },
+  {
+    name: 'cyrillic',
+    file: 'Jost-cyrillic.woff2',
+    unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116',
+  },
 ];
 
-/** Primary body face — preloaded so first paint can use real Futura where installed/cached. */
-export const FUTURA_PRELOAD_HREF = '/fonts/FuturaPT-Book.woff2';
+/** Primary face — preloaded so first paint can use the real font on every page. */
+export const FONT_PRELOAD_HREF = '/fonts/Jost-latin.woff2';
+/** @deprecated alias kept for callers that still import the old name. */
+export const FUTURA_PRELOAD_HREF = FONT_PRELOAD_HREF;
 
-const futuraFaces = FUTURA_FACES.map(
-  ({ weight, file }) =>
-    `@font-face{font-family:"Futura PT";font-style:normal;font-weight:${weight};` +
-    `font-display:swap;src:local("Futura PT"),url("/fonts/${file}") format("woff2");}`,
+const jostFaces = JOST_SUBSETS.map(
+  ({ file, unicodeRange }) =>
+    `@font-face{font-family:"Jost";font-style:normal;font-weight:100 900;font-display:swap;` +
+    `src:url("/fonts/${file}") format("woff2");unicode-range:${unicodeRange};}`,
 ).join('');
 
 /**
- * Metric-adjusted fallback over Arial. Overrides computed from FuturaPT-Book with fontTools
- * (unitsPerEm 1000, hhea asc 982 / desc -300, weighted xWidthAvg 384.6; Arial xWidthAvg 904 @ 2048):
- * `size-adjust` shrinks Arial to Futura's advance widths, `ascent/descent-override` match its box —
- * so the swap-in of the real face causes (almost) no layout shift (CLS). Listed right after
- * `"Futura PT"` in every stack; degrades to the stack's generic fallback where Arial / Liberation
- * Sans aren't installed.
+ * Metric-adjusted fallback over Arial, so the swap-in of the real face causes (almost) no layout
+ * shift (CLS). Computed from Jost-latin with fontTools: unitsPerEm 1000, hhea asc 1070 / desc -375,
+ * OS/2 xAvgCharWidth 546; Arial xAvgCharWidth 904 @ 2048 (0.4414). size-adjust = 0.546 / 0.4414 =
+ * 123.7 %; ascent/descent overrides are the Jost metrics divided by that size-adjust.
  */
-const futuraFallback =
-  `@font-face{font-family:"Futura PT Fallback";src:local("Arial"),local("Liberation Sans");` +
-  `ascent-override:112.69%;descent-override:34.43%;line-gap-override:0%;size-adjust:87.14%;}`;
+const jostFallback =
+  `@font-face{font-family:"Jost Fallback";src:local("Arial"),local("Liberation Sans");` +
+  `ascent-override:86.5%;descent-override:30.3%;line-gap-override:0%;size-adjust:123.7%;}`;
 
 /**
- * LiraFix (keep — commits 22950f4, fe673ab, feac762). Futura PT's ₺ (U+20BA) reads like a ruble;
- * this tiny family maps ONLY the lira codepoint to a clean sans-serif and sits FIRST in every price
- * stack (`LiraFix, "Futura PT", …`). Per-glyph fallback then uses Arial's ₺ and Futura PT for
- * every other character — same-family composition does not win over the Futura face, so LiraFix must lead.
+ * LiraFix (keep — commits 22950f4, fe673ab, feac762). Maps ONLY the lira codepoint (U+20BA) to a
+ * clean sans-serif glyph and sits FIRST in every price stack (`LiraFix, "Jost", …`). Per-glyph
+ * fallback then uses Jost for every other character.
  *
  * FBG-424: the local()-only src did NOT resolve on iOS / in-app browsers (WKWebView) — WebKit
  * matches local() by PostScript name (`ArialMT`/`HelveticaNeue`, not `Arial`/`Helvetica Neue`) and
- * restricts local() lookups for privacy — so LiraFix fell through to Futura PT and iPhone/Telegram
- * users saw prices as "₽" (looks like rubles — critical on a TR storefront). Fix: lead `src` with a
- * self-hosted 1-glyph subset (`/fonts/lira-subset.woff2`, U+20BA only, from Inter/OFL — see
+ * restricts local() lookups for privacy. Fix: lead `src` with a self-hosted 1-glyph subset
+ * (`/fonts/lira-subset.woff2`, U+20BA only, from Inter/OFL — see
  * public/fonts/LICENSE-lira-subset.txt) so ₺ renders everywhere; the local() names stay as fallback.
  * `unicode-range:U+20BA` is unchanged, so this face is still fetched only when a ₺ is on the page.
  */
@@ -90,4 +77,4 @@ const liraFix =
   `unicode-range:U+20BA;font-display:swap;}`;
 
 /** Static, developer-authored CSS (no external/user input) — safe to inline as-is. */
-export const FONT_FACE_CSS = futuraFaces + futuraFallback + liraFix;
+export const FONT_FACE_CSS = jostFaces + jostFallback + liraFix;

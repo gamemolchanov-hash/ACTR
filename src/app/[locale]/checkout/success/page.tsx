@@ -20,7 +20,7 @@ import {
 } from '@/lib/checkout';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
-const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
 
 function SuccessContent() {

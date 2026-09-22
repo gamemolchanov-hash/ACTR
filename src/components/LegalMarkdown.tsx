@@ -27,7 +27,7 @@ import { palette } from '@/lib/palette';
  * plain text or a scheme-filtered link, so there is no XSS surface.
  */
 
-const FONT = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const FONT = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 
 type Block =
   | { kind: 'heading'; level: number; text: string }

@@ -82,7 +82,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
           <img src="/icons/trending-topic.png" alt="" style={{ width: 14, height: 14 }} />
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
               fontSize: { xs: 11, md: 12 },
               color: palette.primary,
               lineHeight: 1,
@@ -106,7 +106,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
             borderRadius: '12px',
             bgcolor: palette.primary,
             color: '#fff',
-            fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+            fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
             fontSize: { xs: 11, md: 13 },
             fontWeight: 600,
             lineHeight: 1.2,
@@ -162,7 +162,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
           {/* Name */}
           <Typography
             sx={{
-              fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+              fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
               fontWeight: 500,
               fontSize: { xs: 13, md: 16 },
               lineHeight: { xs: '17px', md: '22px' },
@@ -266,7 +266,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
               sx={{
                 fontSize: 11,
                 color: palette.primaryLight,
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica',
+                fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica',
                 textAlign: 'center',
               }}
             >
@@ -333,7 +333,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
                 width: { xs: 44, md: '100%' },
                 bgcolor: palette.primary,
                 color: 'white',
-                fontFamily: 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif',
+                fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif',
                 fontSize: 14,
                 fontWeight: 450,
                 cursor: 'pointer',

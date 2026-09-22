@@ -33,7 +33,7 @@ import { useTranslations, useLocale } from 'next-intl';
  * so the same wording that ARM pins to `text_version` has to be on screen.
  */
 
-const fontMain = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica, sans-serif';
+const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 export default function PreferencesPage() {

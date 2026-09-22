@@ -18,7 +18,7 @@ import { SITE_NAME, SITE_URL } from '@/lib/seo';
 import { routing } from '@/i18n/routing';
 import { getStorefrontConfig } from '@/lib/storefront-config';
 import { formatLocaleFromCountry } from '@/lib/format-locale';
-import { FONT_FACE_CSS, FUTURA_PRELOAD_HREF } from '@/lib/fonts';
+import { FONT_FACE_CSS, FONT_PRELOAD_HREF } from '@/lib/fonts';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -93,13 +93,13 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
-        {/* Self-hosted Futura PT (FBG-225) — replaces render-blocking fonts.cdnfonts.com.
-            Preload the primary (Book) face; @font-face rules (incl. metric-adjusted
+        {/* Self-hosted Jost (variable, OFL) — replaced Futura PT 2026-09-22.
+            Preload the latin subset; @font-face rules (incl. metric-adjusted
             fallback and the LiraFix ₺ family) live in FONT_FACE_CSS.
             dangerouslySetInnerHTML keeps React from escaping the quotes. */}
         <link
           rel="preload"
-          href={FUTURA_PRELOAD_HREF}
+          href={FONT_PRELOAD_HREF}
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"

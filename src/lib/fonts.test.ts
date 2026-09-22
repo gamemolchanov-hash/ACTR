@@ -1,72 +1,48 @@
 /**
- * FBG-225 — self-hosted Futura PT.
+ * Self-hosted Jost (variable, OFL) — replaced the unlicensed Futura PT cut on 2026-09-22.
  *
- * Guards the font layer that replaced the render-blocking `fonts.cdnfonts.com` stylesheet:
- * every declared @font-face resolves to a real local .woff, `font-display:swap` is set, the
- * primary face is preloaded, the metric-adjusted fallback is present, and the LiraFix ₺
- * mechanism (commits 22950f4 / fe673ab / feac762) is preserved.
+ * Guards the font layer: every declared @font-face resolves to a real local .woff2, the
+ * variable face covers the whole weight range the storefront renders (300–700, incl. 450),
+ * `font-display:swap` is set, the primary subset is preloaded, the metric-adjusted fallback is
+ * present, the OFL text ships next to the files, and the LiraFix ₺ mechanism
+ * (commits 22950f4 / fe673ab / feac762) is preserved.
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { FONT_FACE_CSS, FUTURA_PRELOAD_HREF } from './fonts';
+import { FONT_FACE_CSS, FONT_PRELOAD_HREF } from './fonts';
 
 const PUBLIC = resolve(__dirname, '../../public');
 
-describe('FONT_FACE_CSS — Futura PT self-host', () => {
-  it('declares every weight the storefront renders, all with font-display:swap', () => {
-    for (const weight of [300, 400, 450, 500, 600, 700]) {
-      const face = new RegExp(
-        `@font-face\\{font-family:"Futura PT";font-style:normal;font-weight:${weight};[^}]*font-display:swap`,
-      );
-      expect(FONT_FACE_CSS).toMatch(face);
+describe('FONT_FACE_CSS — Jost self-host', () => {
+  it('declares the three script subsets as one variable family covering 100–900', () => {
+    const faces = [...FONT_FACE_CSS.matchAll(/@font-face\{font-family:"Jost";([^}]*)\}/g)].map((m) => m[1]);
+    expect(faces.length).toBe(3);
+    for (const face of faces) {
+      expect(face).toContain('font-weight:100 900');
+      expect(face).toContain('font-display:swap');
+      expect(face).toMatch(/unicode-range:U\+/);
     }
   });
 
-  it('references only local font files that actually exist in /public', () => {
-    const urls = [...FONT_FACE_CSS.matchAll(/url\("([^"]+)"\)/g)].map((m) => m[1]);
-    expect(urls.length).toBeGreaterThanOrEqual(6);
-    for (const url of urls) {
-      // Every src url is self-hosted under /fonts/ (no external host) and on disk.
-      expect(url.startsWith('/fonts/')).toBe(true);
-      expect(url.endsWith('.woff') || url.endsWith('.woff2')).toBe(true);
-      expect(existsSync(resolve(PUBLIC, `.${url}`))).toBe(true);
+  it('every declared file exists under public/fonts and is a woff2', () => {
+    const urls = [...FONT_FACE_CSS.matchAll(/url\("(\/fonts\/[^"]+)"\)/g)].map((m) => m[1]);
+    const jost = urls.filter((u) => u.startsWith('/fonts/Jost-'));
+    expect(jost.sort()).toEqual(['/fonts/Jost-cyrillic.woff2', '/fonts/Jost-latin-ext.woff2', '/fonts/Jost-latin.woff2']);
+    for (const u of urls) {
+      const buf = readFileSync(resolve(PUBLIC, `.${u}`));
+      expect(buf.subarray(0, 4).toString('latin1')).toBe('wOF2');
     }
-    // Everything is woff2 since the 2026-08-28 swap to the Paratype OTF subsets (no plain .woff left).
-    expect(urls.every((u) => u.endsWith('.woff2'))).toBe(true);
-    expect(urls.filter((u) => u.startsWith('/fonts/FuturaPT-')).length).toBe(6);
   });
 
-  it('pulls in no third-party font host (cdnfonts / googleapis)', () => {
-    expect(FONT_FACE_CSS).not.toMatch(/cdnfonts|googleapis|https?:\/\//);
-  });
-
-  // Weight→face must mirror the cdnfonts stylesheet the 1:1 reference (american-creator.ru)
-  // renders with — cdnfonts assigns Medium→450 and Demi→500. This is the pixel-fidelity
-  // contract, NOT the ticket's "Medium 500 / Demi 600" shorthand: renumbering would make the
-  // most-used weight (500, 59×) render Medium instead of Demi — lighter than the reference.
-  it('maps each weight to the exact face cdnfonts served (1:1 rendering)', () => {
-    const faces = [
-      ...FONT_FACE_CSS.matchAll(
-        /@font-face\{font-family:"Futura PT";font-style:normal;font-weight:(\d+);[^}]*url\("\/fonts\/([^"]+)"\)/g,
-      ),
-    ];
-    const byWeight = Object.fromEntries(faces.map((m) => [Number(m[1]), m[2]]));
-    expect(byWeight).toEqual({
-      300: 'FuturaPT-Light.woff2',
-      400: 'FuturaPT-Book.woff2',
-      450: 'FuturaPT-Medium.woff2',
-      500: 'FuturaPT-Demi.woff2',
-      600: 'FuturaPT-Heavy.woff2',
-      700: 'FuturaPT-Bold.woff2',
-    });
-    // Guard the two weights the reviewer flagged: intentionally Demi / Heavy, not Medium / Demi.
-    expect(byWeight[500]).toBe('FuturaPT-Demi.woff2');
-    expect(byWeight[600]).toBe('FuturaPT-Heavy.woff2');
+  it('ships the OFL licence next to the files and no Futura PT remains', () => {
+    expect(existsSync(resolve(PUBLIC, './fonts/OFL-Jost.txt'))).toBe(true);
+    expect(FONT_FACE_CSS).not.toContain('Futura');
+    expect(existsSync(resolve(PUBLIC, './fonts/FuturaPT-Book.woff2'))).toBe(false);
   });
 
   it('defines a metric-adjusted Arial fallback to curb swap CLS', () => {
-    expect(FONT_FACE_CSS).toContain('font-family:"Futura PT Fallback"');
+    expect(FONT_FACE_CSS).toContain('font-family:"Jost Fallback"');
     expect(FONT_FACE_CSS).toMatch(/size-adjust:\d/);
     expect(FONT_FACE_CSS).toMatch(/ascent-override:\d/);
     expect(FONT_FACE_CSS).toMatch(/descent-override:\d/);
@@ -77,17 +53,14 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
     expect(FONT_FACE_CSS).toContain('unicode-range:U+20BA');
   });
 
-  // FBG-424: local()-only src did not resolve on iOS/WKWebView, so ₺ fell back to
-  // Futura PT's ruble-like glyph. LiraFix now leads with a self-hosted 1-glyph subset,
-  // with the local() names kept as fallback for environments that still match them.
+  // FBG-424: local()-only src did not resolve on iOS/WKWebView. LiraFix leads with a
+  // self-hosted 1-glyph subset, with the local() names kept as fallback.
   it('leads LiraFix src with the self-hosted ₺ subset, local() kept as fallback', () => {
     const face = FONT_FACE_CSS.match(/@font-face\{font-family:"LiraFix";([^}]*)\}/);
     expect(face).not.toBeNull();
     const src = face![1];
-    // Self-hosted subset comes first (wins over the Futura face on iOS).
     expect(src).toMatch(/src:url\("\/fonts\/lira-subset\.woff2"\) format\("woff2"\),/);
     expect(src.indexOf('url("/fonts/lira-subset.woff2")')).toBeLessThan(src.indexOf('local('));
-    // local() names preserved as fallback.
     for (const name of ['Arial', 'Liberation Sans', 'Helvetica Neue', 'Tahoma', 'Verdana']) {
       expect(src).toContain(`local("${name}")`);
     }
@@ -95,33 +68,31 @@ describe('FONT_FACE_CSS — Futura PT self-host', () => {
   });
 });
 
-// 2026-08-28: the previous cdnfonts "FuturaCyrillic" .woff cut had NO Latin-1/Latin-Ext glyphs, so
-// Turkish letters silently fell through to the Arial fallback. Guard the cmap of every shipped face.
-describe('Futura PT faces cover the Turkish alphabet', () => {
-  // Minimal WOFF2 header parse is overkill here — we assert on the subset manifest instead:
-  // every face must be the Paratype subset (>= 25 KB, woff2 magic), and the Book face must
-  // decode to a cmap that covers Ç ç Ğ ğ İ ı Ö ö Ş ş Ü ü (checked via fontTools in
-  // scripts/check-font-coverage.py during the swap; here we pin the file identity).
-  it.each(['Light', 'Book', 'Medium', 'Demi', 'Heavy', 'Bold'])('FuturaPT-%s.woff2 is a woff2 file', (w) => {
-    const buf = readFileSync(resolve(PUBLIC, `./fonts/FuturaPT-${w}.woff2`));
-    expect(buf.subarray(0, 4).toString('latin1')).toBe('wOF2');
-    expect(buf.length).toBeGreaterThan(25_000);
+describe('FONT_PRELOAD_HREF', () => {
+  it('points at the latin subset and that file exists', () => {
+    expect(FONT_PRELOAD_HREF).toBe('/fonts/Jost-latin.woff2');
+    expect(FONT_FACE_CSS).toContain(`url("${FONT_PRELOAD_HREF}")`);
+    expect(existsSync(resolve(PUBLIC, `.${FONT_PRELOAD_HREF}`))).toBe(true);
   });
 });
 
-describe('FUTURA_PRELOAD_HREF', () => {
-  it('points at the Book (400) face and that file exists', () => {
-    expect(FUTURA_PRELOAD_HREF).toBe('/fonts/FuturaPT-Book.woff2');
-    expect(FONT_FACE_CSS).toContain(`url("${FUTURA_PRELOAD_HREF}")`);
-    expect(existsSync(resolve(PUBLIC, `.${FUTURA_PRELOAD_HREF}`))).toBe(true);
+describe('source no longer references the commercial family', () => {
+  it('no fontFamily stack names "Futura PT"', () => {
+    // Guard against a stale stack sneaking back via cherry-pick from the .ru storefront.
+    const { execSync } = require('child_process') as typeof import('child_process');
+    const out = execSync(
+      'grep -rl \'"Futura PT\' src --include=*.ts --include=*.tsx --exclude=fonts.test.ts || true',
+      {
+        cwd: resolve(__dirname, '../..'),
+        encoding: 'utf8',
+      },
+    );
+    expect(out.trim()).toBe('');
   });
 });
 
 describe('layout head', () => {
-  const layout = readFileSync(
-    resolve(__dirname, '../app/[locale]/layout.tsx'),
-    'utf8',
-  );
+  const layout = readFileSync(resolve(__dirname, '../app/[locale]/layout.tsx'), 'utf8');
 
   it('no longer loads the render-blocking cdnfonts stylesheet', () => {
     expect(layout).not.toMatch(/rel="stylesheet"[^>]*cdnfonts|cdnfonts[^>]*rel="stylesheet"/);

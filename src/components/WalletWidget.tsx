@@ -26,7 +26,7 @@ import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 import { palette } from '@/lib/theme';
 
-const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 
 const c = {
   main: palette.primary, // #334a9f

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/palette';
 
-const font = 'LiraFix, "Futura PT", "Futura PT Fallback", Helvetica';
+const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 
 /**
  * Pre-launch notice (FBG-416) — shown on the basket and checkout pages while
