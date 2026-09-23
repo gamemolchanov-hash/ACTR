@@ -99,6 +99,9 @@ export const ENDPOINTS = {
   orders: '/orders',
   order: (id: string) => `/orders/${id}`,
   paymentCreateSession: '/payment/create-session',
+  // Unsubscribe link from a marketing email (23.09.2026): GET reads the state by the
+  // email token (changes nothing), POST withdraws email consent. No login required.
+  mailUnsubscribe: '/mail/unsubscribe',
   auth: {
     register: '/auth/register',
     login: '/auth/login',

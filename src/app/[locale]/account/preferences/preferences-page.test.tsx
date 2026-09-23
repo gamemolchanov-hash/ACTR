@@ -177,6 +177,22 @@ describe('saving a choice (canon §17)', () => {
     expect(toggle('email').checked).toBe(false);
   });
 
+  it('email on: warns up front what an opt-out stops, withdrawal stays one click', async () => {
+    consentsApi.getConsents.mockResolvedValue(answer({ email: 'onay' }));
+    consentsApi.updateConsents.mockResolvedValue(answer({ email: 'ret' }));
+    await renderLoaded();
+
+    expect(screen.getByText('unsubscribe.stopsHeadingIfOff')).toBeTruthy();
+    fireEvent.click(toggle('email'));
+    await waitFor(() =>
+      expect(consentsApi.updateConsents).toHaveBeenCalledWith(
+        [{ channel: 'email', status: 'ret' }],
+        'tr',
+      ),
+    );
+    await waitFor(() => expect(screen.queryByText('unsubscribe.stopsHeadingIfOff')).toBeNull());
+  });
+
   it('grants MESAJ through its SMS sub-channel', async () => {
     consentsApi.updateConsents.mockResolvedValue(answer({ mesaj_sms: 'onay' }));
     await renderLoaded();

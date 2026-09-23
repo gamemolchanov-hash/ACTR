@@ -439,5 +439,19 @@
   "catalog.productsCount": "{count, plural, one {# product} other {# products}}",
   "catalog.volumeMl": "{ml} ml",
   "common.clubJoin": "Join",
-  "memberPrice.badge": "−{percent}% Creator Club"
+  "memberPrice.badge": "−{percent}% Creator Club",
+  "unsubscribe.metaTitle": "Unsubscribe",
+  "unsubscribe.breadcrumb": "Unsubscribe",
+  "unsubscribe.title": "UNSUBSCRIBE",
+  "unsubscribe.loading": "Working on it…",
+  "unsubscribe.done": "You have been unsubscribed from marketing emails. Your İYS record is updated within 3 business days at the latest.",
+  "unsubscribe.stopsHeading": "You will no longer receive:",
+  "unsubscribe.stopsHeadingIfOff": "If you turn email off, you will no longer receive:",
+  "unsubscribe.stopsCreatorClub": "Creator Club emails — reminders about your rewards, expiring XP and an upcoming tier drop;",
+  "unsubscribe.stopsPromo": "news, promotions and special offers.",
+  "unsubscribe.keeps": "Emails about your orders, payment and delivery, as well as password recovery, keep coming as before. You can opt in again at any time in your account under “Communication Preferences”.",
+  "unsubscribe.invalid": "This link is invalid. You can opt out of marketing messages in your account under “Communication Preferences”.",
+  "unsubscribe.error": "We could not complete this. Please try again.",
+  "unsubscribe.retry": "Try again",
+  "unsubscribe.prefsLink": "Communication Preferences"
 }

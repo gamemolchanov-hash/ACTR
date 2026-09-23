@@ -18,6 +18,7 @@ import {
   type UiChannel,
 } from '@/lib/ticari-ileti';
 import type { ArmConsentState } from '@/lib/arm-types';
+import MarketingStopsList from '@/components/MarketingStopsList';
 import { useTranslations, useLocale } from 'next-intl';
 
 /**
@@ -237,7 +238,7 @@ export default function PreferencesPage() {
                 // Withdrawal is never blocked (§10) — only a GRANT needs the
                 // contact ARM will attach it to, otherwise the POST 400s.
                 const disabled = busy || (channel !== 'email' && !phoneUsable && !on);
-                return (
+                const control = (
                   <FormControlLabel
                     key={channel}
                     control={
@@ -266,6 +267,19 @@ export default function PreferencesPage() {
                     sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, mr: 0 }}
                   />
                 );
+                // Email on: say up front what an opt-out stops (owner, 23.09.2026). The
+                // switch itself stays a one-click withdrawal, as the canon requires.
+                if (channel === 'email' && on) {
+                  return (
+                    <Box key={channel}>
+                      {control}
+                      <Box sx={{ pl: 6, mt: -1, mb: 2.5 }}>
+                        <MarketingStopsList compact ifOff />
+                      </Box>
+                    </Box>
+                  );
+                }
+                return control;
               })}
 
               {!phoneUsable && ACTIVE_CHANNELS.some((c) => c !== 'email') && (

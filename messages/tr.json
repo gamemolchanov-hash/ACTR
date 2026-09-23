@@ -439,5 +439,19 @@
   "catalog.productsCount": "{count, plural, one {# ürün} other {# ürün}}",
   "catalog.volumeMl": "{ml} ml",
   "common.clubJoin": "Katıl",
-  "memberPrice.badge": "−%{percent} Creator Club"
+  "memberPrice.badge": "−%{percent} Creator Club",
+  "unsubscribe.metaTitle": "Abonelikten çık",
+  "unsubscribe.breadcrumb": "Abonelikten çık",
+  "unsubscribe.title": "ABONELİKTEN ÇIK",
+  "unsubscribe.loading": "İşleniyor…",
+  "unsubscribe.done": "Ticari e-posta aboneliğiniz iptal edildi. Talebiniz en geç 3 iş günü içinde İYS kaydınıza da yansıtılır.",
+  "unsubscribe.stopsHeading": "Artık şunları almayacaksınız:",
+  "unsubscribe.stopsHeadingIfOff": "E-posta iznini kapatırsanız artık şunları almayacaksınız:",
+  "unsubscribe.stopsCreatorClub": "Creator Club e-postaları — ödülleriniz, süresi dolacak XP’ler ve seviyenizin yakında düşeceği hakkında hatırlatmalar;",
+  "unsubscribe.stopsPromo": "haberler, kampanyalar ve özel teklifler.",
+  "unsubscribe.keeps": "Siparişiniz, ödemeniz ve teslimatınızla ilgili e-postalar ile şifre yenileme e-postaları eskisi gibi gelmeye devam eder. İzninizi hesabınızdaki «İletişim Tercihleri» bölümünden dilediğiniz zaman yeniden verebilirsiniz.",
+  "unsubscribe.invalid": "Bağlantı geçersiz. Ticari iletilerden hesabınızdaki «İletişim Tercihleri» bölümünden çıkabilirsiniz.",
+  "unsubscribe.error": "İşlem tamamlanamadı. Lütfen tekrar deneyin.",
+  "unsubscribe.retry": "Tekrar dene",
+  "unsubscribe.prefsLink": "İletişim Tercihleri"
 }

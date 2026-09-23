@@ -7,5 +7,6 @@ Disallow: /account
 Disallow: /basket
 Disallow: /checkout
 Disallow: /login
+Disallow: /unsubscribe
 
 Sitemap: /sitemap.xml
