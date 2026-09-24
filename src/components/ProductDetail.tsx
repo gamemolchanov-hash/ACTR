@@ -6,7 +6,6 @@ import {
   Box,
   Typography,
   Breadcrumbs,
-  Divider,
   Paper,
   IconButton,
   Button,
@@ -239,31 +238,6 @@ export function ProductDetail({ productId }: ProductDetailProps) {
 
   const available = product?.bp_available ?? 0;
 
-  const characteristics = useMemo(() => {
-    if (!product) return [];
-    const chars: { label: string; value: string }[] = [];
-    if (product.sku) chars.push({ label: t('product.sku'), value: product.sku });
-    if (product.weight != null && product.weight > 0) {
-      const grams = product.weight * 1000;
-      chars.push({
-        label: t('product.weight'),
-        value: grams >= 1 ? `${Math.round(grams)} ${t('product.weightUnit')}` : `${grams} ${t('product.weightUnit')}`,
-      });
-    }
-    if (product.volume != null && product.volume > 0) {
-      const ml = product.volume * 1e6;
-      chars.push({ label: t('product.volume'), value: `${Math.round(ml)} ${t('product.volumeUnit')}` });
-    }
-    if (product.length && product.width && product.height) {
-      chars.push({
-        label: t('product.dimensions'),
-        value: `${product.length} x ${product.width} x ${product.height} ${t('product.dimensionUnit')}`,
-      });
-    }
-    if (product.category) chars.push({ label: t('product.category'), value: product.category.name });
-    return chars;
-  }, [product, t]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleAddToCart = useCallback(() => {
     if (product) addItem(product.id, quantity);
   }, [product, quantity, addItem]);
@@ -430,38 +404,6 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             >
               {product.description}
             </Typography>
-          )}
-
-          {/* Characteristics */}
-          {characteristics.length > 0 && (
-            <>
-              <Typography variant="h2" sx={{ mt: product.description ? 0 : '44px', mb: '22px' }}>
-                {t('product.characteristics')}
-              </Typography>
-
-              <Box sx={{ mb: '86px' }}>
-                {characteristics.map((char, idx) => (
-                  <Box key={idx}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        py: 1.5,
-                      }}
-                    >
-                      <Typography variant="body1" sx={{ lineHeight: '20px' }}>
-                        {char.label}
-                      </Typography>
-                      <Typography variant="body1" sx={{ lineHeight: '20px' }}>
-                        {char.value}
-                      </Typography>
-                    </Box>
-                    <Divider sx={{ borderColor: palette.primaryLight }} />
-                  </Box>
-                ))}
-              </Box>
-            </>
           )}
 
           {/* Price — locale-aware (WR-01/WR-05) + KDV Dahil label (D-01).
