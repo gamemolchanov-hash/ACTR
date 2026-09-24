@@ -29,10 +29,10 @@ export interface ProductGalleryLabels {
 }
 
 const DEFAULT_LABELS: ProductGalleryLabels = {
-  region: 'Фото товара',
-  carousel: 'карусель',
-  dots: 'Выбор фото',
-  photo: 'Фото',
+  region: 'Product photos',
+  carousel: 'carousel',
+  dots: 'Choose photo',
+  photo: 'Photo',
 };
 
 export interface ProductGalleryProps {

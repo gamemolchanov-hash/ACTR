@@ -24,7 +24,7 @@ function setup(index = 0) {
       onOpen={onOpen}
     />,
   );
-  const track = screen.getByRole('region', { name: 'Фото товара Товар' });
+  const track = screen.getByRole('region', { name: 'Product photos Товар' });
   Object.defineProperty(track, 'clientWidth', { value: 400, configurable: true });
   const scrollTo = vi.fn();
   track.scrollTo = scrollTo as unknown as typeof track.scrollTo;
@@ -40,7 +40,7 @@ describe('ProductGallery', () => {
     const dots = screen.getAllByRole('tab');
     expect(dots).toHaveLength(3);
     expect(dots.map((d) => d.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
-    expect(dots[1].getAttribute('aria-label')).toBe('Фото 2');
+    expect(dots[1].getAttribute('aria-label')).toBe('Photo 2');
   });
 
   it('точки не показываются для одного фото', () => {
@@ -74,7 +74,7 @@ describe('ProductGallery', () => {
 
   it('клик по точке плавно скроллит трек к слайду, индекс приходит из onScroll', () => {
     const { track, scrollTo, onIndexChange } = setup(0);
-    fireEvent.click(screen.getByRole('tab', { name: 'Фото 3' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Photo 3' }));
     expect(scrollTo).toHaveBeenCalledWith({ left: 800, behavior: 'smooth' });
     expect(onIndexChange).not.toHaveBeenCalled();
     // доехали
