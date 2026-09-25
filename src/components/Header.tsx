@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import {
   AppBar,
   Badge,
@@ -21,7 +21,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link, usePathname, useRouter } from '@/i18n/navigation';
-import { useRouter as useNextRouter } from 'next/navigation';
+import { useRouter as useNextRouter, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { routing } from '@/i18n/routing';
 
@@ -45,6 +45,32 @@ function productHref(p: Product) {
   return `/catalog/${p.category?.slug ?? 'all'}/${p.slug ?? p.id}`;
 }
 
+function isNavItemActive(itemHref: string, pathname: string | null, catalogSort: string | null) {
+  if (itemHref === '/catalog') {
+    return !!pathname?.startsWith('/catalog') && catalogSort !== '-date_created';
+  }
+  if (itemHref === '/catalog?sort=-date_created') {
+    return pathname === '/catalog' && catalogSort === '-date_created';
+  }
+  return pathname === itemHref;
+}
+
+// usePathname() (next-intl, see below) never carries the query string, so
+// "Catalog" and "New Arrivals" (/catalog vs /catalog?sort=-date_created) are
+// indistinguishable through it alone — Catalog always won the highlight.
+// useSearchParams() is the only thing that sees the query, but it forces a
+// Suspense boundary around whatever reads it (FBG-472 above hit this for the
+// whole header). Isolating it to this invisible, render-nothing watcher keeps
+// the boundary — and the resulting client-only bailout — to a component with
+// no markup, so the rest of the header still prerenders.
+function CatalogSortWatcher({ onChange }: { onChange: (sort: string | null) => void }) {
+  const sort = useSearchParams().get('sort');
+  useEffect(() => {
+    onChange(sort);
+  }, [sort, onChange]);
+  return null;
+}
+
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,6 +89,9 @@ export function Header() {
   // Порог с ГИСТЕРЕЗИСОМ (вкл при > 90, выкл при < 30): одиночный порог зацикливается —
   // схлопывание меняет высоту шапки (~20 px) → сдвиг scrollY → повторное пересечение порога.
   const [compact, setCompact] = useState(false);
+  // Current ?sort= value, kept in sync by the invisible CatalogSortWatcher below —
+  // used only to tell the "Catalog" and "New Arrivals" nav links apart.
+  const [catalogSort, setCatalogSort] = useState<string | null>(null);
   useEffect(() => {
     const onScroll = () =>
       setCompact((prev) => (prev ? window.scrollY > 30 : window.scrollY > 90));
@@ -182,6 +211,10 @@ export function Header() {
         borderBottom: { xs: '1px solid rgba(0,0,0,0.06)', sm: 'none' },
       }}
     >
+      <Suspense fallback={null}>
+        <CatalogSortWatcher onChange={setCatalogSort} />
+      </Suspense>
+
       {/* ===== DESKTOP (sm+): single row ===== */}
       <Box
         sx={{
@@ -916,15 +949,14 @@ export function Header() {
           }}
         >
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href === '/catalog' && pathname?.startsWith('/catalog'));
+            const isActive = isNavItemActive(item.href, pathname, catalogSort);
             return (
               <MuiLink
                 key={item.label}
                 component={Link}
                 href={item.href}
                 underline="none"
+                aria-current={isActive ? 'page' : undefined}
                 sx={{
                   fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif',
                   fontSize: { sm: 14, md: 16, lg: 18 },
@@ -1000,9 +1032,7 @@ export function Header() {
 
         <List>
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href === '/catalog' && pathname?.startsWith('/catalog'));
+            const isActive = isNavItemActive(item.href, pathname, catalogSort);
             return (
               <ListItemButton
                 key={item.label}
@@ -1010,6 +1040,7 @@ export function Header() {
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 selected={isActive}
+                aria-current={isActive ? 'page' : undefined}
                 sx={{ '&.Mui-selected': { bgcolor: palette.bgLight } }}
               >
                 <ListItemText
