@@ -75,6 +75,7 @@ vi.mock('@/components/StripeEmbeddedCheckout', () => ({
 }));
 
 import { readAccountNotice, readPendingOrder, saveAccountNotice } from '@/lib/checkout';
+import { getMyAddresses } from '@/lib/auth';
 import CheckoutPage from './page';
 import CheckoutSuccessPage from './success/page';
 
@@ -296,6 +297,10 @@ describe('guest submit gate', () => {
     // FulfillmentTR wants province (il) as shipping.state, district (ilçe) as city.
     expect(payload.shipping.state).toBe('İstanbul');
     expect(payload.shipping.city).toBe('Kadıköy');
+    // The Ön Bilgilendirme Formu / Mesafeli Satış address line carries "district / province".
+    for (const doc of payload.legal.documents) {
+      expect(doc.markdown).toContain('Kadıköy / İstanbul');
+    }
   });
 });
 
@@ -329,6 +334,62 @@ describe('province (il)', () => {
     await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
     const payload = apiMock.createOrder.mock.calls[0][0];
     expect(payload.shipping.state).toBeUndefined();
+  });
+});
+
+describe('saved address → province', () => {
+  const SAVED_ADDRESS = {
+    id: 'a1',
+    label: null,
+    country: 'TR',
+    city: 'Kadıköy',
+    address: null,
+    street: 'Moda Cad',
+    building: '5',
+    block: null,
+    apartment: null,
+    postal_code: '34710',
+    contact_name: null,
+    contact_phone: null,
+    is_default: true,
+  };
+
+  it('normalizes a canonical-but-differently-cased saved province', async () => {
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      token: 't',
+      loading: false,
+    };
+    vi.mocked(getMyAddresses).mockResolvedValueOnce({
+      data: [{ ...SAVED_ADDRESS, state: 'istanbul' }],
+    });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await screen.findByText('İstanbul');
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+  });
+
+  it('fills the district but leaves the province empty for a non-canonical saved state', async () => {
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      token: 't',
+      loading: false,
+    };
+    vi.mocked(getMyAddresses).mockResolvedValueOnce({
+      data: [{ ...SAVED_ADDRESS, state: 'Anadolu Yakası' }],
+    });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await screen.findByDisplayValue('Kadıköy');
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });
 

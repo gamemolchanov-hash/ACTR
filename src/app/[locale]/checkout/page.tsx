@@ -34,7 +34,7 @@ import { Link } from '@/i18n/navigation';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
-import { TR_PROVINCES, isTrProvince } from '@/lib/tr-provinces';
+import { TR_PROVINCES, isTrProvince, normalizeProvince, formatDistrictProvince } from '@/lib/tr-provinces';
 import {
   validateCart,
   validatePromo,
@@ -218,7 +218,7 @@ function formatObfAddress(f: FormData, countries: ShippingCountry[]): string {
     f.building && `No: ${f.building}`,
     f.block && `Blok: ${f.block}`,
     f.apartment && `Daire: ${f.apartment}`,
-    f.city,
+    formatDistrictProvince(f.city, f.province),
     f.zip,
     countryName,
   ]
@@ -241,6 +241,16 @@ function saveToSession(key: string, value: unknown) {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch {}
+}
+
+/**
+ * A saved address's `state` may be legacy free text — one rule for every entry
+ * point (autofill, saved-card pick) so a non-canonical value never reaches the
+ * select or FulfillmentTR: the buyer re-picks instead.
+ */
+function provinceFromSaved(state: string | null | undefined): string {
+  const normalized = normalizeProvince(state);
+  return isTrProvince(normalized) ? normalized : '';
 }
 
 export default function CheckoutPage() {
@@ -403,6 +413,7 @@ export default function CheckoutPage() {
           setForm((prev) => ({
             ...prev,
             city: def.city || '',
+            province: provinceFromSaved(def.state),
             street: def.street || '',
             building: def.building || '',
             block: def.block || '',
@@ -1015,7 +1026,7 @@ export default function CheckoutPage() {
           {[
             { label: 'Name', value: form.name },
             { label: 'Email', value: form.email },
-            { label: 'City', value: form.city },
+            { label: 'District / Province', value: formatDistrictProvince(form.city, form.province) },
             { label: 'Phone', value: form.phone },
           ].map((f) => (
             <Typography key={f.label} sx={{ color: c.main, ...text }}>
@@ -1195,6 +1206,7 @@ export default function CheckoutPage() {
                     setForm((prev) => ({
                       ...prev,
                       city: addr.city || '',
+                      province: provinceFromSaved(addr.state),
                       street: addr.street || '',
                       building: addr.building || '',
                       block: addr.block || '',
@@ -1230,6 +1242,7 @@ export default function CheckoutPage() {
                             setForm((prev) => ({
                               ...prev,
                               city: '',
+                              province: '',
                               street: '',
                               building: '',
                               block: '',
@@ -1259,8 +1272,8 @@ export default function CheckoutPage() {
                     ×
                   </Box>
                   <Typography sx={{ fontSize: 14, fontWeight: 500, color: c.main }}>
-                    {addr.city}
-                    {addr.city && addr.address ? ', ' : ''}
+                    {formatDistrictProvince(addr.city, addr.state)}
+                    {formatDistrictProvince(addr.city, addr.state) && addr.address ? ', ' : ''}
                     {addr.address}
                   </Typography>
                   {addr.postal_code && (
@@ -1277,6 +1290,7 @@ export default function CheckoutPage() {
                   setForm((prev) => ({
                     ...prev,
                     city: '',
+                    province: '',
                     street: '',
                     building: '',
                     block: '',

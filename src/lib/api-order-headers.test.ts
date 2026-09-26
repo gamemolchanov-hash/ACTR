@@ -75,6 +75,19 @@ describe('createOrder — locale for the welcome email', () => {
   });
 });
 
+describe('createOrder — shipping address', () => {
+  it('sends the province as shipping.state and the district as shipping.city', async () => {
+    const { createOrder } = await import('./api');
+    await createOrder({
+      ...orderPayload,
+      shipping: { country: 'TR', city: 'Kadıköy', state: 'İstanbul' },
+    });
+    const [, body] = mockPost.mock.calls[0];
+    expect(body.shipping.state).toBe('İstanbul');
+    expect(body.shipping.city).toBe('Kadıköy');
+  });
+});
+
 describe('Authorization on the post-checkout order calls', () => {
   it('fetchOrder sends the Bearer token of a logged-in buyer', async () => {
     localStorage.setItem('arm_token', 'jwt-123');
