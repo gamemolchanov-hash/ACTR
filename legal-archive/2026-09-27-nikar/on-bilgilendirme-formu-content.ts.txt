@@ -1,6 +1,6 @@
 /**
  * Canonical legal template — "Ön Bilgilendirme Formu" v2.0 (doc code
- * KK-ET-OBF-2026-V3, effective 21.07.2026), FBG-401.
+ * KK-ET-OBF-2026-V2, effective 21.07.2026), FBG-401.
  *
  * Unlike the other seven documents of the pack this form is NOT a static page:
  * it is generated per order and shown to the buyer at the cart→payment step,
@@ -45,7 +45,7 @@
  * "Ön Bilgilendirme Sürümü", FBG-458) reference the single source instead of
  * re-hardcoding the string — the two versions can never drift apart.
  */
-export const ON_BILGILENDIRME_DOC_CODE = 'KK-ET-OBF-2026-V3';
+export const ON_BILGILENDIRME_DOC_CODE = 'KK-ET-OBF-2026-V2';
 
 /** The §4 per-product block — filled once per cart line, then joined. */
 export const ON_BILGILENDIRME_PRODUCT_BLOCK = String.raw`**Ürün Bilgileri**
@@ -152,7 +152,7 @@ Taahhüt edilen son teslim tarihi, işbu sipariş bakımından esas alınır. M�
 
 Satıcı, siparişlerin depolanması, hazırlanması, paketlenmesi ve taşıyıcıya teslim edilmesi amacıyla üçüncü taraf lojistik hizmet sağlayıcılarından yararlanabilir.
 
-Siparişlerin depolanması, hazırlanması, paketlenmesi, taşıyıcıya teslim edilmesi ve iade edilen ürünlerin teslim alınmasına ilişkin lojistik operasyonlar AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ tarafından Satıcı adına yürütülmektedir.
+Siparişlerin depolanması, hazırlanması, paketlenmesi, taşıyıcıya teslim edilmesi ve iade edilen ürünlerin teslim alınmasına ilişkin lojistik operasyonlar NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ tarafından Satıcı adına yürütülmektedir.
 
 Lojistik operasyonlarının üçüncü taraf bir hizmet sağlayıcısı tarafından yerine getirilmesi, Satıcı'nın Alıcı'ya karşı olan kanuni ve sözleşmesel sorumluluklarını ortadan kaldırmaz.
 
@@ -204,10 +204,10 @@ Anlaşmalı İade Yönteminde Alıcı'ya Yansıtılacak İade Masrafı: 0 TL
 
 İade Adresi:
 
-AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ<br>
-Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1,<br>
-Bodrum Kat Ofis No: B109-B115,<br>
-Gebze / Kocaeli, Türkiye
+NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ<br>
+Ziya Gökalp Mahallesi, Süleyman Demirel Bulvarı,<br>
+The Office No: 7/E, Kapı No: D:136,<br>
+Başakşehir / İstanbul, Türkiye
 
 Yukarıda belirtilen taşıyıcı ve yöntem kullanılarak yapılan cayma hakkı kapsamındaki standart iadelerde iade masrafları Satıcı tarafından karşılanır.
 
@@ -217,7 +217,7 @@ Alıcı'nın ürünü Satıcı tarafından belirtilen iade taşıyıcısı dış
 
 Mal teslim edilmeden önce cayma hakkının kullanılması hâlinde, varsa malın Alıcı'ya teslim masrafları da dâhil olmak üzere tahsil edilen tüm ödemeler, cayma bildiriminin Satıcı'ya ulaştığı tarihten itibaren on dört gün içinde iade edilir.
 
-Mal teslim edildikten sonra cayma hakkının kullanılması hâlinde, varsa malın Alıcı'ya teslim masrafları da dâhil olmak üzere tahsil edilen tüm ödemeler, ürünün yukarıda belirtilen iade taşıyıcısına teslim edildiği tarihten itibaren on dört gün içinde iade edilir. Ürünün belirtilenden farklı bir taşıyıcıyla gönderilmesi hâlinde bu süre, ürünün Satıcı'nın yetkilendirdiği fiziksel iade kabul noktası olan AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ'ne ulaştığı tarihte başlar.
+Mal teslim edildikten sonra cayma hakkının kullanılması hâlinde, varsa malın Alıcı'ya teslim masrafları da dâhil olmak üzere tahsil edilen tüm ödemeler, ürünün yukarıda belirtilen iade taşıyıcısına teslim edildiği tarihten itibaren on dört gün içinde iade edilir. Ürünün belirtilenden farklı bir taşıyıcıyla gönderilmesi hâlinde bu süre, ürünün Satıcı'nın yetkilendirdiği fiziksel iade kabul noktası olan NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ'ne ulaştığı tarihte başlar.
 
 Geri ödeme, Alıcı'nın satın alma sırasında kullandığı ödeme aracına uygun şekilde, Alıcı'ya herhangi bir masraf veya yükümlülük getirmeksizin ve tek seferde gerçekleştirilir.
 

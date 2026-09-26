@@ -81,9 +81,9 @@ describe('renderMesafeliSatis', () => {
 
   it('preserves the canon doc code and seller / fulfilment requisites', () => {
     const md = render();
-    expect(md).toContain('KK-MSS-2026-V4'); // contract version
+    expect(md).toContain('KK-MSS-2026-V5'); // contract version
     expect(md).toContain('0560146611100001'); // MERSİS
-    expect(md).toContain('NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ');
+    expect(md).toContain('AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ');
   });
 
   it('carries the single OBF document version as pre-information version', () => {

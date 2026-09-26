@@ -1,6 +1,6 @@
 /**
  * Canonical legal text — "Mesafeli Satış Sözleşmesi" v4.0
- * (doc code KK-MSS-2026-V5, effective 22.07.2026), FBG-456.
+ * (doc code KK-MSS-2026-V4, effective 22.07.2026), FBG-456.
  *
  * Unlike the sibling static policies this document is, by its own "Uygulama
  * Niteliği" clause, a DYNAMIC contract template: it is filled per order (product,
@@ -76,9 +76,9 @@ export const MESAFELI_SATIS_TEMPLATE = String.raw`
 | **Satıcı** | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 |----|----|
 | **İnternet Sitesi** | https://american-creator.tr/ |
-| **Doküman Kodu** | KK-MSS-2026-V5 |
-| **Sürüm** | 5.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-MSS-2026-V4 |
+| **Sürüm** | 4.0 |
+| **Yürürlük / Güncelleme** | 22.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 | **Uygulama Niteliği**<br>Bu metin, her sipariş için ürün, fiyat, taşıyıcı, iade adresi ve alıcı bilgileri doldurularak kalıcı veri saklayıcısı ile alıcıya iletilecek dinamik sözleşme şablonudur. Ön Bilgilendirme Formu ve sipariş özeti sözleşmenin ayrılmaz parçasıdır. |
@@ -112,16 +112,16 @@ Satıcı ve Alıcı ayrı ayrı “Taraf”, birlikte “Taraflar” olarak anı
 
 ## 1.3. Fulfillment ve Taşıma Tarafları
 
-| **Fulfillment / İade Kabul Operatörü** | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ |
+| **Fulfillment / İade Kabul Operatörü** | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ |
 |----|----|
-| **VKN / Vergi Dairesi** | 0111343066 / Kozyatağı Vergi Dairesi |
-| **Operasyon ve İade Kabul Adresi** | Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1, Bodrum Kat Ofis No: B109-B115, Gebze / Kocaeli, Türkiye |
-| **Operasyon İletişimi** | +90 216 807 10 08 / info@fulfillmenttr.com |
+| **VKN / Vergi Dairesi** | 6311761487 / İkitelli Vergi Dairesi |
+| **Operasyon ve İade Kabul Adresi** | Süleyman Demirel Bulvarı, The Office No: 7/E, Kapı No: D:136, Ziya Gökalp Mahallesi, Başakşehir / İstanbul, Türkiye |
+| **Operasyon İletişimi** | +90 538 608 96 04 / nikarhome@outlook.com |
 | **Teslimat Taşıyıcısı** | {{delivery_carrier_full_trade_name}} |
 | **İade İçin Öngörülen Taşıyıcı** | {{return_carrier_full_trade_name}} |
 | **İade Gönderi Kodu / Yöntemi** | {{return_code_or_request_method}} |
 
-AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ, Satıcı adına depolama, sipariş hazırlama, paketleme, taşıyıcıya teslim ve iade kabul/ön inceleme işlemlerini yürütür; ürünlerin satıcısı ve işbu Sözleşme’nin tarafı değildir. Taşıyıcı da fiziksel taşıma hizmetini yürütür. Bu tarafların kullanılması, Satıcı’nın Alıcı’ya karşı kanundan ve Sözleşme’den doğan sorumluluklarını kaldırmaz veya sınırlandırmaz.
+NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ, Satıcı adına depolama, sipariş hazırlama, paketleme, taşıyıcıya teslim ve iade kabul/ön inceleme işlemlerini yürütür; ürünlerin satıcısı ve işbu Sözleşme’nin tarafı değildir. Taşıyıcı da fiziksel taşıma hizmetini yürütür. Bu tarafların kullanılması, Satıcı’nın Alıcı’ya karşı kanundan ve Sözleşme’den doğan sorumluluklarını kaldırmaz veya sınırlandırmaz.
 
 # 2. Tanımlar
 
@@ -134,7 +134,7 @@ AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ, Satıcı adına depolama, sipariş ha
 | **Ön Bilgilendirme Formu** | Sözleşme kurulmadan önce Alıcıya sunulan zorunlu bilgileri içeren siparişe özgü belge. |
 | **Ürün** | Site üzerinden satışa sunulan kozmetik, kişisel bakım, parfümeri, makyaj ve tırnak tasarım ürünleri ile siparişe konu diğer taşınır mallar. |
 | **Site** | https://american-creator.tr/ |
-| **Fulfillment Operatörü** | Satıcı adına lojistik operasyonları yürüten AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ. |
+| **Fulfillment Operatörü** | Satıcı adına lojistik operasyonları yürüten NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ. |
 
 # 3. Sözleşmenin Konusu, Kapsamı ve Belgeler Arası Öncelik
 
@@ -193,7 +193,7 @@ Ortalama bir tüketici tarafından da fark edilebilecek açık bir yazım, siste
 
 # 8. Hazırlama, Fulfillment ve Teslimat
 
-Siparişlerin depolanması, stoktan ayrılması, adet/ürün kontrolü, paketlenmesi, sevkiyat etiketinin hazırlanması ve taşıyıcıya teslimi AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ tarafından Satıcı adına yürütülebilir. Operatörün hazırladığı kayıt, fotoğraf, tartım ve paketleme kanıtları siparişin incelenmesinde kullanılabilir; bu kayıtlar Alıcının itiraz ve ispat haklarını ortadan kaldırmaz.
+Siparişlerin depolanması, stoktan ayrılması, adet/ürün kontrolü, paketlenmesi, sevkiyat etiketinin hazırlanması ve taşıyıcıya teslimi NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ tarafından Satıcı adına yürütülebilir. Operatörün hazırladığı kayıt, fotoğraf, tartım ve paketleme kanıtları siparişin incelenmesinde kullanılabilir; bu kayıtlar Alıcının itiraz ve ispat haklarını ortadan kaldırmaz.
 
 Siparişler yalnızca Türkiye Cumhuriyeti sınırları içindeki kabul edilen adreslere gönderilir. Normal operasyon şartlarında hazırlama süresi sipariş ekranında gösterilir. Satıcı, aksi kararlaştırılmadıkça siparişi en geç otuz gün içinde yerine getirir; daha kısa bir teslim süresi taahhüt edilmişse bu süreye uyulur.
 
@@ -215,7 +215,7 @@ Cayma bildirimi, on dört günlük süre içinde Satıcıya yazılı olarak, e-p
 
 | **Cayma / İade E-postası** | info@american-creator.tr |
 |----|----|
-| **İade Kabul Adresi** | American Creator İade Birimi - AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ, Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1, Bodrum Kat Ofis No: B109-B115, Gebze / Kocaeli, Türkiye |
+| **İade Kabul Adresi** | American Creator İade Birimi - NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ, Süleyman Demirel Bulvarı, The Office No: 7/E, Kapı No: D:136, Ziya Gökalp Mahallesi, Başakşehir / İstanbul, Türkiye |
 | **İade İçin Öngörülen Taşıyıcı** | {{return_carrier_full_trade_name}} |
 | **İade Talep Kanalı ve İade Kodunun Alınma Yöntemi** | {{return_request_channel_and_code_method}} |
 
@@ -312,7 +312,7 @@ Alıcı, sipariş ve ürünlere ilişkin talep ve şikâyetlerini info@american-
 
 # Elektronik Kabul Kaydı
 
-| **Sözleşme Sürümü**         | KK-MSS-2026-V5 / 5.0        |
+| **Sözleşme Sürümü**         | KK-MSS-2026-V4 / 4.0        |
 |-----------------------------|-----------------------------|
 | **Ön Bilgilendirme Sürümü** | {{pre_information_version}} |
 | **Sipariş Numarası**        | {{order_number}}            |

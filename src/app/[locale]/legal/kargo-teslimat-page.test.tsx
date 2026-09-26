@@ -33,10 +33,10 @@ const renderPage = async (slug: string, locale: string) => {
 describe('LegalPage — kargo-teslimat Markdown document', () => {
   it('renders the v2 document with tables and both parties on the EN page', async () => {
     const { container } = await renderPage('kargo-teslimat', 'en');
-    expect(container.textContent).toContain('KK-TK-KTP-2026-V2');
-    // Satıcı MERSİS + NİKAR VKN — the acceptance-critical requisites.
+    expect(container.textContent).toContain('KK-TK-KTP-2026-V3');
+    // Satıcı MERSİS + fulfillment operator (AKA Yazılım Lojistik) VKN — the acceptance-critical requisites.
     expect(container.textContent).toContain('0560146611100001');
-    expect(container.textContent).toContain('6311761487');
+    expect(container.textContent).toContain('0111343066');
     expect(container.querySelector('table')).not.toBeNull();
   });
 
@@ -60,7 +60,7 @@ describe('LegalPage — kargo-teslimat Markdown document', () => {
 
   it('does NOT show the EN notice on the TR page', async () => {
     const { container } = await renderPage('kargo-teslimat', 'tr');
-    expect(container.textContent).toContain('KK-TK-KTP-2026-V2');
+    expect(container.textContent).toContain('KK-TK-KTP-2026-V3');
     expect(container.textContent).not.toContain('The official text of this policy is in Turkish');
   });
 

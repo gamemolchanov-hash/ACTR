@@ -1,6 +1,6 @@
 /**
  * Canonical legal text — "Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni"
- * v2.0 (doc code KK-ET-TEI-2026-V3, effective 21.07.2026), FBG-397.
+ * v2.0 (doc code KK-ET-TEI-2026-V2, effective 21.07.2026), FBG-397.
  *
  * The Turkish text is authoritative and MUST NOT be edited, shortened or
  * reformatted. It is shown verbatim on both /tr/legal/ticari-elektronik-ileti
@@ -40,9 +40,9 @@ export const TICARI_ELEKTRONIK_ILETI_MARKDOWN = String.raw`
 | Hizmet Sağlayıcı / Şirket | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 | :---- | :---- |
 | **İnternet Sitesi** | https://american-creator.tr/ |
-| **Doküman Kodu** | KK-ET-TEI-2026-V3 |
-| **Sürüm** | 3.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-ET-TEI-2026-V2 |
+| **Sürüm** | 2.0 |
+| **Yürürlük / Güncelleme** | 21.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 # **BÖLÜM A — TİCARİ ELEKTRONİK İLETİ BİLGİLENDİRMESİ**
@@ -187,7 +187,7 @@ KVKK kapsamındaki kişisel veri işleme faaliyetleri ile ticari elektronik ilet
 
 Şirket, e-posta, SMS, çağrı veya İYS entegrasyonu için yetkili aracı hizmet sağlayıcılardan ve teknik tedarikçilerden yararlanabilir. Bu sağlayıcılar, Şirketin talimatıyla ve kendi kanuni yükümlülükleri çerçevesinde çalışır; onay kontrolü, güvenlik, ret uygulaması ve kayıtların korunmasına ilişkin sözleşmesel hükümler tesis edilir.
 
-Fulfillment operatörü AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ ile anlaşmalı taşıyıcılar, üyelik veya sipariş süreçlerinde kendilerine iletilen iletişim bilgilerini bağımsız pazarlama amacıyla kullanamaz. Bu taraflar yalnızca sipariş hazırlama, teslimat, iade veya operasyonel bilgilendirme amacıyla ileti kurabilir; iletiye ürün tanıtımı ekleyemez.
+Fulfillment operatörü NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ ile anlaşmalı taşıyıcılar, üyelik veya sipariş süreçlerinde kendilerine iletilen iletişim bilgilerini bağımsız pazarlama amacıyla kullanamaz. Bu taraflar yalnızca sipariş hazırlama, teslimat, iade veya operasyonel bilgilendirme amacıyla ileti kurabilir; iletiye ürün tanıtımı ekleyemez.
 
 Fiilen kullanılan hizmet sağlayıcılar, bunların kişisel verilerin korunması mevzuatı kapsamındaki rolleri, veri işleme yerleri ve varsa yurt dışı aktarım süreçleri, ilgili KVKK aydınlatma metinlerinde Şirketin güncel operasyonel yapısına uygun olarak açıklanır. Şirket, operasyonel yapısında meydana gelen değişiklikler doğrultusunda ilgili KVKK metinlerini gerektiğinde günceller.
 

@@ -33,7 +33,7 @@ const renderPage = async (slug: string, locale: string) => {
 describe('LegalPage — ticari-elektronik-ileti Markdown document', () => {
   it('renders the v2 document with the doc code, MERSİS and tables', async () => {
     const { container } = await renderPage('ticari-elektronik-ileti', 'en');
-    expect(container.textContent).toContain('KK-ET-TEI-2026-V2');
+    expect(container.textContent).toContain('KK-ET-TEI-2026-V3');
     // BÖLÜM A / BÖLÜM B both present.
     expect(container.textContent).toContain('BÖLÜM A');
     expect(container.textContent).toContain('BÖLÜM B');
@@ -101,7 +101,7 @@ describe('LegalPage — ticari-elektronik-ileti Markdown document', () => {
     expect(en.container.textContent).toContain('The official text of this policy is in Turkish');
     cleanup();
     const tr = await renderPage('ticari-elektronik-ileti', 'tr');
-    expect(tr.container.textContent).toContain('KK-ET-TEI-2026-V2');
+    expect(tr.container.textContent).toContain('KK-ET-TEI-2026-V3');
     expect(tr.container.textContent).not.toContain('The official text of this policy is in Turkish');
   });
 });

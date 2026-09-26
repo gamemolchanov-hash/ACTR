@@ -3,7 +3,7 @@
  * for FBG-410, against the ARM endpoints added by FBG-409.
  *
  * Canon: «Ticari Elektronik İleti Bilgilendirmesi ve Onay Metni» v2.0
- * (KK-ET-TEI-2026-V2, published at /legal/ticari-elektronik-ileti). Rules this
+ * (KK-ET-TEI-2026-V3, published at /legal/ticari-elektronik-ileti). Rules this
  * module exists to keep honest:
  *   - §5 channels are independent (E-POSTA / MESAJ / ARAMA) and only channels the
  *     store ACTUALLY uses may be shown; SMS and WhatsApp are two sub-channels of

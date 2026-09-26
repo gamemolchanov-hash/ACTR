@@ -44,8 +44,8 @@ describe('Mesafeli Satış Sözleşmesi on checkout', () => {
     expect(text).toContain('Pomat A');
     expect(text).toContain('Şampuan B');
     expect(text).toContain('Ayşe Yılmaz');
-    expect(text).toContain('KK-MSS-2026-V4');
-    expect(text).toContain('KK-ET-OBF-2026-V2'); // pre-information version
+    expect(text).toContain('KK-MSS-2026-V5');
+    expect(text).toContain('KK-ET-OBF-2026-V3'); // pre-information version
   });
 
   it('renders the contract text — including table cells — at ≥16px', () => {

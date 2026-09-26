@@ -170,7 +170,7 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
 
   it('sends the ticked channel as a MESAJ/SMS grant', async () => {
     authApi.getConsents.mockResolvedValue({
-      text_version: 'KK-ET-TEI-2026-V2',
+      text_version: 'KK-ET-TEI-2026-V3',
       consents: { ...EMPTY_STATE, mesaj_sms: 'onay' },
     });
     render(<RegisterPage />);
@@ -189,11 +189,11 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
 
   it('re-sends only the grants ARM failed to record', async () => {
     authApi.getConsents.mockResolvedValue({
-      text_version: 'KK-ET-TEI-2026-V2',
+      text_version: 'KK-ET-TEI-2026-V3',
       consents: { ...EMPTY_STATE, email: 'onay' },
     });
     authApi.updateConsents.mockResolvedValue({
-      text_version: 'KK-ET-TEI-2026-V2',
+      text_version: 'KK-ET-TEI-2026-V3',
       consents: { ...EMPTY_STATE, email: 'onay', mesaj_sms: 'onay' },
     });
     render(<RegisterPage />);
@@ -218,7 +218,7 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
       'the re-send fails',
       () => {
         authApi.getConsents.mockResolvedValue({
-          text_version: 'KK-ET-TEI-2026-V2',
+          text_version: 'KK-ET-TEI-2026-V3',
           consents: EMPTY_STATE,
         });
         authApi.updateConsents.mockRejectedValue(new Error('BFF down'));
@@ -248,7 +248,7 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
       }),
     );
     authApi.getConsents.mockResolvedValue({
-      text_version: 'KK-ET-TEI-2026-V2',
+      text_version: 'KK-ET-TEI-2026-V3',
       consents: { ...EMPTY_STATE, email: 'onay' },
     });
     render(<RegisterPage />);
@@ -281,7 +281,7 @@ describe('registration consent checkboxes (canon §15 / §9)', () => {
     expect(screen.getByText('ticariIleti.phoneIncomplete')).toBeTruthy();
 
     authApi.getConsents.mockResolvedValue({
-      text_version: 'KK-ET-TEI-2026-V2',
+      text_version: 'KK-ET-TEI-2026-V3',
       consents: { ...EMPTY_STATE, email: 'onay' },
     });
     now += 5000;

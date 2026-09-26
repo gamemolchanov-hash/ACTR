@@ -1,7 +1,7 @@
 /**
  * FBG-456 — LegalPage Markdown branch (slug `mesafeli-satis`).
  *
- * /legal/mesafeli-satis renders the lawyer's full V4 canon (KK-MSS-2026-V4).
+ * /legal/mesafeli-satis renders the lawyer's full V4 canon (KK-MSS-2026-V5).
  * By its "Uygulama Niteliği" clause the contract is a dynamic per-order template;
  * the public page shows the template with every one of its 31 `{{order tokens}}`
  * replaced by a visible blank ("___________"), so no raw token is exposed. This
@@ -42,7 +42,7 @@ const hrefs = (container: HTMLElement) => anchors(container).map((a) => a.getAtt
 describe('LegalPage — mesafeli-satis Markdown document', () => {
   it('renders the v4 document header untouched (doc code / version)', async () => {
     const { container } = await renderPage('mesafeli-satis', 'en');
-    expect(container.textContent).toContain('KK-MSS-2026-V4');
+    expect(container.textContent).toContain('KK-MSS-2026-V5');
     expect(container.textContent).toContain('4.0');
     expect(container.querySelector('table')).not.toBeNull();
   });

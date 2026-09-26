@@ -1,6 +1,6 @@
 /**
  * Mesafeli Satış Sözleşmesi V4 (FBG-458) — fills the canonical dynamic contract
- * template (mesafeli-satis-content.ts, KK-MSS-2026-V4) with a concrete order's
+ * template (mesafeli-satis-content.ts, KK-MSS-2026-V5) with a concrete order's
  * data and returns ready-to-render Markdown for LegalMarkdown. It is the sibling
  * of the Ön Bilgilendirme Formu (FBG-401): the contract is the subject of the
  * sale itself, filled per order and delivered on a durable medium.
@@ -35,7 +35,7 @@ import { ON_BILGILENDIRME_DOC_CODE } from './on-bilgilendirme-formu-content';
 
 /** Same order snapshot the OBF is built from; the contract adds no new inputs. */
 /** Код версии договора юриста (шапка шаблона `mesafeli-satis-content.ts`); уходит в снимок заказа. */
-export const MESAFELI_SATIS_DOC_CODE = 'KK-MSS-2026-V4';
+export const MESAFELI_SATIS_DOC_CODE = 'KK-MSS-2026-V5';
 
 export type BuildMesafeliSatisInput = BuildOnBilgilendirmeInput;
 

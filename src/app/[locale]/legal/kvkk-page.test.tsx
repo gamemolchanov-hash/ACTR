@@ -2,7 +2,7 @@
  * FBG-454 — LegalPage Markdown branch (slug `kvkk`).
  *
  * The KVKK clarification text renders the lawyer's full V3 canon
- * (KK-KVKK-AM-2026-V3) instead of the old s1..s4 stub sections; non-TR locales
+ * (KK-KVKK-AM-2026-V4) instead of the old s1..s4 stub sections; non-TR locales
  * get a short "official text is in Turkish" notice, TR does not. This test pins
  * the doc header, that the stub placeholders are gone, the three canon
  * cross-references (one PDF, two locale-preserving page links) and the EN
@@ -38,10 +38,10 @@ const hrefs = (container: HTMLElement) =>
   Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'));
 
 describe('LegalPage — kvkk Markdown document', () => {
-  it('renders the v3 document header untouched (doc code / version)', async () => {
+  it('renders the v4 document header untouched (doc code / version)', async () => {
     const { container } = await renderPage('kvkk', 'en');
-    expect(container.textContent).toContain('KK-KVKK-AM-2026-V3');
-    expect(container.textContent).toContain('3.0');
+    expect(container.textContent).toContain('KK-KVKK-AM-2026-V4');
+    expect(container.textContent).toContain('4.0');
     expect(container.querySelector('table')).not.toBeNull();
   });
 

@@ -35,7 +35,7 @@ const renderPage = async (slug: string, locale: string) => {
 describe('LegalPage — iade Markdown document', () => {
   it('renders the v2 document header untouched (doc code / version)', async () => {
     const { container } = await renderPage('iade', 'en');
-    expect(container.textContent).toContain('KK-TK-ICP-2026-V2');
+    expect(container.textContent).toContain('KK-TK-ICP-2026-V3');
     expect(container.querySelector('table')).not.toBeNull();
   });
 

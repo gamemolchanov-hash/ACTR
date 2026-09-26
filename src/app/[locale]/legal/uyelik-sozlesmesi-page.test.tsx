@@ -34,7 +34,7 @@ describe('LegalPage — uyelik-sozlesmesi Markdown document', () => {
   it('renders the v2 document with the doc code, all sections and legal basis', async () => {
     const { container } = await renderPage('uyelik-sozlesmesi', 'en');
     const text = container.textContent ?? '';
-    expect(text).toContain('KK-ET-UYS-2026-V2');
+    expect(text).toContain('KK-ET-UYS-2026-V3');
     // Spot-check the section span: first, a middle, and the last (23) heading.
     expect(text).toContain('1. Amaç, Taraflar ve Belgenin Niteliği');
     expect(text).toContain('7. Satıcı ve Operasyonel Hizmet Sağlayıcıların Rolleri');
@@ -52,7 +52,7 @@ describe('LegalPage — uyelik-sozlesmesi Markdown document', () => {
     expect(cellText).toContain('Alanya Vergi Dairesi / 5601466111');
     // §7: the fulfillment operator sits in its own first-column cell, kept
     // separate from the "Rol" column.
-    expect(cellText).toContain('NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ');
+    expect(cellText).toContain('AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ');
     // The escaped phone `\+90…` resolves to a literal `+`, the backslash gone.
     const text = container.textContent ?? '';
     expect(text).toContain('+90 531 871 30 07');
@@ -106,7 +106,7 @@ describe('LegalPage — uyelik-sozlesmesi Markdown document', () => {
     expect(en.container.textContent).toContain('The official text of this policy is in Turkish');
     cleanup();
     const tr = await renderPage('uyelik-sozlesmesi', 'tr');
-    expect(tr.container.textContent).toContain('KK-ET-UYS-2026-V2');
+    expect(tr.container.textContent).toContain('KK-ET-UYS-2026-V3');
     expect(tr.container.textContent).not.toContain('The official text of this policy is in Turkish');
   });
 });

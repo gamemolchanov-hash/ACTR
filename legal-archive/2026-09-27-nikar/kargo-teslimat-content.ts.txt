@@ -1,6 +1,6 @@
 /**
  * Canonical legal text — "Kargo ve Teslimat Politikası" v2.0
- * (doc code KK-TK-KTP-2026-V3, effective 20.07.2026), FBG-396.
+ * (doc code KK-TK-KTP-2026-V2, effective 20.07.2026), FBG-396.
  *
  * The Turkish text is authoritative and MUST NOT be edited, shortened or
  * reformatted. It is shown verbatim on both /tr/legal/kargo-teslimat and
@@ -13,7 +13,7 @@
  * matches the client document; LegalMarkdown resolves them at render time.
  *
  * Two kinds of deviation from the client's docx→md export:
- *  - inside the §2 table the Satıcı and AKA YAZILIM LOJİSTİK A.Ş. requisite cells arrived with their
+ *  - inside the §2 table the Satıcı and NİKAR requisite cells arrived with their
  *    fields concatenated without a separator (`…ŞİRKETİMERSİS:…`, `…LİMİTED
  *    ŞİRKETİVKN:…`); those glue points are un-glued with `<br>` line breaks — no
  *    word is added, removed or changed;
@@ -35,9 +35,9 @@ export const KARGO_TESLIMAT_MARKDOWN = String.raw`
 | Satıcı | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 | :---- | :---- |
 | **Ticari Marka / Site** | American Creator / https://american-creator.tr/ |
-| **Doküman Kodu** | KK-TK-KTP-2026-V3 |
-| **Sürüm** | 3.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-TK-KTP-2026-V2 |
+| **Sürüm** | 2.0 |
+| **Yürürlük / Güncelleme** | 20.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 # **1\. Amaç, Kapsam ve Belgenin Niteliği**
@@ -51,7 +51,7 @@ Bu Politika tüketici işlemleri için hazırlanmıştır. Ticari veya mesleki a
 | Sıfat | Unvan / Bilgi | Hukuki ve Operasyonel Rol |
 | ----- | ----- | ----- |
 | Satıcı | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ<br>MERSİS: 0560146611100001<br>VKN: 5601466111 — Alanya Vergi Dairesi<br>Adres: Oba Mahallesi 225 Sokak Summer Park Sitesi B Blok No: 8B, İç Kapı No: 20, 07460 Alanya / Antalya, Türkiye<br>E-posta: info@american-creator.tr<br>Telefon: \+90 531 871 30 07 | Mesafeli satış sözleşmesinin tarafıdır. Ürün, fiyat, teslimat taahhüdü, tüketici başvuruları, sipariş iptali ve bedel iadesi bakımından tüketiciye karşı asli muhataptır. |
-| Fulfillment / Lojistik Hizmet Sağlayıcısı | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ<br>VKN: 0111343066 — Kozyatağı Vergi Dairesi<br>Adres: Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1, Bodrum Kat Ofis No: B109-B115, Gebze / Kocaeli, Türkiye<br>E-posta: info@fulfillmenttr.com<br>Telefon: \+90 216 807 10 08 | Satıcının talimatları doğrultusunda stok kabulü, depolama, sipariş toplama, paketleme, taşıyıcıya teslim, iade gönderilerinin fiziksel kabulü ve ön incelemesi işlemlerini yürütür. Satış sözleşmesinin tarafı değildir ve Satıcının tüketiciye karşı sorumluluğunu ortadan kaldırmaz. |
+| Fulfillment / Lojistik Hizmet Sağlayıcısı | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ<br>VKN: 6311761487 — İkitelli Vergi Dairesi<br>Adres: Ziya Gökalp Mahallesi, Süleyman Demirel Bulvarı, The Office No: 7/E, Kapı No: D:136, İstanbul, Türkiye<br>E-posta: nikarhome@outlook.com<br>Telefon: \+90 538 608 96 04 | Satıcının talimatları doğrultusunda stok kabulü, depolama, sipariş toplama, paketleme, taşıyıcıya teslim, iade gönderilerinin fiziksel kabulü ve ön incelemesi işlemlerini yürütür. Satış sözleşmesinin tarafı değildir ve Satıcının tüketiciye karşı sorumluluğunu ortadan kaldırmaz. |
 | Taşıyıcı / Kargo Şirketi | Siparişe uygulanacak taşıyıcının ticaret unvanı, sipariş öncesi bilgilendirmede ve/veya sipariş onayında açıkça gösterilir. | Paketin fiziksel taşımasını, dağıtımını, teslim/teslim edilememe kayıtlarını ve gerektiğinde hasar tespit işlemlerini yürütür. Taşıyıcının kendi mevzuatından doğan sorumlulukları saklıdır. |
 
 | Tüketiciye Karşı Tek Hukuki Muhatap Fulfillment veya kargo operasyonunun üçüncü kişilerce yürütülmesi, Satıcının 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği kapsamındaki sorumluluğunu sınırlamaz. Siparişe, teslimata, hasara, eksikliğe, iptale ve iadeye ilişkin tüketici talepleri American Creator’a yöneltilir. |
@@ -71,7 +71,7 @@ Tüketicinin, malın tesliminden önce cayma hakkını kullanmasına ilişkin bi
 
 # **5\. Fulfillment Merkezinde Hazırlama ve Paketleme**
 
-Ödemenin veya kullanılan ödeme yöntemine göre ödeme yetkilendirmesinin onaylanmasından sonra sipariş, AKA YAZILIM LOJİSTİK A.Ş. tarafından Satıcının stok ve paketleme talimatlarına göre hazırlanır. Operasyon; ürünün stoktan ayrılması, siparişle eşleştirilmesi, adet ve varyant kontrolü, gerektiğinde lot/seri kaydının doğrulanması, koruyucu paketleme, taşıma etiketi oluşturulması ve taşıyıcıya teslim aşamalarını kapsar.
+Ödemenin veya kullanılan ödeme yöntemine göre ödeme yetkilendirmesinin onaylanmasından sonra sipariş, NİKAR tarafından Satıcının stok ve paketleme talimatlarına göre hazırlanır. Operasyon; ürünün stoktan ayrılması, siparişle eşleştirilmesi, adet ve varyant kontrolü, gerektiğinde lot/seri kaydının doğrulanması, koruyucu paketleme, taşıma etiketi oluşturulması ve taşıyıcıya teslim aşamalarını kapsar.
 
 Normal operasyon koşullarında siparişlerin, ödeme veya ödeme yetkilendirmesinin onaylanmasını izleyen 1-2 iş günü içinde taşıyıcıya teslim edilmesi hedeflenir. Bu süre bir hedef süredir; kampanya yoğunluğu, stok sayımı, resmî tatil, ürün güvenliği kontrolü veya siparişe özgü başka bir neden bulunması hâlinde sipariş ekranında ya da kalıcı veri saklayıcısı ile bildirilen farklı süre uygulanabilir. Siparişe ilişkin bağlayıcı teslimat süresi, tüketicinin ödeme yükümlülüğü altına girmesinden önce gösterilen ve sipariş teyidinde yer alan süredir.
 
@@ -157,11 +157,11 @@ Güncellenen Politika, internet sitesinde yayımlandığı tarihte yürürlüğe
 
 | Süreç | Fiilen Yürüten | Tüketiciye Karşı Asli Muhatap | Kontrol / Kanıt |
 | ----- | ----- | ----- | ----- |
-| Stok kabulü ve depolama | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Satıcı | Stok hareketi, lot/ürün eşleştirmesi, sayım kayıtları |
-| Toplama ve paketleme | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Satıcı | Sipariş satırı, paketleme kontrolü, ağırlık ve gerektiğinde fotoğraf kaydı |
-| Taşıyıcıya teslim | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Satıcı | Manifesto, barkod ve taşıyıcı teslim taraması |
+| Stok kabulü ve depolama | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Satıcı | Stok hareketi, lot/ürün eşleştirmesi, sayım kayıtları |
+| Toplama ve paketleme | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Satıcı | Sipariş satırı, paketleme kontrolü, ağırlık ve gerektiğinde fotoğraf kaydı |
+| Taşıyıcıya teslim | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Satıcı | Manifesto, barkod ve taşıyıcı teslim taraması |
 | Fiziksel taşıma ve dağıtım | Siparişe atanan taşıyıcı | Satıcı; taşıyıcının kendi kanuni sorumluluğu saklıdır | Takip olayları, teslim kodu/imza ve teslim edilememe nedeni |
-| Hasarlı, eksik veya yanlış ürün bildiriminin incelenmesi  | Satıcı; gerekli hâllerde AKA YAZILIM LOJİSTİK A.Ş. ve taşıyıcıdan kayıt ve açıklama alınır  | Satıcı | Sipariş kaydı, ürün ve paket fotoğrafları, lot bilgisi, ağırlık kaydı, taşıyıcı teslim ve hasar kayıtları  |
+| Hasarlı, eksik veya yanlış ürün bildiriminin incelenmesi  | Satıcı; gerekli hâllerde NİKAR ve taşıyıcıdan kayıt ve açıklama alınır  | Satıcı | Sipariş kaydı, ürün ve paket fotoğrafları, lot bilgisi, ağırlık kaydı, taşıyıcı teslim ve hasar kayıtları  |
 | Teslimat gecikmesi, fesih ve bedel iadesi | Satıcı; ödeme işlemi ilgili banka veya ödeme hizmeti sağlayıcısı üzerinden gerçekleştirilir  | Satıcı | Bildirim zamanı, iade emri ve ödeme sonucu |
 
 # **Hukuki Dayanaklar**

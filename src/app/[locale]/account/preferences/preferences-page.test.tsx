@@ -69,7 +69,7 @@ const EMPTY: ArmConsentState = {
   mesaj_whatsapp: null,
 };
 const answer = (over: Partial<ArmConsentState> = {}) => ({
-  text_version: 'KK-ET-TEI-2026-V2',
+  text_version: 'KK-ET-TEI-2026-V3',
   consents: { ...EMPTY, ...over },
 });
 

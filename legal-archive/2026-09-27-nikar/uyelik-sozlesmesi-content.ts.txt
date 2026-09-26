@@ -1,5 +1,5 @@
 /**
- * Canonical legal text — "Üyelik Sözleşmesi" v2.0 (doc code KK-ET-UYS-2026-V3,
+ * Canonical legal text — "Üyelik Sözleşmesi" v2.0 (doc code KK-ET-UYS-2026-V2,
  * effective 21.07.2026), FBG-398.
  *
  * The Turkish text is authoritative and MUST NOT be edited, shortened or
@@ -39,9 +39,9 @@ export const UYELIK_SOZLESMESI_MARKDOWN = String.raw`
 | Hizmet Sağlayıcı / Şirket | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 | :---- | :---- |
 | **İnternet Sitesi** | https://american-creator.tr/ |
-| **Doküman Kodu** | KK-ET-UYS-2026-V3 |
-| **Sürüm** | 3.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-ET-UYS-2026-V2 |
+| **Sürüm** | 2.0 |
+| **Yürürlük / Güncelleme** | 21.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 # **1\. Amaç, Taraflar ve Belgenin Niteliği**
@@ -75,7 +75,7 @@ Sözleşme; hesabın oluşturulması, kullanılması, güvenliği, üyelik işle
 | Üye | Sözleşmeyi kabul ederek Site üzerinde Hesap oluşturan gerçek kişi. |
 | Kullanıcı | Siteyi üyelik hesabı oluşturmadan ziyaret eden kişi. |
 | Sipariş | Site üzerinden ürün satın alınmasına yönelik, ayrı ön bilgilendirme ve mesafeli satış sürecine tabi işlem. |
-| Fulfillment Operatörü | Şirket adına depolama, sipariş hazırlama, paketleme ve iade kabulü hizmeti yürüten AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ. |
+| Fulfillment Operatörü | Şirket adına depolama, sipariş hazırlama, paketleme ve iade kabulü hizmeti yürüten NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ. |
 | Taşıyıcı | Siparişin fiziksel taşınması ve teslimatı için Şirketçe görevlendirilen kargo/taşıma hizmet sağlayıcısı. |
 | Kalıcı Veri Saklayıcısı | Bilginin amacına uygun makul süre boyunca erişilebilir ve değiştirilmeden saklanabilir olmasını sağlayan e-posta, hesap alanı veya benzeri araç. |
 
@@ -110,7 +110,7 @@ Hesap; üyelik bilgilerinin yönetilmesi, sipariş geçmişinin görüntülenmes
 | Taraf / Sağlayıcı | Rol | Üyeye Karşı Konum |
 | ----- | ----- | ----- |
 | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ | Üyelik hizmet sağlayıcısı, Site işletmecisi ve siparişlerde satıcı. | Sözleşmenin tarafıdır; üyelik ve tüketici işlemlerindeki asli hukuki muhataptır. |
-| AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Fulfillment: depolama, toplama, paketleme ve iade kabulü. | Üyelik Sözleşmesinin tarafı değildir. Sipariş verilmesi halinde Şirket adına ve talimatıyla operasyon yürütür. |
+| NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Fulfillment: depolama, toplama, paketleme ve iade kabulü. | Üyelik Sözleşmesinin tarafı değildir. Sipariş verilmesi halinde Şirket adına ve talimatıyla operasyon yürütür. |
 | Anlaşmalı taşıyıcı/kargo işletmesi | Fiziksel taşıma ve teslimat. | Üyelik Sözleşmesinin tarafı değildir. Taşıma mevzuatından doğan kendi sorumlulukları saklıdır; Satıcının tüketiciye karşı sorumluluğu devam eder. |
 | iyzico ve bankalar | Ödeme oturumu, tahsilat, doğrulama ve iade altyapısı. | Üyelik oluşturulması için ödeme gerekmez. Ödeme sağlayıcısı yalnızca sipariş/ödeme işlemi olduğunda devreye girer. |
 

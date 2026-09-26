@@ -1,6 +1,6 @@
 /**
  * Canonical legal text — "İade ve Cayma Politikası" v2.0
- * (doc code KK-TK-ICP-2026-V3, effective 20.07.2026), FBG-399.
+ * (doc code KK-TK-ICP-2026-V2, effective 20.07.2026), FBG-399.
  *
  * The Turkish text is authoritative and MUST NOT be edited, shortened or
  * reformatted. It is shown verbatim on both /tr/legal/iade and /en/legal/iade
@@ -13,7 +13,7 @@
  * matches the client document; LegalMarkdown resolves them at render time.
  *
  * Two deviations from the client's docx→md export, neither changing a word:
- *  - §2 table: the Satıcı and AKA YAZILIM LOJİSTİK A.Ş. requisite cells arrived with their fields
+ *  - §2 table: the Satıcı and NİKAR requisite cells arrived with their fields
  *    concatenated without a separator (`…ŞİRKETİMERSİS:…`, `…DairesiAdres:…`).
  *    Those glue points are un-glued with `<br>` line breaks (as in FBG-396).
  *  - §4: the two "Örnek Cayma Bildirim Formu" mentions are turned into Markdown
@@ -29,9 +29,9 @@ export const IADE_MARKDOWN = String.raw`
 | Satıcı | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 | :---- | :---- |
 | **Ticari Marka / Site** | American Creator / https://american-creator.tr/ |
-| **Doküman Kodu** | KK-TK-ICP-2026-V3 |
-| **Sürüm** | 3.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-TK-ICP-2026-V2 |
+| **Sürüm** | 2.0 |
+| **Yürürlük / Güncelleme** | 20.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 # **1\. Amaç, Kapsam ve Belgenin Niteliği**
@@ -45,10 +45,10 @@ Bu Politika, ticari veya mesleki olmayan amaçlarla hareket eden tüketiciler ba
 | Sıfat | Bilgiler | Rol |
 | ----- | ----- | ----- |
 | Satıcı ve Hukuki Muhatap | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ<br>MERSİS: 0560146611100001<br>VKN: 5601466111 — Alanya Vergi Dairesi<br>Adres: Oba Mahallesi 225 Sokak Summer Park Sitesi B Blok No: 8B, İç Kapı No: 20, 07460 Alanya / Antalya, Türkiye<br>E-posta: info@american-creator.tr<br>Telefon: \+90 531 871 30 07 | Cayma bildiriminin, şikâyetin, ayıplı mal talebinin ve itirazın hukuki muhatabıdır. İade kabulü, ret kararı, değişim ve bedel iadesine ilişkin nihai kararı verir. |
-| Fiziksel İade Kabul ve Ön İnceleme Noktası | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ<br>VKN: 0111343066 — Kozyatağı Vergi Dairesi<br>İade adresi: Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1, Bodrum Kat Ofis No: B109-B115, Gebze / Kocaeli, Türkiye<br>E-posta: info@fulfillmenttr.com<br>Telefon: \+90 216 807 10 08 | Satıcının yetkilendirdiği fulfillment/lojistik hizmet sağlayıcısıdır. Ürünü teslim alır, karantinaya ayırır, sipariş/ürün eşleşmesini ve ambalaj-hijyen durumunu Satıcının protokolüne göre inceler, bulguları Satıcıya raporlar. Satış sözleşmesinin tarafı değildir. |
+| Fiziksel İade Kabul ve Ön İnceleme Noktası | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ<br>VKN: 6311761487 — İkitelli Vergi Dairesi<br>İade adresi: Ziya Gökalp Mahallesi, Süleyman Demirel Bulvarı, The Office No: 7/E, Kapı No: D:136, İstanbul, Türkiye<br>E-posta: nikarhome@outlook.com<br>Telefon: \+90 538 608 96 04 | Satıcının yetkilendirdiği fulfillment/lojistik hizmet sağlayıcısıdır. Ürünü teslim alır, karantinaya ayırır, sipariş/ürün eşleşmesini ve ambalaj-hijyen durumunu Satıcının protokolüne göre inceler, bulguları Satıcıya raporlar. Satış sözleşmesinin tarafı değildir. |
 | Anlaşmalı İade Taşıyıcısı | Taşıyıcının ticaret unvanı ve iade yöntemi, tüketici ödeme yükümlülüğü altına girmeden önce Ön Bilgilendirme Formu’nda; ayrıca iade talimatında gösterilir. | Satıcının sağladığı iade kodu veya teslim alma talimatı üzerinden ürünü ücretsiz olarak fulfillment merkezine taşır. |
 
-| Önemli Ürünün fiziksel olarak AKA YAZILIM LOJİSTİK A.Ş.’ye gönderilmesi, Satıcının tüketiciye karşı hukuki sorumluluğunu devretmez. Cayma ve ayıplı mal bildirimleri American Creator’a yöneltilir; AKA YAZILIM LOJİSTİK A.Ş. yalnızca Satıcı adına fiziksel kabul ve ön inceleme yapar. |
+| Önemli Ürünün fiziksel olarak NİKAR’a gönderilmesi, Satıcının tüketiciye karşı hukuki sorumluluğunu devretmez. Cayma ve ayıplı mal bildirimleri American Creator’a yöneltilir; NİKAR yalnızca Satıcı adına fiziksel kabul ve ön inceleme yapar. |
 | :---- |
 
 # **3\. Cayma Hakkı ve Süresi**
@@ -87,7 +87,7 @@ Bedel iadesinin hangi tarihten itibaren hesaplanacağı, ürünün teslim edilip
 
 4\. Ürün, anlaşmalı taşıyıcıya teslim edilir veya organize edilen adresten alıma hazır edilir.
 
-5\. AKA YAZILIM LOJİSTİK A.Ş. ürünü teslim alır, fiziksel ön incelemeyi yapar ve raporu Satıcıya iletir.
+5\. NİKAR ürünü teslim alır, fiziksel ön incelemeyi yapar ve raporu Satıcıya iletir.
 
 6\. Satıcı, tüketiciye inceleme sonucunu ve uygulanacak işlemi bildirir.
 
@@ -125,13 +125,13 @@ Tüketicinin Ön Bilgilendirme Formu'nda belirtilen anlaşmalı taşıyıcı yer
 
 # **9\. Fiziksel İade Adresi**
 
-American Creator siparişlerine ilişkin fiziksel iade kabul ve inceleme adresi: AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ — Muallimköy Mah. Deniz Cad. No: 143/13, 2B Blok, Kat: 1, Bodrum Kat Ofis No: B109-B115, Gebze / Kocaeli, Türkiye.
+American Creator siparişlerine ilişkin fiziksel iade kabul ve inceleme adresi: NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ — Ziya Gökalp Mahallesi, Süleyman Demirel Bulvarı, The Office No: 7/E, Kapı No: D:136, İstanbul, Türkiye.
 
 İade adresine gönderim yapılmadan önce cayma bildiriminin Satıcıya ulaştırılması ve ücretsiz, izlenebilir iade sürecinin yürütülebilmesi amacıyla Satıcının verdiği güncel iade kodu veya taşıma talimatının kullanılması gerekir. Site üzerinden ayrıca iade talebi oluşturulması zorunlu değildir. İade kodunun bulunmaması veya teknik nedenlerle oluşturulamaması, süresinde Satıcıya ulaştırılmış cayma bildiriminin hukuki geçerliliğini ortadan kaldırmaz. Adresin operasyonel olarak değişmesi hâlinde, tüketiciye gönderimden önce kalıcı veri saklayıcısı ile yeni adres bildirilir. İade adresinin fulfillment işletmesine ait olması, Satıcının hukuki muhatap olduğu gerçeğini değiştirmez.
 
 # **10\. İade Ürünün İncelenmesi**
 
-AKA YAZILIM LOJİSTİK A.Ş., ürünü Satıcının yazılı inceleme protokolüne göre teslim alır ve aşağıdaki hususlarda ön inceleme yapar:
+NİKAR, ürünü Satıcının yazılı inceleme protokolüne göre teslim alır ve aşağıdaki hususlarda ön inceleme yapar:
 
 • Ürünün sipariş numarası, ürün kodu, varyant, adet ve gerektiğinde lot/seri bilgisiyle eşleşmesi.
 
@@ -241,8 +241,8 @@ Cayma, iade, ayıplı mal ve inceleme sonucuna itiraz bildirimleri info@american
 | ----- | ----- | ----- | ----- |
 | Cayma veya ayıplı mal bildirimi | American Creator müşteri hizmetleri / Site | Satıcı | Talep zamanı, kanal, sipariş ve ürün |
 | İade kodu ve taşıyıcı talimatı | Satıcı / entegre taşıyıcı sistemi | Satıcı | Taşıyıcı adı, kod, son gönderim tarihi |
-| Fiziksel iade kabulü | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Satıcı | Teslim taraması, paket ağırlığı, teslim zamanı |
-| Hijyen, ambalaj, ürün ve lot ön incelemesi | AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ | Satıcı | Kontrol listesi, fotoğraf/video ve bulgular |
+| Fiziksel iade kabulü | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Satıcı | Teslim taraması, paket ağırlığı, teslim zamanı |
+| Hijyen, ambalaj, ürün ve lot ön incelemesi | NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ | Satıcı | Kontrol listesi, fotoğraf/video ve bulgular |
 | Kabul / ret / ayıplı mal seçimlik hakkı kararı | Satıcı | Satıcı | Gerekçeli karar ve tüketici bildirimi |
 | Bedel iadesi | Satıcı / iyzico / banka | Satıcı | İade emri, iade süresinin başlangıç tarihi, tutar, ödeme tarihi ve ödeme sonucu |
 | Kozmetovijilans | Satıcı \+ üretici/sorumlu kişi; gerektiğinde TİTCK | Mevzuata göre ilgili sorumlu aktör | Vaka, lot, değerlendirme ve bildirim kayıtları |

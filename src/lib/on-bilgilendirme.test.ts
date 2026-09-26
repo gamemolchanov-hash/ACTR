@@ -69,10 +69,10 @@ describe('renderOnBilgilendirmeFormu', () => {
 
   it('preserves the canonical doc code and seller requisites', () => {
     const md = render();
-    expect(md).toContain('KK-ET-OBF-2026-V2');
+    expect(md).toContain('KK-ET-OBF-2026-V3');
     expect(md).toContain('0560146611100001'); // MERSİS
     expect(md).toContain('5601466111'); // VKN
-    expect(md).toContain('NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ');
+    expect(md).toContain('AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ');
   });
 
   it('fills order / payment / delivery fields', () => {

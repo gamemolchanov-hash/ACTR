@@ -1,6 +1,6 @@
 /**
  * Canonical legal text — "Kişisel Verilerin İşlenmesine İlişkin Aydınlatma
- * Metni" v3.0 (doc code KK-KVKK-AM-2026-V4, effective 22.07.2026), FBG-454.
+ * Metni" v3.0 (doc code KK-KVKK-AM-2026-V3, effective 22.07.2026), FBG-454.
  *
  * The Turkish text is authoritative and MUST NOT be edited, shortened or
  * reformatted. It is shown verbatim on both /tr/legal/kvkk and /en/legal/kvkk
@@ -32,9 +32,9 @@ export const KVKK_MARKDOWN = String.raw`
 | **Veri Sorumlusu** | KIZIL KALİNA KOZMETİK ÜRÜNLERİ TİCARET İTHALAT VE İHRACAT LİMİTED ŞİRKETİ |
 |----|----|
 | **İnternet Sitesi** | https://american-creator.tr/ |
-| **Doküman Kodu** | KK-KVKK-AM-2026-V4 |
-| **Sürüm** | 4.0 |
-| **Yürürlük / Güncelleme** | 27.09.2026 |
+| **Doküman Kodu** | KK-KVKK-AM-2026-V3 |
+| **Sürüm** | 3.0 |
+| **Yürürlük / Güncelleme** | 22.07.2026 |
 | **Belge Sınıfı** | KAMUYA AÇIK |
 
 | Belgenin Niteliği Bu metin KVKK madde 10 kapsamındaki bilgilendirme yükümlülüğünü yerine getirir. Herhangi bir açık rıza veya sözleşme kabulü talep etmez. Açık rıza gerektiren faaliyetler ayrı metin ve ayrı kullanıcı işlemleriyle yönetilir. |
@@ -106,7 +106,7 @@ Kişisel veri ilgili kişiden elde edilmezse, KVKK ve Aydınlatma Tebliği uyar�
 | **Alıcı Grubu** | **Aktarım Amacı** | **Rol / Sınır** |
 |----|----|----|
 | **İyzi Ödeme ve Elektronik Para Hizmetleri A.Ş. ve bankalar** | Ödeme, 3D Secure, dolandırıcılık önleme, iade ve mutabakat. | Ödeme kuruluşu kendi 6493 kapsamındaki yükümlülükleri bakımından bağımsız veri sorumlusu olarak da hareket eder. |
-| **AKA YAZILIM LOJİSTİK ANONİM ŞİRKETİ** | Depolama, sipariş hazırlama, paketleme, sevk, iade kabulü ve ambalaj/hijyen/ayıp ön incelemesi. | Satıcı talimatıyla yürütülen süreçlerde veri işleyen; kendi zorunlu kanuni kayıtları varsa sınırlı bağımsız rol ayrıca değerlendirilir. |
+| **NİKAR GIDA TEKSTİL DIŞ TİCARET LİMİTED ŞİRKETİ** | Depolama, sipariş hazırlama, paketleme, sevk, iade kabulü ve ambalaj/hijyen/ayıp ön incelemesi. | Satıcı talimatıyla yürütülen süreçlerde veri işleyen; kendi zorunlu kanuni kayıtları varsa sınırlı bağımsız rol ayrıca değerlendirilir. |
 | **Anlaşmalı taşıyıcı/kargo şirketi** | Teslimat, takip, teslim kanıtı, kayıp/hasar ve iade taşıması. | Teslimat talimatları kapsamında veri işleyen; taşıma mevzuatından doğan zorunlu kayıtlarında bağımsız veri sorumlusu olabilir. |
 | **Paraşüt ve e-belge/muhasebe sağlayıcıları; mali müşavir** | Fatura, muhasebe, vergi ve mali raporlama. | Hizmetin niteliğine göre veri işleyen veya kendi mesleki yükümlülüklerinde bağımsız veri sorumlusu. |
 | **Türkiye'de bulunan bilgi teknolojileri, barındırma, e-posta/SMS ve destek sağlayıcıları** | Sistem işletimi, barındırma, güvenlik, yedekleme, bildirim ve destek. | Sözleşme ve talimatlar çerçevesinde veri işleyen. |

@@ -227,9 +227,9 @@ describe('Gizlilik v3 canonical document', () => {
 
 describe('Kargo ve Teslimat v2 canonical document (FBG-396)', () => {
   it('contains the acceptance-critical identifiers verbatim', () => {
-    expect(KARGO_TESLIMAT_MARKDOWN).toContain('KK-TK-KTP-2026-V2');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('KK-TK-KTP-2026-V3');
     expect(KARGO_TESLIMAT_MARKDOWN).toContain('0560146611100001');
-    expect(KARGO_TESLIMAT_MARKDOWN).toContain('6311761487');
+    expect(KARGO_TESLIMAT_MARKDOWN).toContain('0111343066');
     expect(KARGO_TESLIMAT_MARKDOWN).toContain('KARGO VE TESLİMAT POLİTİKASI');
     // All 19 sections + the legal-basis appendix must be present.
     expect(KARGO_TESLIMAT_MARKDOWN).toContain('19\\. Taraflar Arası Sorumluluk Matrisi');
@@ -245,7 +245,7 @@ describe('Kargo ve Teslimat v2 canonical document (FBG-396)', () => {
   it('renders the full document with readable, un-glued tables', () => {
     render(<LegalMarkdown source={KARGO_TESLIMAT_MARKDOWN} />);
     const doc = document.body;
-    expect(screen.getByText('KK-TK-KTP-2026-V2')).toBeTruthy();
+    expect(screen.getByText('KK-TK-KTP-2026-V3')).toBeTruthy();
     // §2 (parties) + §19 (matrix) + the header and callout tables.
     expect(doc.querySelectorAll('table').length).toBeGreaterThanOrEqual(4);
     // requisite fields are split onto separate lines via <br> (a <br> adds no
@@ -260,10 +260,10 @@ describe('Kargo ve Teslimat v2 canonical document (FBG-396)', () => {
 
 describe('İade ve Cayma v2 canonical document (FBG-399)', () => {
   it('contains the acceptance-critical identifiers verbatim', () => {
-    expect(IADE_MARKDOWN).toContain('KK-TK-ICP-2026-V2');
+    expect(IADE_MARKDOWN).toContain('KK-TK-ICP-2026-V3');
     expect(IADE_MARKDOWN).toContain('İADE VE CAYMA POLİTİKASI');
     expect(IADE_MARKDOWN).toContain('0560146611100001');
-    expect(IADE_MARKDOWN).toContain('6311761487');
+    expect(IADE_MARKDOWN).toContain('0111343066');
     // §1 first section + §20 matrix + the legal-basis appendix must be present.
     expect(IADE_MARKDOWN).toContain('1\\. Amaç, Kapsam ve Belgenin Niteliği');
     expect(IADE_MARKDOWN).toContain('20\\. İade Süreci Sorumluluk Matrisi');
@@ -286,7 +286,7 @@ describe('İade ve Cayma v2 canonical document (FBG-399)', () => {
   it('renders the full document with the PDF form linked and tables un-glued', () => {
     render(<LegalMarkdown source={IADE_MARKDOWN} />);
     const doc = document.body;
-    expect(screen.getByText('KK-TK-ICP-2026-V2')).toBeTruthy();
+    expect(screen.getByText('KK-TK-ICP-2026-V3')).toBeTruthy();
     // header table + §2 parties + §2 callout + §20 matrix.
     expect(doc.querySelectorAll('table').length).toBeGreaterThanOrEqual(4);
     // both §4 mentions become anchors to the separately published PDF.

@@ -54,7 +54,7 @@ const PAYMENT_METHOD_CARD = 'Kredi Kartı / Banka Kartı (iyzico)';
 /**
  * Return carrier/method are not configured in the storefront yet (open question
  * to the client — do NOT invent a carrier name). The channel uses the known
- * seller e-mail. The return address itself is fixed in the canon (AKA Yazılım Lojistik A.Ş. / FulfillmentTR).
+ * seller e-mail. The return address itself is fixed in the canon (NİKAR GIDA).
  */
 const RETURN_CARRIER = 'İade onayı sırasında Satıcı tarafından bildirilen anlaşmalı taşıyıcı';
 const RETURN_METHOD = 'İade talebi onaylandıktan sonra anlaşmalı iade kargosu ile';

@@ -1,5 +1,5 @@
 /**
- * FBG-410 — ticari elektronik ileti consent logic (canon KK-ET-TEI-2026-V2).
+ * FBG-410 — ticari elektronik ileti consent logic (canon KK-ET-TEI-2026-V3).
  */
 import { describe, it, expect } from 'vitest';
 import {

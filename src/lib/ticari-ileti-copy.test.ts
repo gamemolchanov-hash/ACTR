@@ -7,7 +7,7 @@
  *
  * EN carries the SAME Turkish strings on purpose: these are the legal
  * declaration recorded under a server-pinned `text_version`
- * (KK-ET-TEI-2026-V2), and canon §14 makes the Turkish text prevail over any
+ * (KK-ET-TEI-2026-V3), and canon §14 makes the Turkish text prevail over any
  * translation. Only the surrounding chrome is translated.
  *
  * This is the one place the real message catalogs are asserted — the RTL page
