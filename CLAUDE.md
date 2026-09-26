@@ -54,17 +54,11 @@ No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skill
 
 <!-- GSD:workflow-start source:GSD defaults -->
 
-## GSD Workflow Enforcement
+## Workflow
 
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+Правки кода — напрямую, без обязательного GSD-процесса (решение владельца 26.09.2026): правка → `npx tsc --noEmit` / `npx vitest run` / `npm run build` → коммит. GSD-команды (`/gsd-quick`, `/gsd-execute-phase` и т.п.) — только по явной просьбе.
 
-Use these entry points:
-
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- Блок оставлен внутри маркеров GSD намеренно: авто-генерация CLAUDE.md пропускает вручную изменённую секцию и не вернёт «GSD Workflow Enforcement». -->
 <!-- GSD:workflow-end -->
 
 <!-- GSD:profile-start -->
