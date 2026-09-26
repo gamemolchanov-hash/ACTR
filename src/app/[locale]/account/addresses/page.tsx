@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  MenuItem,
   FormControlLabel,
   Checkbox,
   Grid,
@@ -33,6 +34,7 @@ import {
   deleteMyAddress,
   type CustomerAddress,
 } from '@/lib/auth';
+import { TR_PROVINCES, formatDistrictProvince } from '@/lib/tr-provinces';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
@@ -40,6 +42,8 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 
 const emptyForm = {
   label: '',
+  /** Province / il — one of TR_PROVINCES, saved as CustomerAddress.state. */
+  state: '',
   city: '',
   address: '',
   street: '',
@@ -105,13 +109,20 @@ export default function AddressesPage() {
   // for that window so the address ARM stores is the one that was on screen.
   const handleAdd = async () => {
     if (!form.city && !form.address) {
-      setSnack({ open: true, message: 'Please enter at least a city or address.', severity: 'error' });
+      setSnack({ open: true, message: 'Please enter at least a district or address.', severity: 'error' });
+      return;
+    }
+    // This storefront ships to Turkey only, and FulfillmentTR's order API needs
+    // the il (province) — without it the address is unusable for fulfillment.
+    if (!form.state) {
+      setSnack({ open: true, message: 'Please select a province.', severity: 'error' });
       return;
     }
     setSaving(true);
     try {
       const payload: Partial<CustomerAddress> = {
         label: form.label || null,
+        state: form.state || null,
         city: form.city || null,
         address: form.address || null,
         street: form.street || null,
@@ -274,7 +285,9 @@ export default function AddressesPage() {
                       [addr.street, addr.building, addr.apartment]
                         .filter(Boolean)
                         .join(', ') || addr.address,
-                      [addr.city, addr.postal_code].filter(Boolean).join(' '),
+                      [formatDistrictProvince(addr.city, addr.state), addr.postal_code]
+                        .filter(Boolean)
+                        .join(' '),
                     ]
                       .filter(Boolean)
                       .map((line, i) => (
@@ -351,7 +364,25 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="City *"
+                select
+                label="Province (İl) *"
+                value={form.state}
+                onChange={handleFormChange('state')}
+                fullWidth
+                size="small"
+                disabled={saving}
+                SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+              >
+                {TR_PROVINCES.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {p}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="District (İlçe) *"
                 value={form.city}
                 onChange={handleFormChange('city')}
                 fullWidth
