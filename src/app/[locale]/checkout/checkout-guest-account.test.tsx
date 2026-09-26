@@ -94,7 +94,8 @@ const DRAFT = {
   name: 'Ada Yılmaz',
   phone: '+905000000000',
   country: 'TR',
-  city: 'Istanbul',
+  province: 'İstanbul',
+  city: 'Kadıköy',
   street: 'Istiklal Cad',
   building: '1',
   block: '',
@@ -158,7 +159,11 @@ beforeEach(() => {
     data: { id: 'ord-1', number: 'N-1', total: 150, currency: 'TRY', status: { name: 'New' } },
   });
   Object.defineProperty(window, 'location', {
-    value: { origin: 'https://american-creator.tr', assign },
+    // `href` matters: the page's iyzico-return effect does
+    // `new URL(window.location.href)` on every mount, which throws on an
+    // `undefined` href (this mock replaces the whole `location` object, so a
+    // missing key is not "no query string" — it's not a URL at all).
+    value: { origin: 'https://american-creator.tr', href: 'https://american-creator.tr/tr/checkout', assign },
     writable: true,
     configurable: true,
   });
@@ -288,6 +293,42 @@ describe('guest submit gate', () => {
     expect(payload.customer.email).toBe('ada@example.com');
     // The welcome mail is addressed with this raw tag.
     expect(payload.locale).toBe('tr');
+    // FulfillmentTR wants province (il) as shipping.state, district (ilçe) as city.
+    expect(payload.shipping.state).toBe('İstanbul');
+    expect(payload.shipping.city).toBe('Kadıköy');
+  });
+});
+
+describe('province (il)', () => {
+  it('gates Continue on a canonical province, for a fresh TR draft', async () => {
+    sessionStorage.setItem('checkout_step', '1');
+    sessionStorage.setItem('checkout_form', JSON.stringify({ ...DRAFT, email: 'ada@example.com', province: '' }));
+    render(<CheckoutPage />);
+
+    // Wait for the draft to hydrate (district shows the stored value).
+    await waitFor(() => expect((document.querySelector('input[value="Kadıköy"]') as HTMLInputElement | null)).not.toBeNull());
+    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true);
+
+    // Picking a province enables Continue.
+    const combo = screen.getByRole('combobox', { name: /Province/ });
+    fireEvent.mouseDown(combo);
+    fireEvent.click(screen.getByRole('option', { name: 'İstanbul' }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+  });
+
+  it('drops a tampered non-canonical province from a stale step-2 draft', async () => {
+    seedStep2({ email: 'ada@example.com', province: 'Narnia' });
+    await arriveAtStep2({ uyelik: true });
+
+    fireEvent.click(proceedButton());
+
+    await waitFor(() => expect(apiMock.createOrder).toHaveBeenCalledTimes(1));
+    const payload = apiMock.createOrder.mock.calls[0][0];
+    expect(payload.shipping.state).toBeUndefined();
   });
 });
 

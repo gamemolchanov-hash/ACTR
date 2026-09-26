@@ -34,6 +34,7 @@ import { Link } from '@/i18n/navigation';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
+import { TR_PROVINCES, isTrProvince } from '@/lib/tr-provinces';
 import {
   validateCart,
   validatePromo,
@@ -176,6 +177,9 @@ interface FormData {
   phone: string;
   /** ISO-3166-1 alpha-2; empty until picked (or the warehouse ships to one country only). */
   country: string;
+  /** Canonical il from TR_PROVINCES, sent as shipping.state. */
+  province: string;
+  /** District / ilçe. */
   city: string;
   street: string;
   building: string;
@@ -189,6 +193,7 @@ const INITIAL_FORM: FormData = {
   name: '',
   phone: '',
   country: '',
+  province: '',
   city: '',
   street: '',
   building: '',
@@ -359,7 +364,13 @@ export default function CheckoutPage() {
   // Hydrate from sessionStorage on mount (client only)
   useEffect(() => {
     const saved = loadFromSession<Partial<FormData>>(CHECKOUT_FORM_KEY, {});
-    setForm((prev) => ({ ...prev, ...saved }));
+    setForm((prev) => ({
+      ...prev,
+      ...saved,
+      // An old draft (no province key) or a tampered/non-canonical value must
+      // not reach shipping.state — the buyer just re-picks.
+      province: isTrProvince(saved.province) ? saved.province : '',
+    }));
     setStep(loadFromSession(CHECKOUT_STEP_KEY, 1));
     // An order booked before a reload must be picked up again, or this submit
     // would create a duplicate for the same basket (FBG-477 review).
@@ -489,7 +500,13 @@ export default function CheckoutPage() {
   };
 
   const handleCountry = (e: SelectChangeEvent) => {
-    setForm((prev) => ({ ...prev, country: e.target.value }));
+    const value = e.target.value;
+    // A province only makes sense for a TR address — switching away clears it.
+    setForm((prev) => ({ ...prev, country: value, province: value === 'TR' ? prev.province : '' }));
+  };
+
+  const handleProvince = (e: SelectChangeEvent) => {
+    setForm((prev) => ({ ...prev, province: e.target.value }));
   };
 
   // Who the form is serving. `hydrated` is what keeps the server render and the
@@ -546,6 +563,10 @@ export default function CheckoutPage() {
     paymentBlocked,
   };
 
+  // A province only applies to a TR address (this store's only real market —
+  // see the Country block below); a non-TR address never gates on it.
+  const trAddress = !form.country || form.country === 'TR';
+
   const isStep1Valid = useMemo(() => {
     return !!(
       form.email &&
@@ -553,6 +574,7 @@ export default function CheckoutPage() {
       form.name &&
       form.phone &&
       form.country &&
+      (form.country !== 'TR' || isTrProvince(form.province)) &&
       form.city &&
       form.street &&
       form.building &&
@@ -699,6 +721,7 @@ export default function CheckoutPage() {
           shipping: {
             address: addressParts,
             city: form.city,
+            state: form.province || undefined,
             zip: form.zip,
             country: form.country,
             street: form.street || undefined,
@@ -1279,7 +1302,41 @@ export default function CheckoutPage() {
           </Box>
         )}
 
-        {field('City', 'city')}
+        {trAddress && (
+          <Box>
+            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+              Province (İl){' '}
+              <Box component="span" sx={{ color: c.red }}>
+                *
+              </Box>
+            </Typography>
+            <FormControl fullWidth>
+              <Select
+                value={form.province}
+                onChange={handleProvince}
+                displayEmpty
+                disabled={inputsLocked}
+                inputProps={{ 'aria-label': 'Province (İl)' }}
+                renderValue={(selected) =>
+                  selected ? (
+                    <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
+                  ) : (
+                    <Typography sx={{ color: c['20'], fontSize: '16px' }}>Select province</Typography>
+                  )
+                }
+                sx={selectSx}
+                MenuProps={{ PaperProps: { sx: { maxHeight: 360 } } }}
+              >
+                {TR_PROVINCES.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {p}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
+        {field(trAddress ? 'District (İlçe)' : 'City', 'city')}
         {field('Street', 'street')}
         <Stack direction="row" spacing={1.5}>
           <Box sx={{ flex: 1 }}>{field('Building / No', 'building')}</Box>

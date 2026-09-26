@@ -275,6 +275,12 @@ export interface CreateOrderPayload {
     zip?: string;
     /** ISO-3166-1 alpha-2, e.g. "TR" */
     country: string;
+    /**
+     * Province / il (one of TR_PROVINCES). ARM writes it to `shipping_state`
+     * and to the customer's address book `state`; FulfillmentTR maps it to
+     * `province` on its order API (`city` above is the district / ilçe).
+     */
+    state?: string;
     cost?: number;
     method?: string;
   };
