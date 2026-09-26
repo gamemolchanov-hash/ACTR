@@ -7,7 +7,12 @@
  *   (en + tr) — there is no linter for locale parity, so this test is the guard.
  */
 import { describe, it, expect } from 'vitest';
-import { shippingErrorKey, shippingPanelState, SHIPPING_UNAVAILABLE_REASONS } from '@/lib/checkout';
+import {
+  freeShippingThreshold,
+  shippingErrorKey,
+  shippingPanelState,
+  SHIPPING_UNAVAILABLE_REASONS,
+} from '@/lib/checkout';
 import enRaw from '../../../../messages/en.json';
 import trRaw from '../../../../messages/tr.json';
 
@@ -63,12 +68,32 @@ describe('shippingPanelState — pending is not a failure', () => {
   });
 });
 
+describe('freeShippingThreshold — "free from X" hint under a paid method', () => {
+  it('returns the method threshold for a paid rate', () => {
+    expect(freeShippingThreshold({ is_free: false, free_threshold: 3000 })).toBe(3000);
+  });
+
+  it('is null once the cart already reached it (the rate is free)', () => {
+    expect(freeShippingThreshold({ is_free: true, free_threshold: 3000 })).toBeNull();
+  });
+
+  it('is null without a usable threshold', () => {
+    expect(freeShippingThreshold({ is_free: false, free_threshold: null })).toBeNull();
+    expect(freeShippingThreshold({ is_free: false })).toBeNull();
+    expect(freeShippingThreshold({ is_free: false, free_threshold: 0 })).toBeNull();
+  });
+});
+
 describe('shipping copy exists in both locales', () => {
   const keys = [
     ...SHIPPING_UNAVAILABLE_REASONS.map((r) => `checkout.shipping.${r}`),
     GENERIC_KEY,
     'checkout.shipping.tbd',
     'checkout.shipping.selectPrompt',
+    'checkout.shipping.free',
+    'checkout.shipping.freeFrom',
+    'checkout.shipping.days',
+    'checkout.shipping.daysExact',
   ];
 
   for (const key of keys) {
@@ -77,6 +102,14 @@ describe('shipping copy exists in both locales', () => {
       expect(tr[key]?.trim()).toBeTruthy();
     });
   }
+
+  it('freeFrom / days keep their placeholders in both locales', () => {
+    for (const dict of [en, tr]) {
+      expect(dict['checkout.shipping.freeFrom']).toContain('{amount}');
+      expect(dict['checkout.shipping.days']).toContain('{min}');
+      expect(dict['checkout.shipping.days']).toContain('{max}');
+    }
+  });
 
   it('invalid_postal_code keeps the {zip} placeholder in both locales', () => {
     expect(en['checkout.shipping.invalid_postal_code']).toContain('{zip}');

@@ -4,7 +4,11 @@
  * drifting out of sync with the button's real disabled condition.
  */
 
-import type { ArmGuestAccountStatus, ArmShippingUnavailableReason } from './arm-types';
+import type {
+  ArmGuestAccountStatus,
+  ArmShippingRate,
+  ArmShippingUnavailableReason,
+} from './arm-types';
 
 /**
  * Runtime list of the shipping-unavailable reasons. ARM sends the first three in
@@ -54,6 +58,23 @@ export function shippingPanelState(opts: {
   if (opts.loading || (!opts.hasError && opts.ratesCount === 0)) return 'pending';
   if (opts.hasError) return 'error';
   return 'rates';
+}
+
+/**
+ * Cart total from which a shipping method becomes free — shown under a paid
+ * method ("3.000 ₺ ve üzeri siparişlerde ücretsiz"). The value is the method's
+ * own `free_shipping_threshold` from ARM (`free_threshold` of /shipping/rates),
+ * so the storefront never hardcodes the amount. `null` when there is nothing to
+ * announce: no threshold, a non-positive one, or the rate is already free.
+ */
+export function freeShippingThreshold(
+  rate: Pick<ArmShippingRate, 'is_free' | 'free_threshold'>,
+): number | null {
+  if (rate.is_free) return null;
+  const threshold = rate.free_threshold;
+  return typeof threshold === 'number' && Number.isFinite(threshold) && threshold > 0
+    ? threshold
+    : null;
 }
 
 /**

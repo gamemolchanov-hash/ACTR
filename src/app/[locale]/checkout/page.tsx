@@ -60,6 +60,7 @@ import {
   checkoutBlockReason,
   clearAccountNotice,
   clearPendingOrder,
+  freeShippingThreshold,
   guestEmailRequired,
   looksLikeEmail,
   paymentFailureKey,
@@ -1423,15 +1424,25 @@ export default function CheckoutPage() {
                         {(rate.estimated_days_min || rate.estimated_days_max) && (
                           <Typography sx={{ color: c['40'], ...info }}>
                             {rate.estimated_days_min === rate.estimated_days_max
-                              ? `${rate.estimated_days_min} days`
-                              : `${rate.estimated_days_min}–${rate.estimated_days_max} days`}
+                              ? t('checkout.shipping.daysExact', { count: rate.estimated_days_min ?? 0 })
+                              : t('checkout.shipping.days', {
+                                  min: rate.estimated_days_min ?? 0,
+                                  max: rate.estimated_days_max ?? 0,
+                                })}
+                          </Typography>
+                        )}
+                        {freeShippingThreshold(rate) != null && (
+                          <Typography sx={{ color: c['40'], ...info }} data-testid="shipping-free-from">
+                            {t('checkout.shipping.freeFrom', {
+                              amount: fmtMoney(freeShippingThreshold(rate) ?? 0, currency, formatLocale),
+                            })}
                           </Typography>
                         )}
                       </Box>
                     }
                   />
                   <Typography sx={{ color: c.main, ...btn, textAlign: 'right', flexShrink: 0 }}>
-                    {rate.is_free ? 'Free' : fmtMoney(rate.price, currency, formatLocale)}
+                    {rate.is_free ? t('checkout.shipping.free') : fmtMoney(rate.price, currency, formatLocale)}
                   </Typography>
                 </Stack>
               ))}
@@ -1695,7 +1706,7 @@ export default function CheckoutPage() {
                     ? '...'
                     : selectedRate
                       ? selectedRate.is_free
-                        ? 'Free'
+                        ? t('checkout.shipping.free')
                         : fmtMoney(selectedRate.price, currency, formatLocale)
                       : shippingError
                         ? t('checkout.shipping.tbd')
