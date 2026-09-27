@@ -150,7 +150,12 @@ export function armToPromoResult(p: ArmPromoValidation): PromoValidationResult {
       customer_limit: 'Promo code usage limit reached',
       min_order: 'Order total does not meet the minimum for this promo',
     };
-    return { valid: false, error: errorMap[p.status] || 'Promo code is not valid' };
+    return {
+      valid: false,
+      // An unknown status from a newer ARM reads as plain "invalid".
+      reason: p.status in errorMap ? p.status : 'invalid',
+      error: errorMap[p.status] || 'Promo code is not valid',
+    };
   }
 
   let discountType: 'percent' | 'fixed' | undefined;

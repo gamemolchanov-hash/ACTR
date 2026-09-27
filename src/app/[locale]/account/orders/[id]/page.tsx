@@ -26,6 +26,7 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrder, getMyOrderDocument, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
+import { orderStatusLabel } from '@/lib/order-status';
 import { useTranslations } from 'next-intl';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
@@ -35,6 +36,7 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 export default function OrderDetailPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tRoot = useTranslations();
   const [docBusy, setDocBusy] = useState<string | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
   // PDF под bearer: blob → сохранение файла (попап-блокер не мешает клику пользователя).
@@ -161,7 +163,7 @@ export default function OrderDetailPage() {
             {/* Status row */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, mb: 3 }}>
               <Chip
-                label={order.status?.name || '—'}
+                label={orderStatusLabel(tRoot, order.status)}
                 sx={{
                   bgcolor: order.status?.color || '#999',
                   color: 'white',

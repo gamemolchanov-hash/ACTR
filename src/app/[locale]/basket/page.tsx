@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Box,
   Typography,
@@ -57,6 +58,7 @@ const COL_TOTAL = 191;
 const COL_RIGHT_TOTAL = COL_PRICE + 1 + COL_QTY + 1 + COL_TOTAL; // 555
 
 export default function BasketPage() {
+  const t = useTranslations();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem, updateQuantity } = useCart();
@@ -107,7 +109,7 @@ export default function BasketPage() {
           sessionStorage.setItem('checkout_promo', JSON.stringify(res.data));
         } else {
           setPromoResult(null);
-          setPromoError(res.data.error || null);
+          setPromoError(t(`basket.promo.${res.data.reason ?? 'invalid'}`));
           sessionStorage.removeItem('checkout_promo');
         }
       })
@@ -128,11 +130,11 @@ export default function BasketPage() {
         sessionStorage.setItem('checkout_promo', JSON.stringify(res.data));
       } else {
         setPromoResult(null);
-        setPromoError(res.data.error || 'Promo code is not valid');
+        setPromoError(t(`basket.promo.${res.data.reason ?? 'invalid'}`));
         sessionStorage.removeItem('checkout_promo');
       }
     } catch {
-      setPromoError('Error validating promo code');
+      setPromoError(t('basket.promo.checkFailed'));
     } finally {
       setPromoLoading(false);
     }
@@ -160,7 +162,7 @@ export default function BasketPage() {
         underline="hover"
         sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}
       >
-        Home
+        {t('common.home')}
       </MuiLink>
       <MuiLink
         component={Link}
@@ -168,10 +170,10 @@ export default function BasketPage() {
         underline="hover"
         sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}
       >
-        Catalog
+        {t('nav.catalog')}
       </MuiLink>
       <Typography sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}>
-        Basket
+        {t('basket.title')}
       </Typography>
     </Breadcrumbs>
   );
@@ -187,20 +189,22 @@ export default function BasketPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1, textTransform: 'uppercase', color: c.main, mb: 3 }}>
-          Basket
+          {t('basket.title')}
         </Typography>
-        <Typography sx={{ ...text, color: c.main, mb: 1 }}>Your basket is empty</Typography>
+        <Typography sx={{ ...text, color: c.main, mb: 1 }}>{t('basket.empty')}</Typography>
         <Typography sx={{ ...text, color: c.main }}>
-          Go to{' '}
-          <MuiLink
-            component={Link}
-            href="/catalog"
-            underline="hover"
-            sx={{ fontWeight: 700, color: c.main }}
-          >
-            Catalog
-          </MuiLink>{' '}
-          to continue shopping
+          {t.rich('basket.emptyHint', {
+            link: (chunks) => (
+              <MuiLink
+                component={Link}
+                href="/catalog"
+                underline="hover"
+                sx={{ fontWeight: 700, color: c.main }}
+              >
+                {chunks}
+              </MuiLink>
+            ),
+          })}
         </Typography>
       </Box>
     );
@@ -211,7 +215,7 @@ export default function BasketPage() {
     <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
       {breadcrumbs}
       <Typography sx={{ ...h1, textTransform: 'uppercase', color: c.main, mb: 4 }}>
-        Basket
+        {t('basket.title')}
       </Typography>
 
       {/* ====== Promo + Summary row ====== */}
@@ -227,7 +231,7 @@ export default function BasketPage() {
         {/* Promo — left */}
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ ...text, color: c.main, mb: 1.5 }}>
-            Enter promo code for a discount
+            {t('basket.promoPrompt')}
           </Typography>
           {promoResult?.valid ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
@@ -267,7 +271,7 @@ export default function BasketPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleApplyPromo();
                 }}
-                placeholder="PROMO CODE"
+                placeholder={t('basket.promoPlaceholder')}
                 disabled={promoLoading}
                 sx={{
                   border: '0.5px solid',
@@ -335,14 +339,14 @@ export default function BasketPage() {
             {promoDiscount > 0 && (
               <>
                 <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
-                  Subtotal: {fmtMoney(subtotal, currency, formatLocale)}
+                  {t('basket.subtotal', { amount: fmtMoney(subtotal, currency, formatLocale) })}
                 </Typography>
                 <Typography sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
-                  Discount: −{fmtMoney(promoDiscount, currency, formatLocale)}
+                  {t('basket.discount', { amount: fmtMoney(promoDiscount, currency, formatLocale) })}
                 </Typography>
               </>
             )}
-            <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>Total:</Typography>
+            <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>{t('basket.total')}</Typography>
             <Typography sx={{ ...h2, color: c.main, lineHeight: 1.2 }}>
               {fmtMoney(finalTotal, currency, formatLocale)}
             </Typography>
@@ -364,7 +368,7 @@ export default function BasketPage() {
               '&:hover': { bgcolor: '#2a3d85' },
             }}
           >
-            Place Order
+            {t('basket.placeOrder')}
           </Button>
         </Box>
       </Box>
@@ -382,7 +386,7 @@ export default function BasketPage() {
               {/* Header */}
               <Box sx={{ height: 90, display: 'flex', alignItems: 'center' }}>
                 <Typography sx={{ ...h3, color: c.main, textTransform: 'uppercase' }}>
-                  Product
+                  {t('basket.colProduct')}
                 </Typography>
               </Box>
               {/* Separator */}
@@ -418,7 +422,7 @@ export default function BasketPage() {
                           sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                         />
                       ) : (
-                        <Typography sx={{ fontSize: 11, color: c['40'] }}>No photo</Typography>
+                        <Typography sx={{ fontSize: 11, color: c['40'] }}>{t('basket.noPhoto')}</Typography>
                       )}
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
@@ -459,7 +463,7 @@ export default function BasketPage() {
                   <Typography
                     sx={{ ...h3, color: c.main, textTransform: 'uppercase', textAlign: 'center' }}
                   >
-                    Price / pc
+                    {t('basket.colPrice')}
                   </Typography>
                 </Box>
                 {validated.map((item, idx) => (
@@ -505,9 +509,9 @@ export default function BasketPage() {
                       lineHeight: 1.3,
                     }}
                   >
-                    Quantity,
+                    {t('basket.colQuantity')}
                     <br />
-                    pcs
+                    {t('basket.colQuantityUnit')}
                   </Typography>
                 </Box>
                 {validated.map((item) => (
@@ -587,7 +591,7 @@ export default function BasketPage() {
                   <Typography
                     sx={{ ...h3, color: c.main, textTransform: 'uppercase', textAlign: 'center' }}
                   >
-                    Total
+                    {t('basket.colTotal')}
                   </Typography>
                 </Box>
                 {validated.map((item, idx) => (
@@ -646,7 +650,7 @@ export default function BasketPage() {
                       sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                     />
                   ) : (
-                    <Typography sx={{ fontSize: 10, color: c['40'] }}>No photo</Typography>
+                    <Typography sx={{ fontSize: 10, color: c['40'] }}>{t('basket.noPhoto')}</Typography>
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>

@@ -24,6 +24,7 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrders, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
+import { orderStatusLabel } from '@/lib/order-status';
 import { useTranslations } from 'next-intl';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 
@@ -33,6 +34,7 @@ const fontBody = '"Open Sans", Helvetica, sans-serif';
 export default function OrdersPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tRoot = useTranslations();
   const formatLocale = useFormatLocale();
 
   const { customer, loading: authLoading } = useAuth();
@@ -167,7 +169,7 @@ export default function OrdersPage() {
                 <TableBody>
                   {orders.map((order) => {
                     const st = order.status;
-                    const statusLabel = st?.name || '—';
+                    const statusLabel = orderStatusLabel(tRoot, st);
                     const statusColor = st?.color || '#999';
 
                     return (

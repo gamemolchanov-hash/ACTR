@@ -94,22 +94,22 @@ describe('address list', () => {
   });
 });
 
-describe('add dialog — province', () => {
-  it('saves the district as city and the picked province as state', async () => {
+describe('add dialog — province and district', () => {
+  const pick = (comboName: RegExp, option: string) => {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: comboName }));
+    fireEvent.click(screen.getByRole('option', { name: option }));
+  };
+
+  it('saves the picked district as city and the picked province as state', async () => {
     authApi.getMyAddresses.mockResolvedValue({ data: [] });
     render(<AddressesPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Address' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'account.addressAdd' }));
 
-    fireEvent.change(screen.getByLabelText('District (İlçe) *'), {
-      target: { value: 'Konak' },
-    });
+    pick(/addressProvince/, 'İzmir');
+    pick(/addressDistrict/, 'Konak');
 
-    const combo = screen.getByRole('combobox', { name: /Province/ });
-    fireEvent.mouseDown(combo);
-    fireEvent.click(screen.getByRole('option', { name: 'İzmir' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save Address' }));
+    fireEvent.click(screen.getByRole('button', { name: 'account.addressSave' }));
 
     await waitFor(() => expect(authApi.addMyAddress).toHaveBeenCalledTimes(1));
     const payload = authApi.addMyAddress.mock.calls[0][0];
@@ -117,19 +117,38 @@ describe('add dialog — province', () => {
     expect(payload.state).toBe('İzmir');
   });
 
+  it('offers only the districts of the picked province', async () => {
+    authApi.getMyAddresses.mockResolvedValue({ data: [] });
+    render(<AddressesPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'account.addressAdd' }));
+    pick(/addressProvince/, 'Ankara');
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /addressDistrict/ }));
+    expect(screen.getByRole('option', { name: 'Çankaya' })).toBeDefined();
+    expect(screen.queryByRole('option', { name: 'Konak' })).toBeNull();
+  });
+
   it('blocks the save and asks for a province when none is picked', async () => {
     authApi.getMyAddresses.mockResolvedValue({ data: [] });
     render(<AddressesPage />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Address' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'account.addressAdd' }));
+    fireEvent.click(screen.getByRole('button', { name: 'account.addressSave' }));
 
-    fireEvent.change(screen.getByLabelText('District (İlçe) *'), {
-      target: { value: 'Konak' },
-    });
+    await waitFor(() => expect(screen.getByText('account.addressNeedProvince')).toBeDefined());
+    expect(authApi.addMyAddress).not.toHaveBeenCalled();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Address' }));
+  it('blocks the save and asks for a district when only the province is picked', async () => {
+    authApi.getMyAddresses.mockResolvedValue({ data: [] });
+    render(<AddressesPage />);
 
-    await waitFor(() => expect(screen.getByText('Please select a province.')).toBeDefined());
+    fireEvent.click(await screen.findByRole('button', { name: 'account.addressAdd' }));
+    pick(/addressProvince/, 'İzmir');
+    fireEvent.click(screen.getByRole('button', { name: 'account.addressSave' }));
+
+    await waitFor(() => expect(screen.getByText('account.addressNeedDistrict')).toBeDefined());
     expect(authApi.addMyAddress).not.toHaveBeenCalled();
   });
 });

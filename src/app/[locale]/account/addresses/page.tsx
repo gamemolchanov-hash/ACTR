@@ -35,6 +35,7 @@ import {
   type CustomerAddress,
 } from '@/lib/auth';
 import { TR_PROVINCES, formatDistrictProvince } from '@/lib/tr-provinces';
+import { districtsOf, matchDistrict } from '@/lib/tr-districts';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
@@ -102,20 +103,27 @@ export default function AddressesPage() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = field === 'is_default' ? e.target.checked : e.target.value;
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) =>
+      field === 'state'
+        ? // The district list belongs to the province — keep the district only if
+          // the new province has it.
+          { ...prev, state: String(value), city: matchDistrict(String(value), prev.city) ?? '' }
+        : { ...prev, [field]: value },
+    );
   };
 
   // The payload is read from `form` before the first await — the dialog freezes
   // for that window so the address ARM stores is the one that was on screen.
   const handleAdd = async () => {
-    if (!form.city && !form.address) {
-      setSnack({ open: true, message: 'Please enter at least a district or address.', severity: 'error' });
+    // This storefront ships to Turkey only, and FulfillmentTR's order API needs
+    // the il (province) and the ilçe (district, priced by the warehouse per
+    // district) — without them the address is unusable for fulfillment.
+    if (!form.state) {
+      setSnack({ open: true, message: t('addressNeedProvince'), severity: 'error' });
       return;
     }
-    // This storefront ships to Turkey only, and FulfillmentTR's order API needs
-    // the il (province) — without it the address is unusable for fulfillment.
-    if (!form.state) {
-      setSnack({ open: true, message: 'Please select a province.', severity: 'error' });
+    if (!districtsOf(form.state).includes(form.city)) {
+      setSnack({ open: true, message: t('addressNeedDistrict'), severity: 'error' });
       return;
     }
     setSaving(true);
@@ -140,9 +148,9 @@ export default function AddressesPage() {
           : [...prev, newAddr],
       );
       setDialogOpen(false);
-      setSnack({ open: true, message: 'Address added.', severity: 'success' });
+      setSnack({ open: true, message: t('addressAdded'), severity: 'success' });
     } catch {
-      setSnack({ open: true, message: 'Failed to add address. Please try again.', severity: 'error' });
+      setSnack({ open: true, message: t('addressAddFailed'), severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -160,7 +168,7 @@ export default function AddressesPage() {
           .then(({ data }) => setAddresses(data || []))
           .catch(() => {});
       }
-      setSnack({ open: true, message: 'Failed to delete address.', severity: 'error' });
+      setSnack({ open: true, message: t('addressDeleteFailed'), severity: 'error' });
     }
   };
 
@@ -226,7 +234,7 @@ export default function AddressesPage() {
           <Box sx={{ bgcolor: palette.bgLight, borderRadius: '20px', p: 4, textAlign: 'center' }}>
             <LocationOn sx={{ fontSize: 48, color: palette.primaryLight, mb: 1 }} />
             <Typography sx={{ fontFamily: fontMain, fontSize: 18, color: palette.primary, mb: 2 }}>
-              No delivery addresses yet
+              {t('addressesEmpty')}
             </Typography>
             <Button
               variant="contained"
@@ -240,7 +248,7 @@ export default function AddressesPage() {
                 px: 4,
               }}
             >
-              Add Address
+              {t('addressAdd')}
             </Button>
           </Box>
         ) : (
@@ -263,11 +271,11 @@ export default function AddressesPage() {
                       <Typography
                         sx={{ fontFamily: fontMain, fontSize: 16, fontWeight: 500, color: palette.primary }}
                       >
-                        {addr.label || 'Address'}
+                        {addr.label || t('addressFallbackLabel')}
                       </Typography>
                       {addr.is_default && (
                         <Chip
-                          label="Default"
+                          label={t('addressDefault')}
                           size="small"
                           sx={{
                             bgcolor: palette.primary,
@@ -304,7 +312,7 @@ export default function AddressesPage() {
                       onClick={() => handleDelete(addr.id)}
                       size="small"
                       sx={{ color: palette.primaryLight, '&:hover': { color: 'error.main' } }}
-                      aria-label="Delete address"
+                      aria-label={t('addressDelete')}
                     >
                       <Delete fontSize="small" />
                     </IconButton>
@@ -325,13 +333,13 @@ export default function AddressesPage() {
         PaperProps={{ sx: { borderRadius: '20px' } }}
       >
         <DialogTitle sx={{ fontFamily: fontMain, fontSize: 20, fontWeight: 500, color: palette.primary }}>
-          Add Delivery Address
+          {t('addressDialogTitle')}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
               <TextField
-                label="Label (e.g. Home, Work)"
+                label={t('addressLabel')}
                 value={form.label}
                 onChange={handleFormChange('label')}
                 fullWidth
@@ -342,7 +350,7 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Contact Name"
+                label={t('addressContactName')}
                 value={form.contact_name}
                 onChange={handleFormChange('contact_name')}
                 fullWidth
@@ -353,7 +361,7 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Contact Phone"
+                label={t('addressContactPhone')}
                 value={form.contact_phone}
                 onChange={handleFormChange('contact_phone')}
                 fullWidth
@@ -365,7 +373,7 @@ export default function AddressesPage() {
             <Grid item xs={12}>
               <TextField
                 select
-                label="Province (İl) *"
+                label={`${t('addressProvince')} *`}
                 value={form.state}
                 onChange={handleFormChange('state')}
                 fullWidth
@@ -381,19 +389,27 @@ export default function AddressesPage() {
               </TextField>
             </Grid>
             <Grid item xs={12}>
+              {/* District (ilçe) of the picked province — the FulfillmentTR tariff list. */}
               <TextField
-                label="District (İlçe) *"
-                value={form.city}
+                select
+                label={`${t('addressDistrict')} *`}
+                value={districtsOf(form.state).includes(form.city) ? form.city : ''}
                 onChange={handleFormChange('city')}
                 fullWidth
                 size="small"
-                disabled={saving}
-                inputProps={{ maxLength: 100 }}
-              />
+                disabled={saving || !form.state}
+                SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
+              >
+                {districtsOf(form.state).map((d) => (
+                  <MenuItem key={d} value={d}>
+                    {d}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Street / Address"
+                label={t('addressStreet')}
                 value={form.address}
                 onChange={handleFormChange('address')}
                 fullWidth
@@ -404,7 +420,7 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={6}>
               <TextField
-                label="Building"
+                label={t('addressBuilding')}
                 value={form.building}
                 onChange={handleFormChange('building')}
                 fullWidth
@@ -415,7 +431,7 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={6}>
               <TextField
-                label="Apartment / Unit"
+                label={t('addressApartment')}
                 value={form.apartment}
                 onChange={handleFormChange('apartment')}
                 fullWidth
@@ -426,7 +442,7 @@ export default function AddressesPage() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Postal Code"
+                label={t('addressPostalCode')}
                 value={form.postal_code}
                 onChange={handleFormChange('postal_code')}
                 fullWidth
@@ -447,7 +463,7 @@ export default function AddressesPage() {
                 }
                 label={
                   <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primary }}>
-                    Set as default address
+                    {t('addressSetDefault')}
                   </Typography>
                 }
               />
@@ -460,7 +476,7 @@ export default function AddressesPage() {
             disabled={saving}
             sx={{ fontFamily: fontMain, color: palette.primaryLight, textTransform: 'none' }}
           >
-            Cancel
+            {t('addressCancel')}
           </Button>
           <Button
             onClick={handleAdd}
@@ -474,7 +490,7 @@ export default function AddressesPage() {
               px: 3,
             }}
           >
-            {saving ? 'Saving…' : 'Save Address'}
+            {saving ? t('addressSaving') : t('addressSave')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -79,8 +79,19 @@ export interface PaginatedResponse<T> {
   };
 }
 
+/** Why ARM rejected a promo code — the page shows `basket.promo.<reason>`. */
+export type PromoRejectReason =
+  | 'invalid'
+  | 'not_yet_valid'
+  | 'expired'
+  | 'used_up'
+  | 'customer_limit'
+  | 'min_order';
+
 export interface PromoValidationResult {
   valid: boolean;
+  /** Set when `valid` is false; `error` below is the English fallback of the same. */
+  reason?: PromoRejectReason;
   error?: string;
   code?: string;
   discount_type?: 'percent' | 'fixed';

@@ -19,6 +19,7 @@ import {
   type AccountNotice,
 } from '@/lib/checkout';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
+import { orderStatusLabel } from '@/lib/order-status';
 
 const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
@@ -81,9 +82,9 @@ function SuccessContent() {
     setOrderLoading(true);
     fetchOrder(effectiveOrderId)
       .then((res) => setOrder(res.data))
-      .catch(() => setOrderError('Could not load order details.'))
+      .catch(() => setOrderError(t('checkout.success.loadFailed')))
       .finally(() => setOrderLoading(false));
-  }, [effectiveOrderId]);
+  }, [effectiveOrderId, t]);
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 8, textAlign: 'center' }}>
@@ -99,7 +100,7 @@ function SuccessContent() {
           mb: 2,
         }}
       >
-        Order Placed
+        {t('checkout.success.title')}
       </Typography>
 
       <Paper
@@ -126,25 +127,26 @@ function SuccessContent() {
         {order && (
           <>
             <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-              Order number: <strong>{order.number}</strong>
+              {t('checkout.orderNumberLabel')} <strong>{order.number}</strong>
             </Typography>
             <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-              Total: <strong>{fmtMoney(order.total, order.currency, formatLocale)}</strong>
+              {t('checkout.success.total')}{' '}
+              <strong>{fmtMoney(order.total, order.currency, formatLocale)}</strong>
             </Typography>
             <Typography sx={{ fontFamily: font, fontSize: 18, color: c.main, mb: 1 }}>
-              Status: {order.status.name}
+              {t('checkout.success.status')} {orderStatusLabel(t, order.status)}
             </Typography>
           </>
         )}
 
         {!order && !orderLoading && !orderError && effectiveOrderId && (
           <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main }}>
-            Order ID: {effectiveOrderId}
+            {t('checkout.success.orderId')} {effectiveOrderId}
           </Typography>
         )}
 
         <Typography sx={{ fontFamily: font, fontSize: 16, color: c.main, mt: 2 }}>
-          We will contact you to confirm your order.
+          {t('checkout.success.contactNote')}
         </Typography>
 
         {/* Account outcome (FBG-477). `email_taken` means the order went to a
@@ -194,24 +196,27 @@ function SuccessContent() {
           '&:hover': { bgcolor: '#2a3d8a' },
         }}
       >
-        Continue Shopping
+        {t('cart.continueShopping')}
       </Button>
+    </Box>
+  );
+}
+
+function SuccessLoading() {
+  const t = useTranslations();
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <CircularProgress sx={{ color: palette.primary }} size={40} />
+        <Typography sx={{ fontFamily: font, color: palette.primary }}>{t('common.loading')}</Typography>
+      </Box>
     </Box>
   );
 }
 
 export default function CheckoutSuccessPage() {
   return (
-    <Suspense
-      fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <CircularProgress sx={{ color: palette.primary }} size={40} />
-            <Typography sx={{ fontFamily: font, color: palette.primary }}>Loading...</Typography>
-          </Box>
-        </Box>
-      }
-    >
+    <Suspense fallback={<SuccessLoading />}>
       <SuccessContent />
     </Suspense>
   );

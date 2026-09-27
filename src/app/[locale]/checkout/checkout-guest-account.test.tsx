@@ -34,8 +34,13 @@ const query = vi.hoisted(() => ({ value: new URLSearchParams() }));
 const cart = vi.hoisted(() => ({ items: [] as { productId: string; quantity: number }[] }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
-    values ? `${key}:${JSON.stringify(values)}` : key,
+  useTranslations: () => {
+    const t = (key: string, values?: Record<string, unknown>) =>
+      values ? `${key}:${JSON.stringify(values)}` : key;
+    // Rich messages render as their key (tag renderers are not called).
+    t.rich = (key: string) => key;
+    return t;
+  },
   useLocale: () => 'tr',
 }));
 
@@ -116,7 +121,7 @@ const boxLabelled = (fragment: string) =>
   checkboxes().find((el) => (el.closest('label')?.textContent ?? '').includes(fragment));
 
 const proceedButton = () =>
-  screen.getByRole('button', { name: 'Proceed to Payment' }) as HTMLButtonElement;
+  screen.getByRole('button', { name: 'checkout.proceedToPayment' }) as HTMLButtonElement;
 
 /** Reach step 2 with the shipping rate loaded and the compliance boxes ticked. */
 async function arriveAtStep2({ uyelik = false }: { uyelik?: boolean } = {}) {
@@ -189,7 +194,7 @@ describe('guest submit gate', () => {
     );
     expect(apiMock.createOrder).not.toHaveBeenCalled();
     // Back on step 1, where the email field is.
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'checkout.continue' })).toBeDefined();
   });
 
   it('explains a malformed email at the field instead of a dead Continue', async () => {
@@ -200,10 +205,10 @@ describe('guest submit gate', () => {
     render(<CheckoutPage />);
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined(),
+      expect(screen.getByRole('button', { name: 'checkout.continue' })).toBeDefined(),
     );
     expect(screen.getByText('checkout.errors.invalid_email')).toBeDefined();
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+    expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
 
@@ -212,7 +217,7 @@ describe('guest submit gate', () => {
     fireEvent.change(email, { target: { value: 'ada@example.com' } });
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled,
+        (screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled,
       ).toBe(false),
     );
     expect(screen.queryByText('checkout.errors.invalid_email')).toBeNull();
@@ -230,8 +235,8 @@ describe('guest submit gate', () => {
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+    await waitFor(() => expect(screen.getByRole('button', { name: 'checkout.continue' })).toBeDefined());
+    expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
     // An empty field is explained by its `*`, not by a format error.
@@ -242,7 +247,7 @@ describe('guest submit gate', () => {
     });
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled,
+        (screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled,
       ).toBe(false),
     );
   });
@@ -310,16 +315,48 @@ describe('province (il)', () => {
     sessionStorage.setItem('checkout_form', JSON.stringify({ ...DRAFT, email: 'ada@example.com', province: '' }));
     render(<CheckoutPage />);
 
-    // Wait for the draft to hydrate (district shows the stored value).
-    await waitFor(() => expect((document.querySelector('input[value="Kadıköy"]') as HTMLInputElement | null)).not.toBeNull());
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true);
+    // Wait for the draft to hydrate (the street is a plain text field).
+    await waitFor(() => expect((document.querySelector('input[value="Istiklal Cad"]') as HTMLInputElement | null)).not.toBeNull());
+    expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(true);
 
-    // Picking a province enables Continue.
-    const combo = screen.getByRole('combobox', { name: /Province/ });
+    // Picking a province enables Continue: the draft's district belongs to it,
+    // so the district select keeps it.
+    const combo = screen.getByRole('combobox', { name: 'checkout.form.province' });
     fireEvent.mouseDown(combo);
     fireEvent.click(screen.getByRole('option', { name: 'İstanbul' }));
     await waitFor(() =>
-      expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+      expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+  });
+
+  it("offers only the picked province's districts and drops a district of another one", async () => {
+    sessionStorage.setItem('checkout_step', '1');
+    sessionStorage.setItem('checkout_form', JSON.stringify({ ...DRAFT, email: 'ada@example.com' }));
+    render(<CheckoutPage />);
+
+    // İstanbul + Kadıköy from the draft: valid as is.
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+
+    // Switching to Ankara drops Kadıköy — Continue waits for an Ankara district.
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'checkout.form.province' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Ankara' }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
+        true,
+      ),
+    );
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'checkout.form.district' }));
+    expect(screen.queryByRole('option', { name: 'Kadıköy' })).toBeNull();
+    fireEvent.click(screen.getByRole('option', { name: 'Çankaya' }));
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
         false,
       ),
     );
@@ -368,13 +405,13 @@ describe('saved address → province', () => {
 
     await screen.findByText('İstanbul');
     await waitFor(() =>
-      expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+      expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
         false,
       ),
     );
   });
 
-  it('fills the district but leaves the province empty for a non-canonical saved state', async () => {
+  it('leaves province and district empty for a non-canonical saved state', async () => {
     auth.value = {
       customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
       token: 't',
@@ -386,8 +423,10 @@ describe('saved address → province', () => {
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
 
-    await screen.findByDisplayValue('Kadıköy');
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
+    // The saved street is filled; the district waits for a province to be picked.
+    await screen.findByDisplayValue('Moda Cad');
+    expect(screen.getByText('checkout.form.selectDistrict')).toBeDefined();
+    expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
   });
@@ -431,9 +470,9 @@ describe('guest-only UI', () => {
     sessionStorage.setItem('checkout_step', '1');
     render(<CheckoutPage />);
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'checkout.continue' })).toBeDefined());
     const emailLabel = Array.from(document.querySelectorAll('p')).find((el) =>
-      el.textContent?.startsWith('Email'),
+      el.textContent?.startsWith('checkout.form.email'),
     );
     expect(emailLabel?.textContent).toContain('*');
   });
@@ -524,7 +563,7 @@ describe('a booked order cannot be stranded by editing the basket', () => {
   /** The summary's "Edit" link (the breadcrumb to /basket is plain navigation). */
   const editBasketLink = () =>
     Array.from(document.querySelectorAll('a[href="/basket"]')).find(
-      (a) => a.textContent === 'Edit',
+      (a) => a.textContent === 'checkout.edit',
     ) ?? null;
 
   it('hides the basket edit affordances once ARM has booked the order', async () => {
@@ -553,7 +592,7 @@ describe('a booked order cannot be stranded by editing the basket', () => {
 
     // Not the "your cart is empty" dead end — the order exists and is unpaid.
     await waitFor(() => expect(screen.getByText('checkout.pendingOrder.notice')).toBeDefined());
-    expect(screen.queryByText(/Your cart is empty/)).toBeNull();
+    expect(screen.queryByText('checkout.emptyCart')).toBeNull();
 
     apiMock.createPaymentSession.mockResolvedValue({ data: { type: 'manual' } });
     await waitFor(() => expect(proceedButton().disabled).toBe(false));
@@ -615,7 +654,7 @@ describe('a booked order cannot be stranded by editing the basket', () => {
     // Embedded checkout is not a redirect, and the retry button that would spawn
     // further payment sessions is gone.
     expect(assign).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Proceed to Payment' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'checkout.proceedToPayment' })).toBeNull();
     expect(apiMock.createPaymentSession).toHaveBeenCalledTimes(1);
   });
 

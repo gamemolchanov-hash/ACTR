@@ -35,6 +35,7 @@ import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
 import { TR_PROVINCES, isTrProvince, normalizeProvince, formatDistrictProvince } from '@/lib/tr-provinces';
+import { districtsOf, matchDistrict } from '@/lib/tr-districts';
 import {
   validateCart,
   validatePromo,
@@ -254,6 +255,17 @@ function provinceFromSaved(state: string | null | undefined): string {
   return isTrProvince(normalized) ? normalized : '';
 }
 
+/**
+ * Same rule for the district: a TR address takes it only when it is one of the
+ * province's districts (the select offers nothing else, and FulfillmentTR
+ * prices by it) — an old free-text value is dropped and the buyer re-picks.
+ * A non-TR address keeps its free-text city.
+ */
+function cityFromSaved(addr: { country?: string | null; state?: string | null; city?: string | null }): string {
+  if (addr.country && addr.country !== 'TR') return addr.city || '';
+  return matchDistrict(provinceFromSaved(addr.state), addr.city) ?? '';
+}
+
 export default function CheckoutPage() {
   const t = useTranslations();
   const locale = useLocale();
@@ -413,7 +425,7 @@ export default function CheckoutPage() {
           setSelectedAddressId(def.id);
           setForm((prev) => ({
             ...prev,
-            city: def.city || '',
+            city: cityFromSaved(def),
             province: provinceFromSaved(def.state),
             street: def.street || '',
             building: def.building || '',
@@ -518,7 +530,14 @@ export default function CheckoutPage() {
   };
 
   const handleProvince = (e: SelectChangeEvent) => {
-    setForm((prev) => ({ ...prev, province: e.target.value }));
+    const province = e.target.value;
+    // The district list belongs to the province: keep the typed/saved district
+    // only if the new province has it (a draft's "kadikoy" becomes "Kadıköy").
+    setForm((prev) => ({ ...prev, province, city: matchDistrict(province, prev.city) ?? '' }));
+  };
+
+  const handleDistrict = (e: SelectChangeEvent) => {
+    setForm((prev) => ({ ...prev, city: e.target.value }));
   };
 
   // Who the form is serving. `hydrated` is what keeps the server render and the
@@ -586,7 +605,8 @@ export default function CheckoutPage() {
       form.name &&
       form.phone &&
       form.country &&
-      (form.country !== 'TR' || isTrProvince(form.province)) &&
+      (form.country !== 'TR' ||
+        (isTrProvince(form.province) && districtsOf(form.province).includes(form.city))) &&
       form.city &&
       form.street &&
       form.building &&
@@ -828,12 +848,15 @@ export default function CheckoutPage() {
       // Known machine-readable codes get localized en/tr text; anything else
       // falls back to the BFF's English `error` string (FBG-385 review).
       const codeKey = checkoutErrorKey(err?.response?.data?.code);
+      // ARM writes storefront error texts in Russian (its .ru rule) — never show
+      // Cyrillic on this storefront; say it generically instead.
+      const serverText: unknown = err?.response?.data?.error || err?.response?.data?.message;
+      const readableServerText =
+        typeof serverText === 'string' && serverText && !/[\u0400-\u04FF]/.test(serverText)
+          ? serverText
+          : null;
       const msg =
-        (codeKey ? t(codeKey) : null) ||
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'Error creating order';
+        (codeKey ? t(codeKey) : null) || readableServerText || t('checkout.errors.orderFailed');
       if (!orderId) {
         // The order itself failed — nothing was booked, the server text stands.
         setError(msg);
@@ -894,9 +917,9 @@ export default function CheckoutPage() {
       sx={{ mb: 1, '& .MuiBreadcrumbs-separator': { color: c['20'], mx: 0.5 } }}
     >
       {[
-        { label: 'Home', href: '/' },
-        { label: 'Catalog', href: '/catalog' },
-        { label: 'Basket', href: '/basket' },
+        { label: t('common.home'), href: '/' },
+        { label: t('nav.catalog'), href: '/catalog' },
+        { label: t('basket.title'), href: '/basket' },
       ].map((b) => (
         <MuiLink
           key={b.href}
@@ -909,7 +932,7 @@ export default function CheckoutPage() {
         </MuiLink>
       ))}
       <Typography sx={{ fontFamily: '"Open Sans", Helvetica', fontSize: 13, color: c['20'] }}>
-        Checkout
+        {t('cart.checkout')}
       </Typography>
     </Breadcrumbs>
   );
@@ -927,17 +950,17 @@ export default function CheckoutPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 3 }}>
-          Checkout
+          {t('cart.checkout')}
         </Typography>
         <Typography sx={{ ...textSm, color: c.main }}>
-          Your cart is empty.{' '}
+          {t('checkout.emptyCart')}{' '}
           <MuiLink
             component={Link}
             href="/catalog"
             underline="hover"
             sx={{ fontWeight: 700, color: c.main }}
           >
-            Go to catalog
+            {t('checkout.goToCatalog')}
           </MuiLink>
         </Typography>
       </Box>
@@ -1002,7 +1025,7 @@ export default function CheckoutPage() {
             fontWeight: step === 1 ? 500 : 400,
           }}
         >
-          Customer
+          {t('checkout.step.customer')}
         </Typography>
         {/* Hidden while the payload is frozen: step 1 holds only disabled fields
             then, and leaving step 2 would hide the button that finishes the
@@ -1017,7 +1040,7 @@ export default function CheckoutPage() {
               '&:hover': { textDecoration: 'underline' },
             }}
           >
-            Edit
+            {t('checkout.edit')}
           </Typography>
         )}
       </Stack>
@@ -1025,10 +1048,13 @@ export default function CheckoutPage() {
       {step > 1 && (
         <Stack spacing={'9px'} sx={{ mt: 1, mb: 1 }}>
           {[
-            { label: 'Name', value: form.name },
-            { label: 'Email', value: form.email },
-            { label: 'District / Province', value: formatDistrictProvince(form.city, form.province) },
-            { label: 'Phone', value: form.phone },
+            { label: t('checkout.form.name'), value: form.name },
+            { label: t('checkout.form.email'), value: form.email },
+            {
+              label: t('checkout.form.districtProvince'),
+              value: formatDistrictProvince(form.city, form.province),
+            },
+            { label: t('checkout.form.phone'), value: form.phone },
           ].map((f) => (
             <Typography key={f.label} sx={{ color: c.main, ...text }}>
               {f.value || f.label}
@@ -1047,13 +1073,13 @@ export default function CheckoutPage() {
           fontWeight: step === 2 ? 500 : 400,
         }}
       >
-        Delivery
+        {t('checkout.step.delivery')}
       </Typography>
 
       {step < 2 && (
         <>
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', my: 2 }} />
-          <Typography sx={{ color: c.main, ...text }}>Payment</Typography>
+          <Typography sx={{ color: c.main, ...text }}>{t('checkout.step.payment')}</Typography>
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', mt: 2 }} />
         </>
       )}
@@ -1098,17 +1124,17 @@ export default function CheckoutPage() {
       <Box sx={{ maxWidth: 1300, mx: 'auto', px: 2, py: 4 }}>
         {breadcrumbs}
         <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 1.5 }}>
-          Checkout
+          {t('cart.checkout')}
         </Typography>
         <Box sx={{ maxWidth: 660 }}>
           <Typography sx={{ ...textSm, color: c.main, mb: 2 }}>
             {t('checkout.pendingOrder.notice')}
           </Typography>
           <Typography sx={{ ...textSm, color: c.main, mb: 1 }}>
-            Order number: <strong>{pendingOrder.number}</strong>
+            {t('checkout.orderNumberLabel')} <strong>{pendingOrder.number}</strong>
           </Typography>
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
-            <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
+            <Typography sx={{ ...h2Sx, color: c.main }}>{t('checkout.totalCaps')}</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
               {fmtMoney(pendingOrder.amountDue, pendingOrder.currency, formatLocale)}
             </Typography>
@@ -1130,7 +1156,7 @@ export default function CheckoutPage() {
               {submitting ? (
                 <CircularProgress size={24} sx={{ color: 'white' }} />
               ) : (
-                'Proceed to Payment'
+                t('checkout.proceedToPayment')
               )}
             </Button>
           )}
@@ -1157,13 +1183,18 @@ export default function CheckoutPage() {
     <>
       {errorAlert}
       <Stack spacing={2.5}>
-        {field('Email', 'email', true, emailInvalid ? t('checkout.errors.invalid_email') : null)}
-        {field('Full Name', 'name')}
-        {field('Phone', 'phone')}
+        {field(
+          t('checkout.form.email'),
+          'email',
+          true,
+          emailInvalid ? t('checkout.errors.invalid_email') : null,
+        )}
+        {field(t('checkout.form.fullName'), 'name')}
+        {field(t('checkout.form.phone'), 'phone')}
 
         <Box>
           <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
-            Country{' '}
+            {t('checkout.form.country')}{' '}
             <Box component="span" sx={{ color: c.red }}>
               *
             </Box>
@@ -1179,7 +1210,9 @@ export default function CheckoutPage() {
                     {countries.find((ct) => ct.code === selected)?.name || selected}
                   </Typography>
                 ) : (
-                  <Typography sx={{ color: c['20'], fontSize: '16px' }}>Select country</Typography>
+                  <Typography sx={{ color: c['20'], fontSize: '16px' }}>
+                    {t('checkout.form.selectCountry')}
+                  </Typography>
                 )
               }
               sx={selectSx}
@@ -1196,7 +1229,9 @@ export default function CheckoutPage() {
         {/* Saved address cards (logged in, has addresses) */}
         {!!customer && savedAddresses.length > 0 && (
           <Box>
-            <Typography sx={{ color: c.main, ...textSm, mb: 1 }}>Delivery address</Typography>
+            <Typography sx={{ color: c.main, ...textSm, mb: 1 }}>
+              {t('checkout.form.deliveryAddress')}
+            </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
               {savedAddresses.map((addr) => (
                 <Box
@@ -1206,7 +1241,7 @@ export default function CheckoutPage() {
                     setIsNewAddress(false);
                     setForm((prev) => ({
                       ...prev,
-                      city: addr.city || '',
+                      city: cityFromSaved(addr),
                       province: provinceFromSaved(addr.state),
                       street: addr.street || '',
                       building: addr.building || '',
@@ -1311,7 +1346,9 @@ export default function CheckoutPage() {
                   '&:hover': { borderColor: c.main },
                 }}
               >
-                <Typography sx={{ fontSize: 14, color: c.main }}>+ New address</Typography>
+                <Typography sx={{ fontSize: 14, color: c.main }}>
+                  {t('checkout.form.newAddress')}
+                </Typography>
               </Box>
             </Stack>
           </Box>
@@ -1320,7 +1357,7 @@ export default function CheckoutPage() {
         {trAddress && (
           <Box>
             <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
-              Province (İl){' '}
+              {t('checkout.form.province')}{' '}
               <Box component="span" sx={{ color: c.red }}>
                 *
               </Box>
@@ -1331,12 +1368,14 @@ export default function CheckoutPage() {
                 onChange={handleProvince}
                 displayEmpty
                 disabled={inputsLocked}
-                inputProps={{ 'aria-label': 'Province (İl)' }}
+                inputProps={{ 'aria-label': t('checkout.form.province') }}
                 renderValue={(selected) =>
                   selected ? (
                     <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
                   ) : (
-                    <Typography sx={{ color: c['20'], fontSize: '16px' }}>Select province</Typography>
+                    <Typography sx={{ color: c['20'], fontSize: '16px' }}>
+                      {t('checkout.form.selectProvince')}
+                    </Typography>
                   )
                 }
                 sx={selectSx}
@@ -1351,14 +1390,53 @@ export default function CheckoutPage() {
             </FormControl>
           </Box>
         )}
-        {field(trAddress ? 'District (İlçe)' : 'City', 'city')}
-        {field('Street', 'street')}
+        {trAddress ? (
+          // District (ilçe) of the picked province — the FulfillmentTR tariff list
+          // (lib/tr-districts). A draft/saved value outside it shows as unset.
+          <Box>
+            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+              {t('checkout.form.district')}{' '}
+              <Box component="span" sx={{ color: c.red }}>
+                *
+              </Box>
+            </Typography>
+            <FormControl fullWidth>
+              <Select
+                value={districtsOf(form.province).includes(form.city) ? form.city : ''}
+                onChange={handleDistrict}
+                displayEmpty
+                disabled={inputsLocked || !isTrProvince(form.province)}
+                inputProps={{ 'aria-label': t('checkout.form.district') }}
+                renderValue={(selected) =>
+                  selected ? (
+                    <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
+                  ) : (
+                    <Typography sx={{ color: c['20'], fontSize: '16px' }}>
+                      {t('checkout.form.selectDistrict')}
+                    </Typography>
+                  )
+                }
+                sx={selectSx}
+                MenuProps={{ PaperProps: { sx: { maxHeight: 360 } } }}
+              >
+                {districtsOf(form.province).map((d) => (
+                  <MenuItem key={d} value={d}>
+                    {d}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        ) : (
+          field(t('checkout.form.city'), 'city')
+        )}
+        {field(t('checkout.form.street'), 'street')}
         <Stack direction="row" spacing={1.5}>
-          <Box sx={{ flex: 1 }}>{field('Building / No', 'building')}</Box>
-          <Box sx={{ flex: 1 }}>{optField('Block', 'block')}</Box>
-          <Box sx={{ flex: 1 }}>{optField('Apartment / Office', 'apartment')}</Box>
+          <Box sx={{ flex: 1 }}>{field(t('checkout.form.building'), 'building')}</Box>
+          <Box sx={{ flex: 1 }}>{optField(t('checkout.form.block'), 'block')}</Box>
+          <Box sx={{ flex: 1 }}>{optField(t('checkout.form.apartment'), 'apartment')}</Box>
         </Stack>
-        {field('Postal Code', 'zip')}
+        {field(t('checkout.form.postalCode'), 'zip')}
       </Stack>
 
       <Button
@@ -1368,12 +1446,12 @@ export default function CheckoutPage() {
         onClick={handleStep1Continue}
         sx={btnSx}
       >
-        Continue
+        {t('checkout.continue')}
       </Button>
 
       {/* Collapsed future steps */}
       <Box sx={{ mt: 4 }}>
-        {['Choose delivery', 'Payment'].map((label, idx) => (
+        {[t('checkout.step.chooseDelivery'), t('checkout.step.payment')].map((label, idx) => (
           <Box key={label}>
             <Divider sx={{ borderColor: c.main, borderWidth: '0.5px' }} />
             <Typography sx={{ color: c.main, ...text, py: '14px' }}>{label}</Typography>
@@ -1559,7 +1637,7 @@ export default function CheckoutPage() {
             {submitting ? (
               <CircularProgress size={24} sx={{ color: 'white' }} />
             ) : (
-              'Proceed to Payment'
+              t('checkout.proceedToPayment')
             )}
           </Button>
 
@@ -1589,7 +1667,7 @@ export default function CheckoutPage() {
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography sx={{ ...h2Sx, color: c.main, textTransform: 'uppercase' }}>
-          Your Order
+          {t('checkout.yourOrder')}
         </Typography>
         {!inputsLocked && (
           <MuiLink
@@ -1598,7 +1676,7 @@ export default function CheckoutPage() {
             underline="none"
             sx={{ color: c['40'], ...text, cursor: 'pointer' }}
           >
-            Edit
+            {t('checkout.edit')}
           </MuiLink>
         )}
       </Stack>
@@ -1654,10 +1732,13 @@ export default function CheckoutPage() {
                     {item.name}
                   </FitText>
                   <Typography sx={{ color: c.main, ...textSm, mt: 0.5 }}>
-                    {item.quantity} pcs
+                    {t('checkout.qtyPcs', { count: item.quantity })}
                   </Typography>
                   <FitText data-testid="sf-checkout-item-price" minPx={8} sx={{ color: c.main, ...textSm, mt: 0.5 }}>
-                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'} /pc
+                    {t('checkout.perPc', {
+                      price:
+                        item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—',
+                    })}
                   </FitText>
                 </Box>
                 {/* The basket is part of the order payload: it freezes with the
@@ -1675,7 +1756,7 @@ export default function CheckoutPage() {
 
           <Box sx={{ mb: 2 }}>
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography sx={{ color: c.main, ...text }}>Subtotal:</Typography>
+              <Typography sx={{ color: c.main, ...text }}>{t('checkout.subtotal')}</Typography>
               <Typography sx={{ color: c.main, ...text }}>{fmtMoney(subtotal, currency, formatLocale)}</Typography>
             </Stack>
             {/* informational only — price is already KDV-inclusive (D-01/D-02) */}
@@ -1690,7 +1771,9 @@ export default function CheckoutPage() {
             {promoDiscount > 0 && (
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
                 <Typography sx={{ color: '#2e7d32', ...text }}>
-                  Discount{promoResult?.code ? ` (${promoResult.code})` : ''}:
+                  {promoResult?.code
+                    ? t('checkout.discountWithCode', { code: promoResult.code })
+                    : t('checkout.discount')}
                 </Typography>
                 <Typography sx={{ color: '#2e7d32', ...text }}>
                   −{fmtMoney(promoDiscount, currency, formatLocale)}
@@ -1698,7 +1781,7 @@ export default function CheckoutPage() {
               </Stack>
             )}
             <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography sx={{ color: c.main, ...text }}>Shipping:</Typography>
+              <Typography sx={{ color: c.main, ...text }}>{t('checkout.shippingLabel')}</Typography>
               <Typography sx={{ color: c.main, ...text }}>
                 {step < 2
                   ? '—'
@@ -1728,7 +1811,7 @@ export default function CheckoutPage() {
           <Divider sx={{ borderColor: c.main, borderWidth: '0.5px', mb: 2 }} />
 
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography sx={{ ...h2Sx, color: c.main }}>TOTAL:</Typography>
+            <Typography sx={{ ...h2Sx, color: c.main }}>{t('checkout.totalCaps')}</Typography>
             <Typography sx={{ ...h2Sx, color: c.main }}>
               {step >= 2 && !selectedRate
                 ? t('checkout.shipping.tbd')
@@ -1745,30 +1828,33 @@ export default function CheckoutPage() {
       {breadcrumbs}
 
       <Typography sx={{ ...h1Sx, textTransform: 'uppercase', color: c.main, mb: 1.5 }}>
-        Checkout
+        {t('cart.checkout')}
       </Typography>
 
       {!customer && (
         <Typography sx={{ ...textSm, color: c.main, mb: 4 }}>
-          Already have an account?{' '}
-          <MuiLink
-            component={Link}
-            href="/login"
-            underline="always"
-            sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
-          >
-            Sign in
-          </MuiLink>{' '}
-          or{' '}
-          <MuiLink
-            component={Link}
-            href="/login/register"
-            underline="always"
-            sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
-          >
-            register
-          </MuiLink>{' '}
-          for faster checkout.
+          {t.rich('checkout.haveAccount', {
+            signIn: (chunks) => (
+              <MuiLink
+                component={Link}
+                href="/login"
+                underline="always"
+                sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
+              >
+                {chunks}
+              </MuiLink>
+            ),
+            register: (chunks) => (
+              <MuiLink
+                component={Link}
+                href="/login/register"
+                underline="always"
+                sx={{ color: c.main, ...textSm, fontWeight: 'bold' }}
+              >
+                {chunks}
+              </MuiLink>
+            ),
+          })}
         </Typography>
       )}
 
