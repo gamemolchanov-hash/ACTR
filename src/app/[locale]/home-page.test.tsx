@@ -1,7 +1,7 @@
 /**
  * FBG-426 — the home page shows the pre-launch notice instead of the banner
  * while `PRELAUNCH` is on, mirroring the basket/checkout gate (FBG-416). When
- * the flag is flipped off at launch the hero banner renders as before.
+ * the flag is flipped off at launch the catalog renders (home = catalog, as on ACRU/ACSTORE).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
@@ -15,8 +15,8 @@ vi.mock('@/lib/prelaunch', () => ({
   },
 }));
 
-vi.mock('@/components/HeroBanner', () => ({
-  HeroBanner: () => <div data-testid="hero-banner" />,
+vi.mock('@/components/CatalogView', () => ({
+  CatalogView: () => <div data-testid="catalog-view" />,
 }));
 
 vi.mock('@/components/PrelaunchNotice', () => ({
@@ -30,17 +30,17 @@ afterEach(() => {
 });
 
 describe('HomePage — pre-launch gate', () => {
-  it('PRELAUNCH=true: shows the pre-launch notice, not the banner', () => {
+  it('PRELAUNCH=true: shows the pre-launch notice, not the catalog', () => {
     prelaunch.value = true;
     render(<HomePage />);
     expect(screen.getByTestId('prelaunch-notice')).toBeTruthy();
-    expect(screen.queryByTestId('hero-banner')).toBeNull();
+    expect(screen.queryByTestId('catalog-view')).toBeNull();
   });
 
-  it('PRELAUNCH=false: shows the hero banner, not the notice', () => {
+  it('PRELAUNCH=false: shows the catalog, not the notice', () => {
     prelaunch.value = false;
     render(<HomePage />);
-    expect(screen.getByTestId('hero-banner')).toBeTruthy();
+    expect(screen.getByTestId('catalog-view')).toBeTruthy();
     expect(screen.queryByTestId('prelaunch-notice')).toBeNull();
   });
 });
