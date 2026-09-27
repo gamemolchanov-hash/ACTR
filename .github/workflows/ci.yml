@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          # no cache: npm — self-hosted runner, ~/.npm is already on its disk; the GitHub cache (3+ GB) was re-downloaded from Azure via the SS proxy on every run
       - run: npm ci
       - name: Typecheck
         run: npx tsc --noEmit
