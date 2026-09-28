@@ -300,6 +300,7 @@
   "checkout.form.block": "Block",
   "checkout.form.apartment": "Apartment / Office",
   "checkout.form.postalCode": "Postal Code",
+  "checkout.form.postalCodeHint": "Start with the postal code: province, district and neighbourhood fill in by themselves.",
   "checkout.form.name": "Name",
   "checkout.form.districtProvince": "District / Province",
   "checkout.errors.orderFailed": "We couldn't place the order. Please try again.",

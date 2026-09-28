@@ -27,7 +27,7 @@ export interface Neighbourhood {
   zip: string | null;
 }
 
-type ProvinceNeighbourhoods = Record<string, Neighbourhood[]>;
+export type ProvinceNeighbourhoods = Record<string, Neighbourhood[]>;
 
 /** File key of a province: its folded name ("Şanlıurfa" → "sanliurfa"). */
 export function provinceFileKey(province: string): string {
@@ -111,6 +111,58 @@ export function matchNeighbourhood(
 /** "Muallimköy Mah." + "Deniz Cad." → "Muallimköy Mah., Deniz Cad." — the street line ARM stores. */
 export function joinStreet(neighbourhood: string, street: string): string {
   return [neighbourhood.trim(), street.trim()].filter(Boolean).join(', ');
+}
+
+/** The list with the neighbourhoods of `zip` first; the rest keep their order. */
+export function withZipFirst(options: Neighbourhood[], zip: string): Neighbourhood[] {
+  const z = zip.trim();
+  if (!/^\d{5}$/.test(z)) return options;
+  return [...options.filter((o) => o.zip === z), ...options.filter((o) => o.zip !== z)];
+}
+
+export interface AddressPick {
+  province: string;
+  /** District / ilçe. */
+  city: string;
+  neighbourhood: string;
+}
+
+/**
+ * What a typed postal code fills in. The province comes from its plate prefix
+ * (the caller passes it, see provinceByZip) and the district from the PTT data —
+ * a PTT postal code belongs to exactly one district. A neighbourhood that fits
+ * the code stays; otherwise the code's only neighbourhood is filled in, a listed
+ * one of another code is dropped, and free text stays when the code has several.
+ * A code PTT does not know (or a warehouse zone without a list) fills only the
+ * province.
+ */
+export function fillFromZip(
+  current: AddressPick,
+  province: string,
+  data: ProvinceNeighbourhoods,
+  zip: string,
+): AddressPick {
+  const z = zip.trim();
+  const hits = Object.entries(data).flatMap(([district, rows]) =>
+    rows.filter((r) => r.zip === z).map((r) => ({ district, name: r.name })),
+  );
+  const districts = [...new Set(hits.map((h) => h.district))];
+  let { city, neighbourhood } = current;
+  if (current.province !== province) {
+    city = '';
+    neighbourhood = '';
+  }
+  if (districts.length > 0 && !districts.includes(city)) {
+    // Several districts only where the warehouse lists one twice (an old name).
+    city = districts.length === 1 ? districts[0] : '';
+    neighbourhood = '';
+  }
+  const hoods = hits.filter((h) => h.district === city).map((h) => h.name);
+  if (hoods.length > 0 && !hoods.includes(neighbourhood)) {
+    if (hoods.length === 1) neighbourhood = hoods[0];
+    else if (matchNeighbourhood(data[city] ?? [], neighbourhood)) neighbourhood = '';
+  }
+  return { province, city, neighbourhood };
 }
 
 // Head of a street line that names a neighbourhood or village, folded:

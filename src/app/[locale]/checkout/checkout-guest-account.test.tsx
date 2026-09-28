@@ -537,6 +537,48 @@ describe('neighbourhood (mahalle)', () => {
     expect(continueDisabled()).toBe(true);
   });
 
+  it('fills province, district and the only neighbourhood from the postal code typed first', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          districts: {
+            Gebze: [['Adem Yavuz Mah.', '41400'], ['Muallimköy Mah.', '41400']],
+            Darıca: [['Bayramoğlu Mah.', '41700']],
+          },
+        }),
+      })),
+    );
+    sessionStorage.setItem('checkout_step', '1');
+    sessionStorage.setItem(
+      'checkout_form',
+      JSON.stringify({ ...DRAFT, email: 'ada@example.com', province: '', city: '', neighbourhood: '', zip: '' }),
+    );
+    render(<CheckoutPage />);
+
+    // The zip sits first, highlighted, above the province.
+    const zipBox = await screen.findByTestId('zip-first');
+    const zip = screen.getByRole('textbox', { name: 'checkout.form.postalCode' });
+    expect(zipBox.contains(zip)).toBe(true);
+    expect(
+      zipBox.compareDocumentPosition(screen.getByRole('combobox', { name: 'checkout.form.province' })) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.change(zip, { target: { value: '41700' } });
+    await waitFor(() => expect(combo().value).toBe('Bayramoğlu Mah.'));
+    expect(screen.getByText('Kocaeli')).toBeDefined();
+    expect(screen.getByText('Darıca')).toBeDefined();
+    await waitFor(() => expect(continueDisabled()).toBe(false));
+
+    // A code of several neighbourhoods: the district, and the buyer picks the neighbourhood.
+    fireEvent.change(zip, { target: { value: '41400' } });
+    await waitFor(() => expect(screen.getByText('Gebze')).toBeDefined());
+    expect(combo().value).toBe('');
+    expect(continueDisabled()).toBe(true);
+  });
+
   it("offers the district's PTT list and a pick fills the postal code", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,

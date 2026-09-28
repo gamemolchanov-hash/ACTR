@@ -300,6 +300,7 @@
   "checkout.form.block": "Blok",
   "checkout.form.apartment": "Daire / Ofis",
   "checkout.form.postalCode": "Posta Kodu",
+  "checkout.form.postalCodeHint": "Önce posta kodunu girin: il, ilçe ve mahalle otomatik doldurulur.",
   "checkout.form.name": "Ad Soyad",
   "checkout.form.districtProvince": "İlçe / İl",
   "checkout.errors.orderFailed": "Sipariş oluşturulamadı. Lütfen tekrar deneyin.",

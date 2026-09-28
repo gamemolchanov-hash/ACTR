@@ -34,9 +34,22 @@ import { Link } from '@/i18n/navigation';
 import { useCart } from '@/providers/CartProvider';
 import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
-import { TR_PROVINCES, isTrProvince, normalizeProvince, formatDistrictProvince } from '@/lib/tr-provinces';
+import {
+  TR_PROVINCES,
+  isTrProvince,
+  normalizeProvince,
+  formatDistrictProvince,
+  provinceByZip,
+} from '@/lib/tr-provinces';
 import { districtsOf, matchDistrict } from '@/lib/tr-districts';
-import { joinStreet, splitStreet, useNeighbourhoods } from '@/lib/tr-neighbourhoods';
+import {
+  fillFromZip,
+  joinStreet,
+  loadNeighbourhoods,
+  splitStreet,
+  useNeighbourhoods,
+  withZipFirst,
+} from '@/lib/tr-neighbourhoods';
 import NeighbourhoodInput from '@/components/NeighbourhoodInput';
 import {
   validateCart,
@@ -584,6 +597,19 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, neighbourhood, zip: zip ?? prev.zip }));
   };
   const neighbourhoods = useNeighbourhoods(form.province, form.city);
+
+  // TR: the postal code comes first and fills the rest — the province from its
+  // plate prefix, the district and (when unique) the neighbourhood from the PTT
+  // data. Applied only if the zip is still the one typed when the data arrives.
+  const handleZip = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const zip = e.target.value;
+    setForm((prev) => ({ ...prev, zip }));
+    const province = !form.country || form.country === 'TR' ? provinceByZip(zip) : null;
+    if (!province) return;
+    void loadNeighbourhoods(province).then((data) => {
+      setForm((prev) => (prev.zip === zip ? { ...prev, ...fillFromZip(prev, province, data, zip) } : prev));
+    });
+  };
 
   // Who the form is serving. `hydrated` is what keeps the server render and the
   // first client render identical: both look like a guest to useAuth(), so the
@@ -1377,6 +1403,37 @@ export default function CheckoutPage() {
         )}
 
         {trAddress && (
+          // Postal code first, highlighted: it fills province, district and neighbourhood.
+          <Box
+            data-testid="zip-first"
+            sx={{ border: `1.5px solid ${c.main}`, borderRadius: '10px', p: 2, bgcolor: c.main + '08' }}
+          >
+            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+              {t('checkout.form.postalCode')}{' '}
+              <Box component="span" sx={{ color: c.red }}>
+                *
+              </Box>
+            </Typography>
+            <TextField
+              fullWidth
+              variant="outlined"
+              value={form.zip}
+              onChange={handleZip}
+              disabled={inputsLocked}
+              inputProps={{
+                inputMode: 'numeric',
+                maxLength: 5,
+                autoComplete: 'postal-code',
+                'aria-label': t('checkout.form.postalCode'),
+              }}
+              sx={inputSx}
+            />
+            <Typography sx={{ color: c['40'], ...info, lineHeight: '18px', mt: 1 }}>
+              {t('checkout.form.postalCodeHint')}
+            </Typography>
+          </Box>
+        )}
+        {trAddress && (
           <Box>
             <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
               {t('checkout.form.province')}{' '}
@@ -1462,7 +1519,7 @@ export default function CheckoutPage() {
               </Box>
             </Typography>
             <NeighbourhoodInput
-              options={neighbourhoods.options}
+              options={withZipFirst(neighbourhoods.options, form.zip)}
               loading={neighbourhoods.loading}
               value={form.neighbourhood}
               onChange={handleNeighbourhood}
@@ -1481,7 +1538,7 @@ export default function CheckoutPage() {
           <Box sx={{ flex: 1 }}>{optField(t('checkout.form.block'), 'block')}</Box>
           <Box sx={{ flex: 1 }}>{optField(t('checkout.form.apartment'), 'apartment')}</Box>
         </Stack>
-        {field(t('checkout.form.postalCode'), 'zip')}
+        {!trAddress && field(t('checkout.form.postalCode'), 'zip')}
       </Stack>
 
       <Button

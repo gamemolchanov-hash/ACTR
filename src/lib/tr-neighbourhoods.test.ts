@@ -5,10 +5,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
-import { TR_PROVINCES } from './tr-provinces';
+import { TR_PROVINCES, TR_PROVINCE_PLATES, provinceByZip } from './tr-provinces';
 import { districtsOf } from './tr-districts';
 import {
   NEIGHBOURHOODS_VERSION,
+  fillFromZip,
   filterNeighbourhoods,
   joinStreet,
   loadNeighbourhoods,
@@ -16,6 +17,7 @@ import {
   neighbourhoodsUrl,
   provinceFileKey,
   splitStreet,
+  withZipFirst,
   type Neighbourhood,
 } from './tr-neighbourhoods';
 
@@ -70,6 +72,91 @@ describe('matchNeighbourhood / filterNeighbourhoods', () => {
     expect(filterNeighbourhoods(KADIKOY, 'fener').map((n) => n.name)).toEqual(['Fenerbahçe Mah.']);
     expect(filterNeighbourhoods(KADIKOY, 'İÇEREN').map((n) => n.name)).toEqual(['İçerenköy Mah.']);
     expect(filterNeighbourhoods(KADIKOY, '')).toBe(KADIKOY);
+  });
+});
+
+describe('postal code first', () => {
+  const KOCAELI = {
+    Gebze: [
+      { name: 'Adem Yavuz Mah.', zip: '41400' },
+      { name: 'Muallimköy Mah.', zip: '41400' },
+    ],
+    Darıca: [
+      { name: 'Bayramoğlu Mah.', zip: '41700' },
+      { name: 'Osmangazi Mah.', zip: '41780' },
+    ],
+  };
+  const blank = { province: '', city: '', neighbourhood: '' };
+
+  it('reads the province off the plate prefix', () => {
+    expect(provinceByZip('41400')).toBe('Kocaeli');
+    expect(provinceByZip(' 34710 ')).toBe('İstanbul');
+    expect(provinceByZip('06100')).toBe('Ankara');
+    expect(provinceByZip('81000')).toBe('Düzce');
+    expect(provinceByZip('4140')).toBeNull();
+    expect(provinceByZip('99000')).toBeNull();
+    expect(provinceByZip('00000')).toBeNull();
+    expect(new Set(Object.values(TR_PROVINCE_PLATES)).size).toBe(81);
+  });
+
+  it("fills the district and the code's only neighbourhood", () => {
+    expect(fillFromZip(blank, 'Kocaeli', KOCAELI, '41700')).toEqual({
+      province: 'Kocaeli',
+      city: 'Darıca',
+      neighbourhood: 'Bayramoğlu Mah.',
+    });
+  });
+
+  it('fills the district only when the code has several neighbourhoods', () => {
+    expect(fillFromZip(blank, 'Kocaeli', KOCAELI, '41400')).toEqual({
+      province: 'Kocaeli',
+      city: 'Gebze',
+      neighbourhood: '',
+    });
+  });
+
+  it('keeps a pick that fits the code and free text, drops a listed one of another code', () => {
+    const picked = { province: 'Kocaeli', city: 'Gebze', neighbourhood: 'Muallimköy Mah.' };
+    expect(fillFromZip(picked, 'Kocaeli', KOCAELI, '41400')).toEqual(picked);
+    const typed = { province: 'Kocaeli', city: 'Darıca', neighbourhood: 'Yeni Sanayi Sitesi' };
+    expect(fillFromZip(typed, 'Kocaeli', { Darıca: [...KOCAELI.Darıca, { name: 'Zirve Mah.', zip: '41700' }] }, '41700'))
+      .toEqual(typed);
+    const other = { province: 'Kocaeli', city: 'Darıca', neighbourhood: 'Osmangazi Mah.' };
+    expect(fillFromZip(other, 'Kocaeli', { Darıca: [...KOCAELI.Darıca, { name: 'Zirve Mah.', zip: '41700' }] }, '41700'))
+      .toEqual({ ...other, neighbourhood: '' });
+  });
+
+  it('switches province and district when the code points elsewhere', () => {
+    const istanbul = { province: 'İstanbul', city: 'Kadıköy', neighbourhood: 'Caferağa Mah.' };
+    expect(fillFromZip(istanbul, 'Kocaeli', KOCAELI, '41780')).toEqual({
+      province: 'Kocaeli',
+      city: 'Darıca',
+      neighbourhood: 'Osmangazi Mah.',
+    });
+  });
+
+  it('fills only the province for a code PTT does not list', () => {
+    expect(fillFromZip(blank, 'Kocaeli', KOCAELI, '41999')).toEqual({ province: 'Kocaeli', city: '', neighbourhood: '' });
+    const kept = { province: 'Kocaeli', city: 'Gebze', neighbourhood: 'Muallimköy Mah.' };
+    expect(fillFromZip(kept, 'Kocaeli', KOCAELI, '41999')).toEqual(kept);
+  });
+
+  it("lists the code's neighbourhoods first", () => {
+    const list = [...KOCAELI.Darıca, { name: 'Zirve Mah.', zip: '41700' }];
+    expect(withZipFirst(list, '41700').map((n) => n.name)).toEqual(['Bayramoğlu Mah.', 'Zirve Mah.', 'Osmangazi Mah.']);
+    expect(withZipFirst(list, '417')).toBe(list);
+  });
+
+  it('matches the data: every PTT code starts with its province plate', () => {
+    const dir = resolve(__dirname, '../../public/tr-neighbourhoods', NEIGHBOURHOODS_VERSION);
+    for (const p of TR_PROVINCES) {
+      const { districts } = JSON.parse(readFileSync(resolve(dir, `${provinceFileKey(p)}.json`), 'utf-8')) as {
+        districts: Record<string, [string, string | null][]>;
+      };
+      for (const rows of Object.values(districts)) {
+        for (const [, zip] of rows) if (zip) expect(provinceByZip(zip)).toBe(p);
+      }
+    }
   });
 });
 

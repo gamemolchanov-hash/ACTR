@@ -98,6 +98,105 @@ export const TR_PROVINCES = [
 export type TrProvince = (typeof TR_PROVINCES)[number];
 
 /**
+ * Plate code of each province (the PTT il code). A Turkish postal code starts
+ * with it — "41400" is Kocaeli (41) — which the checkout uses to fill the
+ * province from the zip (checked against all 72 956 PTT postal codes, 28.09.2026).
+ */
+export const TR_PROVINCE_PLATES: Readonly<Record<TrProvince, number>> = {
+  'Adana': 1,
+  'Adıyaman': 2,
+  'Afyonkarahisar': 3,
+  'Ağrı': 4,
+  'Aksaray': 68,
+  'Amasya': 5,
+  'Ankara': 6,
+  'Antalya': 7,
+  'Ardahan': 75,
+  'Artvin': 8,
+  'Aydın': 9,
+  'Balıkesir': 10,
+  'Bartın': 74,
+  'Batman': 72,
+  'Bayburt': 69,
+  'Bilecik': 11,
+  'Bingöl': 12,
+  'Bitlis': 13,
+  'Bolu': 14,
+  'Burdur': 15,
+  'Bursa': 16,
+  'Çanakkale': 17,
+  'Çankırı': 18,
+  'Çorum': 19,
+  'Denizli': 20,
+  'Diyarbakır': 21,
+  'Düzce': 81,
+  'Edirne': 22,
+  'Elazığ': 23,
+  'Erzincan': 24,
+  'Erzurum': 25,
+  'Eskişehir': 26,
+  'Gaziantep': 27,
+  'Giresun': 28,
+  'Gümüşhane': 29,
+  'Hakkari': 30,
+  'Hatay': 31,
+  'Iğdır': 76,
+  'Isparta': 32,
+  'İstanbul': 34,
+  'İzmir': 35,
+  'Kahramanmaraş': 46,
+  'Karabük': 78,
+  'Karaman': 70,
+  'Kars': 36,
+  'Kastamonu': 37,
+  'Kayseri': 38,
+  'Kırıkkale': 71,
+  'Kırklareli': 39,
+  'Kırşehir': 40,
+  'Kilis': 79,
+  'Kocaeli': 41,
+  'Konya': 42,
+  'Kütahya': 43,
+  'Malatya': 44,
+  'Manisa': 45,
+  'Mardin': 47,
+  'Mersin': 33,
+  'Muğla': 48,
+  'Muş': 49,
+  'Nevşehir': 50,
+  'Niğde': 51,
+  'Ordu': 52,
+  'Osmaniye': 80,
+  'Rize': 53,
+  'Sakarya': 54,
+  'Samsun': 55,
+  'Siirt': 56,
+  'Sinop': 57,
+  'Sivas': 58,
+  'Şanlıurfa': 63,
+  'Şırnak': 73,
+  'Tekirdağ': 59,
+  'Tokat': 60,
+  'Trabzon': 61,
+  'Tunceli': 62,
+  'Uşak': 64,
+  'Van': 65,
+  'Yalova': 77,
+  'Yozgat': 66,
+  'Zonguldak': 67,
+};
+
+const PROVINCE_BY_PLATE: ReadonlyMap<number, TrProvince> = new Map(
+  (Object.entries(TR_PROVINCE_PLATES) as [TrProvince, number][]).map(([p, plate]) => [plate, p]),
+);
+
+/** Province of a 5-digit Turkish postal code, by its plate prefix; null for anything else. */
+export function provinceByZip(zip: string | null | undefined): TrProvince | null {
+  const m = /^(\d{2})\d{3}$/.exec((zip ?? '').trim());
+  return m ? PROVINCE_BY_PLATE.get(Number(m[1])) ?? null : null;
+}
+
+/**
  * Case/diacritic-insensitive lookup key: trim, collapse inner whitespace,
  * lowercase with the Turkish locale (so ASCII "I" folds to dotless "ı" the
  * way Turkish casing rules expect), strip NFD combining marks (drops the
