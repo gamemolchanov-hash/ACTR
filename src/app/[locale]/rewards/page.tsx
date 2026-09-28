@@ -42,6 +42,7 @@ import {
   CreatorTierBar,
   CreatorWalletCard,
   TierStateIcon,
+  pendingAccrual,
   useTierLabel,
 } from '@/components/CreatorClub';
 import {
@@ -186,6 +187,7 @@ export default function RewardsPage() {
           tierName={tierName}
           cashbackPct={cashbackPct}
           expiring={expiring}
+          pending={isMember ? pendingAccrual(loyalty) : null}
         />
 
         <CreatorTierBar tiers={config.tiers} xpActive={xpActive ?? 0} tierCode={loyalty?.tier_code} />

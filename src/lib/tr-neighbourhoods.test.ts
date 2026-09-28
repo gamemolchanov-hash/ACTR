@@ -68,6 +68,23 @@ describe('matchNeighbourhood / filterNeighbourhoods', () => {
     expect(matchNeighbourhood(KADIKOY, '')).toBeNull();
   });
 
+  it('reads "Mahallesi", "Mh.", "Köy" as the listed "Mah." / "Köyü"', () => {
+    const list: Neighbourhood[] = [
+      { name: 'Oba Mah.', zip: '07400' },
+      { name: 'Obaalacami Mah.', zip: '07400' },
+      { name: 'Mahmutlar Mah.', zip: '07450' },
+      { name: 'Karaköy Köyü', zip: '07400' },
+    ];
+    expect(filterNeighbourhoods(list, 'Oba Mahallesi').map((n) => n.name)).toEqual(['Oba Mah.']);
+    expect(filterNeighbourhoods(list, 'oba mahal').map((n) => n.name)).toEqual(['Oba Mah.']);
+    expect(filterNeighbourhoods(list, 'Oba Mh.').map((n) => n.name)).toEqual(['Oba Mah.']);
+    expect(filterNeighbourhoods(list, 'karakoy koy').map((n) => n.name)).toEqual(['Karaköy Köyü']);
+    // A name that merely starts like "mahalle" is a name, not the suffix.
+    expect(filterNeighbourhoods(list, 'mahmut').map((n) => n.name)).toEqual(['Mahmutlar Mah.']);
+    expect(filterNeighbourhoods(list, 'oba').map((n) => n.name)).toEqual(['Oba Mah.', 'Obaalacami Mah.']);
+    expect(matchNeighbourhood(list, 'OBA MAHALLESİ')).toEqual(list[0]);
+  });
+
   it('finds by any part of the name, ASCII typing included', () => {
     expect(filterNeighbourhoods(KADIKOY, 'fener').map((n) => n.name)).toEqual(['Fenerbahçe Mah.']);
     expect(filterNeighbourhoods(KADIKOY, 'İÇEREN').map((n) => n.name)).toEqual(['İçerenköy Mah.']);
@@ -139,6 +156,31 @@ describe('postal code first', () => {
     expect(fillFromZip(blank, 'Kocaeli', KOCAELI, '41999')).toEqual({ province: 'Kocaeli', city: '', neighbourhood: '' });
     const kept = { province: 'Kocaeli', city: 'Gebze', neighbourhood: 'Muallimköy Mah.' };
     expect(fillFromZip(kept, 'Kocaeli', KOCAELI, '41999')).toEqual(kept);
+  });
+
+  it('names the district of an unlisted code by its first digits, when they point to one', () => {
+    const antalya = {
+      Alanya: [{ name: 'Oba Mah.', zip: '07400' }, { name: 'Mahmutlar Mah.', zip: '07450' }],
+      Gazipaşa: [{ name: 'Pazarcı Mah.', zip: '07900' }],
+    };
+    // "07460" is not a PTT code, but every 074xx code is Alanya.
+    expect(fillFromZip(blank, 'Antalya', antalya, '07460')).toEqual({
+      province: 'Antalya',
+      city: 'Alanya',
+      neighbourhood: '',
+    });
+    // 07xxx spans both districts: the province only.
+    expect(fillFromZip(blank, 'Antalya', antalya, '07100')).toEqual({ province: 'Antalya', city: '', neighbourhood: '' });
+    // The real data: 07460 → Alanya.
+    const dir = resolve(__dirname, '../../public/tr-neighbourhoods', NEIGHBOURHOODS_VERSION);
+    const real = JSON.parse(readFileSync(resolve(dir, 'antalya.json'), 'utf-8')).districts as Record<
+      string,
+      [string, string | null][]
+    >;
+    const data = Object.fromEntries(
+      Object.entries(real).map(([d, rows]) => [d, rows.map(([name, zip]) => ({ name, zip }))]),
+    );
+    expect(fillFromZip(blank, 'Antalya', data, '07460').city).toBe('Alanya');
   });
 
   it("lists the code's neighbourhoods first", () => {

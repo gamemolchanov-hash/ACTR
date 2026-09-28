@@ -91,11 +91,28 @@ export function useNeighbourhoods(
   return { options: loaded.data[district] ?? [], loading: false };
 }
 
+/**
+ * Search key of a name or a typed value: folded (case, Turkish letters) and with
+ * the trailing "neighbourhood"/"village" word in one spelling — people type
+ * "Oba Mahallesi" or "Oba Mh." for the listed "Oba Mah.", "Karaköy Köy" for
+ * "Karaköy Köyü". Only a last word that is a start of "mahallesi"/"köyü" counts
+ * (≥ 3 letters, or "mh"), and only after a name: "Mahmutbey" stays itself.
+ */
+function searchKey(value: string): string {
+  const words = foldKey(value).split(' ').filter(Boolean);
+  if (words.length > 1) {
+    const last = words[words.length - 1].replace(/\.$/, '');
+    if (last === 'mh' || (last.length >= 3 && 'mahallesi'.startsWith(last))) words[words.length - 1] = 'mah';
+    else if (last.length >= 3 && 'koyu'.startsWith(last)) words[words.length - 1] = 'koy';
+  }
+  return words.join(' ');
+}
+
 /** Case- and diacritic-insensitive "contains" filter ("muallimkoy" finds "Muallimköy Mah."). */
 export function filterNeighbourhoods(options: Neighbourhood[], input: string): Neighbourhood[] {
-  const key = foldKey(input);
+  const key = searchKey(input);
   if (!key) return options;
-  return options.filter((o) => foldKey(o.name).includes(key));
+  return options.filter((o) => searchKey(o.name).includes(key));
 }
 
 /** The listed neighbourhood a typed/stored value folds to, else null. */
@@ -103,9 +120,9 @@ export function matchNeighbourhood(
   options: Neighbourhood[],
   value: string | null | undefined,
 ): Neighbourhood | null {
-  const key = foldKey(value ?? '');
+  const key = searchKey(value ?? '');
   if (!key) return null;
-  return options.find((o) => foldKey(o.name) === key) ?? null;
+  return options.find((o) => searchKey(o.name) === key) ?? null;
 }
 
 /** "Muallimköy Mah." + "Deniz Cad." → "Muallimköy Mah., Deniz Cad." — the street line ARM stores. */
@@ -118,6 +135,25 @@ export function withZipFirst(options: Neighbourhood[], zip: string): Neighbourho
   const z = zip.trim();
   if (!/^\d{5}$/.test(z)) return options;
   return [...options.filter((o) => o.zip === z), ...options.filter((o) => o.zip !== z)];
+}
+
+/**
+ * A code PTT does not list ("07460" — old or mistyped) still names its district
+ * when the codes sharing its first 4, else first 3, digits belong to one district
+ * ("074xx" is all Alanya). [] when those codes span several districts.
+ */
+function districtByZipPrefix(data: ProvinceNeighbourhoods, zip: string): string[] {
+  for (const len of [4, 3]) {
+    const prefix = zip.slice(0, len);
+    const districts = new Set(
+      Object.entries(data)
+        .filter(([, rows]) => rows.some((r) => r.zip?.startsWith(prefix)))
+        .map(([district]) => district),
+    );
+    if (districts.size === 1) return [...districts];
+    if (districts.size > 1) return [];
+  }
+  return [];
 }
 
 export interface AddressPick {
@@ -133,8 +169,9 @@ export interface AddressPick {
  * a PTT postal code belongs to exactly one district. A neighbourhood that fits
  * the code stays; otherwise the code's only neighbourhood is filled in, a listed
  * one of another code is dropped, and free text stays when the code has several.
- * A code PTT does not know (or a warehouse zone without a list) fills only the
- * province.
+ * A code PTT does not list fills the district when its first digits point to
+ * one (districtByZipPrefix), else only the province — as does a warehouse zone
+ * without a list.
  */
 export function fillFromZip(
   current: AddressPick,
@@ -146,7 +183,8 @@ export function fillFromZip(
   const hits = Object.entries(data).flatMap(([district, rows]) =>
     rows.filter((r) => r.zip === z).map((r) => ({ district, name: r.name })),
   );
-  const districts = [...new Set(hits.map((h) => h.district))];
+  let districts = [...new Set(hits.map((h) => h.district))];
+  if (districts.length === 0) districts = districtByZipPrefix(data, z);
   let { city, neighbourhood } = current;
   if (current.province !== province) {
     city = '';

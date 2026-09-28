@@ -28,7 +28,7 @@ vi.mock('@/providers/CurrencyProvider', () => ({
   useFormatLocale: () => 'tr-TR',
 }));
 
-import { CreatorTierBar, CreatorWalletCard } from '../CreatorClub';
+import { CreatorTierBar, CreatorWalletCard, pendingAccrual } from '../CreatorClub';
 
 const TIERS: LoyaltyTier[] = [
   { code: 'welcome', name: 'Welcome', min_xp: 0, cashback_rate: 0.03 },
@@ -106,6 +106,45 @@ describe('CreatorWalletCard', () => {
     render(<CreatorWalletCard balance={0} xpActive={0} />);
     expect(document.body.textContent).toContain('loyalty.walletLabel');
     expect(document.body.textContent).not.toContain('loyalty.tierLabel');
+  });
+});
+
+// A paid order earns only when it ships: until then the card says what is coming,
+// so a buyer who just paid does not read 0 XP as a lost reward (28.09.2026).
+describe('pending accrual', () => {
+  it('takes the /me pending figures, or nothing when there is nothing to earn', () => {
+    expect(pendingAccrual({ pending_xp: 925, pending_cashback: 46.25, pending_orders: 1 })).toEqual({
+      xp: 925,
+      cashback: 46.25,
+      orders: 1,
+    });
+    expect(pendingAccrual({ pending_xp: 0, pending_cashback: 0, pending_orders: 0 })).toBeNull();
+    expect(pendingAccrual({ pending_xp: 0, pending_cashback: 0, pending_orders: 2 })).toBeNull();
+    expect(pendingAccrual({})).toBeNull(); // an older BFF sends no pending fields
+    expect(pendingAccrual(null)).toBeNull();
+  });
+
+  it('shows XP, cashback and the order count to a member', () => {
+    render(
+      <CreatorWalletCard
+        balance={0}
+        xpActive={0}
+        pending={{ xp: 925, cashback: 46.25, orders: 1 }}
+      />,
+    );
+    const block = screen.getByTestId('creator-pending');
+    expect(block.textContent).toContain('loyalty.pendingLabel');
+    expect(block.textContent).toContain('"xp":"925"');
+    expect(block.textContent).toMatch(/"cashback":"[^"]*46,25/);
+    expect(block.textContent).toContain('loyalty.pendingHint {"count":1}');
+  });
+
+  it('shows nothing pending to a guest or when nothing is pending', () => {
+    render(<CreatorWalletCard balance={null} xpActive={null} pending={{ xp: 925, cashback: 46.25, orders: 1 }} />);
+    expect(screen.queryByTestId('creator-pending')).toBeNull();
+    cleanup();
+    render(<CreatorWalletCard balance={10} xpActive={100} pending={null} />);
+    expect(screen.queryByTestId('creator-pending')).toBeNull();
   });
 });
 

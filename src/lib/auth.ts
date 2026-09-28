@@ -53,6 +53,13 @@ export interface LoyaltyData {
   xp_active?: number;
   /** XP due to expire soon, or null when nothing is expiring. */
   xp_expiring_soon?: XpExpiringSoon | null;
+  /**
+   * What paid orders not yet shipped will earn (ARM 28.09.2026) — XP, cashback at
+   * the current tier rate, and how many orders. Absent on older BFFs.
+   */
+  pending_xp?: number;
+  pending_cashback?: number;
+  pending_orders?: number;
 }
 
 export interface CustomerAddress {

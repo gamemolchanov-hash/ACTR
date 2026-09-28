@@ -26,6 +26,7 @@ import {
   CreatorClubError,
   CreatorTierBar,
   CreatorWalletCard,
+  pendingAccrual,
   useTierLabel,
 } from '@/components/CreatorClub';
 import {
@@ -191,6 +192,7 @@ export default function LoyaltyPage() {
             tierName={tierName}
             cashbackPct={cashbackPct}
             expiring={expiring}
+            pending={pendingAccrual(loyalty)}
           />
 
           {configError ? (

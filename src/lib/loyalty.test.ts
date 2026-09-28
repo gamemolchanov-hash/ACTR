@@ -422,7 +422,7 @@ describe.each([['loyalty.'], ['rewards.']])('%s i18n key parity (EN + TR)', (pre
   // only legitimately identical values — extend the allow-list, never the test.
   it('EN and TR copy actually differ (no untranslated leftovers beyond brand names)', () => {
     const BRAND = new Set(
-      ['navLabel', 'breadcrumb', 'title', 'metaTitle', 'xpUnit', 'xpThreshold'].map(
+      ['navLabel', 'breadcrumb', 'title', 'metaTitle', 'xpUnit', 'xpThreshold', 'pendingValue'].map(
         (k) => `${prefix}${k}`,
       ),
     );

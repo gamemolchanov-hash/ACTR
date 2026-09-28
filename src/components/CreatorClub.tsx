@@ -23,6 +23,7 @@ import { Box, Button, Chip, Typography } from '@mui/material';
 import {
   AccountBalanceWallet,
   Check,
+  HourglassTop,
   Lock,
   LocalFireDepartment,
   Bolt,
@@ -91,6 +92,29 @@ export interface CreatorWalletCardProps {
   cashbackPct?: number | null;
   /** XP about to lapse — hidden when nothing is expiring. */
   expiring?: { xp: number; days: number } | null;
+  /** What paid, not yet shipped orders will earn — hidden when nothing is pending. */
+  pending?: PendingAccrual | null;
+}
+
+export interface PendingAccrual {
+  xp: number;
+  cashback: number;
+  orders: number;
+}
+
+/**
+ * The /me "awaiting accrual" figures (ARM `pending_*`), or null when there is
+ * nothing to show — no field (older BFF), no orders, or nothing to earn. XP and
+ * cashback accrue when an order ships, so a buyer who has just paid would
+ * otherwise see 0 and think the reward was lost (28.09.2026).
+ */
+export function pendingAccrual(
+  loyalty: { pending_xp?: number; pending_cashback?: number; pending_orders?: number } | null | undefined,
+): PendingAccrual | null {
+  const xp = loyalty?.pending_xp ?? 0;
+  const cashback = loyalty?.pending_cashback ?? 0;
+  const orders = loyalty?.pending_orders ?? 0;
+  return orders > 0 && (xp > 0 || cashback > 0) ? { xp, cashback, orders } : null;
 }
 
 /**
@@ -104,6 +128,7 @@ export function CreatorWalletCard({
   tierName,
   cashbackPct,
   expiring,
+  pending,
 }: CreatorWalletCardProps) {
   const t = useTranslations();
   const currency = useCurrency();
@@ -233,6 +258,36 @@ export function CreatorWalletCard({
               }}
             />
           )}
+        </Box>
+      )}
+
+      {!isGuest && pending && (
+        <Box
+          data-testid="creator-pending"
+          sx={{
+            mt: 2,
+            px: 2,
+            py: 1.5,
+            borderRadius: '16px',
+            border: `1px dashed ${palette.primaryLight}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+          }}
+        >
+          <HourglassTop sx={{ fontSize: 20, color: palette.primary, flexShrink: 0 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ ...overlineSx, color: CARD_MUTED }}>{t('loyalty.pendingLabel')}</Typography>
+            <Typography sx={{ fontFamily: fontMain, fontSize: 18, fontWeight: 500, color: CARD_TEXT }}>
+              {t('loyalty.pendingValue', {
+                xp: nf.format(pending.xp),
+                cashback: fmtMoney(pending.cashback, currency, formatLocale),
+              })}
+            </Typography>
+            <Typography sx={{ fontFamily: fontBody, fontSize: 12, color: CARD_MUTED }}>
+              {t('loyalty.pendingHint', { count: pending.orders })}
+            </Typography>
+          </Box>
         </Box>
       )}
 
