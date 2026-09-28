@@ -36,6 +36,8 @@ import { useAuth } from '@/lib/auth-context';
 import { getMyAddresses, deleteMyAddress, type CustomerAddress } from '@/lib/auth';
 import { TR_PROVINCES, isTrProvince, normalizeProvince, formatDistrictProvince } from '@/lib/tr-provinces';
 import { districtsOf, matchDistrict } from '@/lib/tr-districts';
+import { joinStreet, splitStreet, useNeighbourhoods } from '@/lib/tr-neighbourhoods';
+import NeighbourhoodInput from '@/components/NeighbourhoodInput';
 import {
   validateCart,
   validatePromo,
@@ -183,6 +185,8 @@ interface FormData {
   province: string;
   /** District / ilçe. */
   city: string;
+  /** Neighbourhood / mahalle (TR) — sent as the head of the street line, see lib/tr-neighbourhoods. */
+  neighbourhood: string;
   street: string;
   building: string;
   block: string;
@@ -197,12 +201,25 @@ const INITIAL_FORM: FormData = {
   country: '',
   province: '',
   city: '',
+  neighbourhood: '',
   street: '',
   building: '',
   block: '',
   apartment: '',
   zip: '',
 };
+
+/** The address part of the form, blank — "new address" and a deleted selected one. */
+const EMPTY_ADDRESS = {
+  city: '',
+  province: '',
+  neighbourhood: '',
+  street: '',
+  building: '',
+  block: '',
+  apartment: '',
+  zip: '',
+} satisfies Partial<FormData>;
 
 /**
  * The countries the warehouse ships to come from ARM (`GET /countries`,
@@ -216,7 +233,7 @@ const INITIAL_FORM: FormData = {
 function formatObfAddress(f: FormData, countries: ShippingCountry[]): string {
   const countryName = countries.find((ct) => ct.code === f.country)?.name || f.country;
   return [
-    f.street,
+    joinStreet(f.neighbourhood, f.street),
     f.building && `No: ${f.building}`,
     f.block && `Blok: ${f.block}`,
     f.apartment && `Daire: ${f.apartment}`,
@@ -264,6 +281,27 @@ function provinceFromSaved(state: string | null | undefined): string {
 function cityFromSaved(addr: { country?: string | null; state?: string | null; city?: string | null }): string {
   if (addr.country && addr.country !== 'TR') return addr.city || '';
   return matchDistrict(provinceFromSaved(addr.state), addr.city) ?? '';
+}
+
+/**
+ * The form's address from a saved one. The neighbourhood comes back out of the
+ * street line; the address book stored the street in `address` before 28.09.2026
+ * (and `street` empty), so that is the fallback.
+ */
+function addressFromSaved(addr: CustomerAddress): typeof EMPTY_ADDRESS {
+  const tr = !addr.country || addr.country === 'TR';
+  const line = addr.street || addr.address || '';
+  const { neighbourhood, street } = tr ? splitStreet(line) : { neighbourhood: '', street: line };
+  return {
+    city: cityFromSaved(addr),
+    province: provinceFromSaved(addr.state),
+    neighbourhood,
+    street,
+    building: addr.building || '',
+    block: addr.block || '',
+    apartment: addr.apartment || '',
+    zip: addr.postal_code || '',
+  };
 }
 
 export default function CheckoutPage() {
@@ -423,16 +461,7 @@ export default function CheckoutPage() {
         const def = (addrs || []).find((a) => a.is_default) || (addrs || [])[0];
         if (def && !form.city && !form.street) {
           setSelectedAddressId(def.id);
-          setForm((prev) => ({
-            ...prev,
-            city: cityFromSaved(def),
-            province: provinceFromSaved(def.state),
-            street: def.street || '',
-            building: def.building || '',
-            block: def.block || '',
-            apartment: def.apartment || '',
-            zip: def.postal_code || '',
-          }));
+          setForm((prev) => ({ ...prev, ...addressFromSaved(def) }));
         }
       })
       .catch(() => {});
@@ -525,20 +554,36 @@ export default function CheckoutPage() {
 
   const handleCountry = (e: SelectChangeEvent) => {
     const value = e.target.value;
-    // A province only makes sense for a TR address — switching away clears it.
-    setForm((prev) => ({ ...prev, country: value, province: value === 'TR' ? prev.province : '' }));
+    // A province and a neighbourhood only make sense for a TR address — switching away clears them.
+    setForm((prev) => ({
+      ...prev,
+      country: value,
+      province: value === 'TR' ? prev.province : '',
+      neighbourhood: value === 'TR' ? prev.neighbourhood : '',
+    }));
   };
 
   const handleProvince = (e: SelectChangeEvent) => {
     const province = e.target.value;
     // The district list belongs to the province: keep the typed/saved district
     // only if the new province has it (a draft's "kadikoy" becomes "Kadıköy").
-    setForm((prev) => ({ ...prev, province, city: matchDistrict(province, prev.city) ?? '' }));
+    setForm((prev) => {
+      const city = matchDistrict(province, prev.city) ?? '';
+      // The neighbourhood belongs to the district, so it goes with it.
+      return { ...prev, province, city, neighbourhood: city === prev.city ? prev.neighbourhood : '' };
+    });
   };
 
   const handleDistrict = (e: SelectChangeEvent) => {
-    setForm((prev) => ({ ...prev, city: e.target.value }));
+    const city = e.target.value;
+    setForm((prev) => ({ ...prev, city, neighbourhood: city === prev.city ? prev.neighbourhood : '' }));
   };
+
+  // A pick from the PTT list brings its postal code; typing leaves the zip alone.
+  const handleNeighbourhood = (neighbourhood: string, zip: string | null) => {
+    setForm((prev) => ({ ...prev, neighbourhood, zip: zip ?? prev.zip }));
+  };
+  const neighbourhoods = useNeighbourhoods(form.province, form.city);
 
   // Who the form is serving. `hydrated` is what keeps the server render and the
   // first client render identical: both look like a guest to useAuth(), so the
@@ -606,7 +651,9 @@ export default function CheckoutPage() {
       form.phone &&
       form.country &&
       (form.country !== 'TR' ||
-        (isTrProvince(form.province) && districtsOf(form.province).includes(form.city))) &&
+        (isTrProvince(form.province) &&
+          districtsOf(form.province).includes(form.city) &&
+          !!form.neighbourhood.trim())) &&
       form.city &&
       form.street &&
       form.building &&
@@ -730,8 +777,10 @@ export default function CheckoutPage() {
     let orderId = placedOrderId;
     try {
       if (!orderId) {
+        // TR: the neighbourhood heads the street line (lib/tr-neighbourhoods).
+        const streetLine = joinStreet(form.neighbourhood, form.street);
         const addressParts = [
-          form.street,
+          streetLine,
           form.building && `No: ${form.building}`,
           form.block && `Block: ${form.block}`,
           form.apartment && `Apt: ${form.apartment}`,
@@ -756,7 +805,7 @@ export default function CheckoutPage() {
             state: form.province || undefined,
             zip: form.zip,
             country: form.country,
-            street: form.street || undefined,
+            street: streetLine || undefined,
             building: form.building || undefined,
             block: form.block || undefined,
             apartment: form.apartment || undefined,
@@ -1239,16 +1288,7 @@ export default function CheckoutPage() {
                   onClick={() => {
                     setSelectedAddressId(addr.id);
                     setIsNewAddress(false);
-                    setForm((prev) => ({
-                      ...prev,
-                      city: cityFromSaved(addr),
-                      province: provinceFromSaved(addr.state),
-                      street: addr.street || '',
-                      building: addr.building || '',
-                      block: addr.block || '',
-                      apartment: addr.apartment || '',
-                      zip: addr.postal_code || '',
-                    }));
+                    setForm((prev) => ({ ...prev, ...addressFromSaved(addr) }));
                   }}
                   sx={{
                     position: 'relative',
@@ -1275,16 +1315,7 @@ export default function CheckoutPage() {
                           if (selectedAddressId === addr.id) {
                             setSelectedAddressId(null);
                             setIsNewAddress(true);
-                            setForm((prev) => ({
-                              ...prev,
-                              city: '',
-                              province: '',
-                              street: '',
-                              building: '',
-                              block: '',
-                              apartment: '',
-                              zip: '',
-                            }));
+                            setForm((prev) => ({ ...prev, ...EMPTY_ADDRESS }));
                           }
                         })
                         .catch(() => {});
@@ -1323,16 +1354,7 @@ export default function CheckoutPage() {
                 onClick={() => {
                   setIsNewAddress(true);
                   setSelectedAddressId(null);
-                  setForm((prev) => ({
-                    ...prev,
-                    city: '',
-                    province: '',
-                    street: '',
-                    building: '',
-                    block: '',
-                    apartment: '',
-                    zip: '',
-                  }));
+                  setForm((prev) => ({ ...prev, ...EMPTY_ADDRESS }));
                 }}
                 sx={{
                   border: `1.5px dashed ${isNewAddress ? c.main : c['20']}`,
@@ -1429,6 +1451,29 @@ export default function CheckoutPage() {
           </Box>
         ) : (
           field(t('checkout.form.city'), 'city')
+        )}
+        {trAddress && (
+          // Neighbourhood (mahalle): the district's PTT list or free text.
+          <Box>
+            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+              {t('checkout.form.neighbourhood')}{' '}
+              <Box component="span" sx={{ color: c.red }}>
+                *
+              </Box>
+            </Typography>
+            <NeighbourhoodInput
+              options={neighbourhoods.options}
+              loading={neighbourhoods.loading}
+              value={form.neighbourhood}
+              onChange={handleNeighbourhood}
+              disabled={inputsLocked || !form.city}
+              textFieldProps={{
+                placeholder: t('checkout.form.neighbourhoodPlaceholder'),
+                inputProps: { 'aria-label': t('checkout.form.neighbourhood') },
+                sx: { ...inputSx, '& .MuiOutlinedInput-root.MuiAutocomplete-inputRoot': { py: 0 } },
+              }}
+            />
+          </Box>
         )}
         {field(t('checkout.form.street'), 'street')}
         <Stack direction="row" spacing={1.5}>

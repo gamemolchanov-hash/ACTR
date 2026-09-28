@@ -108,6 +108,12 @@ describe('add dialog — province and district', () => {
 
     pick(/addressProvince/, 'İzmir');
     pick(/addressDistrict/, 'Konak');
+    fireEvent.change(screen.getByRole('combobox', { name: /addressNeighbourhood/ }), {
+      target: { value: 'Alsancak Mah.' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: /addressStreet/ }), {
+      target: { value: 'Kıbrıs Şehitleri Cad.' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'account.addressSave' }));
 
@@ -115,6 +121,23 @@ describe('add dialog — province and district', () => {
     const payload = authApi.addMyAddress.mock.calls[0][0];
     expect(payload.city).toBe('Konak');
     expect(payload.state).toBe('İzmir');
+    // The neighbourhood heads the street line — `street` is what the checkout
+    // reads back; `address` keeps the same line for the lists.
+    expect(payload.street).toBe('Alsancak Mah., Kıbrıs Şehitleri Cad.');
+    expect(payload.address).toBe('Alsancak Mah., Kıbrıs Şehitleri Cad.');
+  });
+
+  it('blocks the save and asks for a neighbourhood when only province and district are picked', async () => {
+    authApi.getMyAddresses.mockResolvedValue({ data: [] });
+    render(<AddressesPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'account.addressAdd' }));
+    pick(/addressProvince/, 'İzmir');
+    pick(/addressDistrict/, 'Konak');
+    fireEvent.click(screen.getByRole('button', { name: 'account.addressSave' }));
+
+    await waitFor(() => expect(screen.getByText('account.addressNeedNeighbourhood')).toBeDefined());
+    expect(authApi.addMyAddress).not.toHaveBeenCalled();
   });
 
   it('offers only the districts of the picked province', async () => {

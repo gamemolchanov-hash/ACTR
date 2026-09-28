@@ -26,7 +26,8 @@ const IMMUTABLE_ONE_YEAR = 'public, max-age=31536000, immutable';
 
 // public/ subtrees whose every asset is rename-on-change (safe to freeze).
 // `:path*` is a catch-all, so nested art like /images/contacts/* is covered.
-const IMMUTABLE_DIRS = ['icons', 'fonts', 'hero', 'images'];
+// tr-neighbourhoods: the dataset version is the folder name (src/lib/tr-neighbourhoods.ts).
+const IMMUTABLE_DIRS = ['icons', 'fonts', 'hero', 'images', 'tr-neighbourhoods'];
 
 const STATIC_CACHE_HEADERS = [
   ...IMMUTABLE_DIRS.map((dir) => ({

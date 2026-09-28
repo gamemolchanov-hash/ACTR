@@ -102,6 +102,7 @@ const DRAFT = {
   country: 'TR',
   province: 'İstanbul',
   city: 'Kadıköy',
+  neighbourhood: 'Caferağa Mah.',
   street: 'Istiklal Cad',
   building: '1',
   block: '',
@@ -302,9 +303,14 @@ describe('guest submit gate', () => {
     // FulfillmentTR wants province (il) as shipping.state, district (ilçe) as city.
     expect(payload.shipping.state).toBe('İstanbul');
     expect(payload.shipping.city).toBe('Kadıköy');
+    // No neighbourhood column in ARM: the mahalle heads the street line, and so
+    // reaches FulfillmentTR's address1.
+    expect(payload.shipping.street).toBe('Caferağa Mah., Istiklal Cad');
+    expect(payload.shipping.address).toBe('Caferağa Mah., Istiklal Cad, No: 1');
     // The Ön Bilgilendirme Formu / Mesafeli Satış address line carries "district / province".
     for (const doc of payload.legal.documents) {
       expect(doc.markdown).toContain('Kadıköy / İstanbul');
+      expect(doc.markdown).toContain('Caferağa Mah., Istiklal Cad');
     }
   });
 });
@@ -355,6 +361,12 @@ describe('province (il)', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'checkout.form.district' }));
     expect(screen.queryByRole('option', { name: 'Kadıköy' })).toBeNull();
     fireEvent.click(screen.getByRole('option', { name: 'Çankaya' }));
+    // The Kadıköy neighbourhood went with Kadıköy: Continue waits for one of Çankaya.
+    expect((screen.getByRole('combobox', { name: 'checkout.form.neighbourhood' }) as HTMLInputElement).value).toBe('');
+    expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByRole('combobox', { name: 'checkout.form.neighbourhood' }), {
+      target: { value: 'Kızılay Mah.' },
+    });
     await waitFor(() =>
       expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
         false,
@@ -381,7 +393,7 @@ describe('saved address → province', () => {
     country: 'TR',
     city: 'Kadıköy',
     address: null,
-    street: 'Moda Cad',
+    street: 'Caferağa Mah., Moda Cad',
     building: '5',
     block: null,
     apartment: null,
@@ -429,6 +441,126 @@ describe('saved address → province', () => {
     expect((screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+});
+
+describe('neighbourhood (mahalle)', () => {
+  const combo = () => screen.getByRole('combobox', { name: 'checkout.form.neighbourhood' }) as HTMLInputElement;
+  const continueDisabled = () =>
+    (screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('gates Continue on a neighbourhood — free text is enough', async () => {
+    sessionStorage.setItem('checkout_step', '1');
+    sessionStorage.setItem(
+      'checkout_form',
+      JSON.stringify({ ...DRAFT, email: 'ada@example.com', neighbourhood: '' }),
+    );
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(document.querySelector('input[value="Istiklal Cad"]')).not.toBeNull());
+    expect(continueDisabled()).toBe(true);
+
+    fireEvent.change(combo(), { target: { value: 'Yeni Mah.' } });
+    await waitFor(() => expect(continueDisabled()).toBe(false));
+  });
+
+  it('splits the neighbourhood off a saved street line, also from an address-book entry', async () => {
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      token: 't',
+      loading: false,
+    };
+    // Address book before 28.09.2026: the street line in `address`, `street` empty.
+    vi.mocked(getMyAddresses).mockResolvedValueOnce({
+      data: [
+        {
+          id: 'a1',
+          label: null,
+          country: 'TR',
+          state: 'İstanbul',
+          city: 'Kadıköy',
+          address: 'Caferağa Mah., Moda Cad',
+          street: null,
+          building: '5',
+          block: null,
+          apartment: null,
+          postal_code: '34710',
+          contact_name: null,
+          contact_phone: null,
+          is_default: true,
+        },
+      ],
+    });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await screen.findByDisplayValue('Moda Cad');
+    expect(combo().value).toBe('Caferağa Mah.');
+    await waitFor(() => expect(continueDisabled()).toBe(false));
+  });
+
+  it('leaves the neighbourhood empty for a saved street saved before the field existed', async () => {
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      token: 't',
+      loading: false,
+    };
+    vi.mocked(getMyAddresses).mockResolvedValueOnce({
+      data: [
+        {
+          id: 'a1',
+          label: null,
+          country: 'TR',
+          state: 'İstanbul',
+          city: 'Kadıköy',
+          address: null,
+          street: 'Moda Cad, Kat 2',
+          building: '5',
+          block: null,
+          apartment: null,
+          postal_code: '34710',
+          contact_name: null,
+          contact_phone: null,
+          is_default: true,
+        },
+      ],
+    });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await screen.findByDisplayValue('Moda Cad, Kat 2');
+    expect(combo().value).toBe('');
+    expect(continueDisabled()).toBe(true);
+  });
+
+  it("offers the district's PTT list and a pick fills the postal code", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        districts: { Kadıköy: [['Caferağa Mah.', '34710'], ['Fenerbahçe Mah.', '34726']] },
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    sessionStorage.setItem('checkout_step', '1');
+    sessionStorage.setItem(
+      'checkout_form',
+      JSON.stringify({ ...DRAFT, email: 'ada@example.com', neighbourhood: '', zip: '' }),
+    );
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/tr-neighbourhoods/20260928/istanbul.json'));
+    // Case- and diacritic-insensitive search.
+    fireEvent.change(combo(), { target: { value: 'fenerbahce' } });
+    fireEvent.click(await screen.findByRole('option', { name: 'Fenerbahçe Mah.' }));
+
+    expect(combo().value).toBe('Fenerbahçe Mah.');
+    expect(screen.getByDisplayValue('34726')).toBeDefined();
+    expect(screen.queryByRole('option', { name: 'Caferağa Mah.' })).toBeNull();
+    await waitFor(() => expect(continueDisabled()).toBe(false));
   });
 });
 

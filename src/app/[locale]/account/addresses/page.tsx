@@ -36,6 +36,8 @@ import {
 } from '@/lib/auth';
 import { TR_PROVINCES, formatDistrictProvince } from '@/lib/tr-provinces';
 import { districtsOf, matchDistrict } from '@/lib/tr-districts';
+import { joinStreet, useNeighbourhoods } from '@/lib/tr-neighbourhoods';
+import NeighbourhoodInput from '@/components/NeighbourhoodInput';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
@@ -46,7 +48,8 @@ const emptyForm = {
   /** Province / il — one of TR_PROVINCES, saved as CustomerAddress.state. */
   state: '',
   city: '',
-  address: '',
+  /** Neighbourhood / mahalle — saved as the head of the street line (lib/tr-neighbourhoods). */
+  neighbourhood: '',
   street: '',
   building: '',
   apartment: '',
@@ -103,14 +106,25 @@ export default function AddressesPage() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = field === 'is_default' ? e.target.checked : e.target.value;
-    setForm((prev) =>
-      field === 'state'
-        ? // The district list belongs to the province — keep the district only if
-          // the new province has it.
-          { ...prev, state: String(value), city: matchDistrict(String(value), prev.city) ?? '' }
-        : { ...prev, [field]: value },
-    );
+    setForm((prev) => {
+      if (field !== 'state' && field !== 'city') return { ...prev, [field]: value };
+      // The district list belongs to the province — keep the district only if
+      // the new province has it; the neighbourhood goes with the district.
+      const city = field === 'state' ? matchDistrict(String(value), prev.city) ?? '' : String(value);
+      return {
+        ...prev,
+        ...(field === 'state' ? { state: String(value) } : {}),
+        city,
+        neighbourhood: city === prev.city ? prev.neighbourhood : '',
+      };
+    });
   };
+
+  // A pick from the PTT list brings its postal code; typing leaves it alone.
+  const handleNeighbourhood = (neighbourhood: string, zip: string | null) => {
+    setForm((prev) => ({ ...prev, neighbourhood, postal_code: zip ?? prev.postal_code }));
+  };
+  const neighbourhoods = useNeighbourhoods(form.state, form.city);
 
   // The payload is read from `form` before the first await — the dialog freezes
   // for that window so the address ARM stores is the one that was on screen.
@@ -126,14 +140,21 @@ export default function AddressesPage() {
       setSnack({ open: true, message: t('addressNeedDistrict'), severity: 'error' });
       return;
     }
+    if (!form.neighbourhood.trim()) {
+      setSnack({ open: true, message: t('addressNeedNeighbourhood'), severity: 'error' });
+      return;
+    }
     setSaving(true);
     try {
+      // `street` is what the checkout reads back (and splits the neighbourhood
+      // off); `address` keeps the same line for the lists that show it.
+      const streetLine = joinStreet(form.neighbourhood, form.street);
       const payload: Partial<CustomerAddress> = {
         label: form.label || null,
         state: form.state || null,
         city: form.city || null,
-        address: form.address || null,
-        street: form.street || null,
+        address: streetLine || null,
+        street: streetLine || null,
         building: form.building || null,
         apartment: form.apartment || null,
         postal_code: form.postal_code || null,
@@ -408,10 +429,25 @@ export default function AddressesPage() {
               </TextField>
             </Grid>
             <Grid item xs={12}>
+              {/* Neighbourhood (mahalle): the district's PTT list or free text. */}
+              <NeighbourhoodInput
+                options={neighbourhoods.options}
+                loading={neighbourhoods.loading}
+                value={form.neighbourhood}
+                onChange={handleNeighbourhood}
+                disabled={saving || !form.city}
+                textFieldProps={{
+                  label: `${t('addressNeighbourhood')} *`,
+                  placeholder: t('addressNeighbourhoodPlaceholder'),
+                  size: 'small',
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
               <TextField
                 label={t('addressStreet')}
-                value={form.address}
-                onChange={handleFormChange('address')}
+                value={form.street}
+                onChange={handleFormChange('street')}
                 fullWidth
                 size="small"
                 disabled={saving}

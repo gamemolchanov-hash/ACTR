@@ -105,7 +105,7 @@ export type TrProvince = (typeof TR_PROVINCES)[number];
  * dotless "ı" onto plain "i" — so an ASCII-only spelling (e.g. "sanliurfa")
  * matches its Turkish-lettered canonical name ("Şanlıurfa").
  */
-function foldKey(value: string): string {
+export function foldKey(value: string): string {
   return value
     .trim()
     .replace(/\s+/g, ' ')
