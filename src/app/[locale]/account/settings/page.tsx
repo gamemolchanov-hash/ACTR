@@ -37,6 +37,7 @@ const inputSx = {
 export default function SettingsPage() {
   const t = useTranslations('account');
   const tCommon = useTranslations('common');
+  const tAuth = useTranslations('auth');
 
   const { customer, loading: authLoading, refreshProfile, signOut } = useAuth();
   const router = useRouter();
@@ -155,7 +156,7 @@ export default function SettingsPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setSnack({ open: true, message: 'Export failed. Try again.', severity: 'error' });
+      setSnack({ open: true, message: t('exportFailed'), severity: 'error' });
     } finally {
       setExporting(false);
     }
@@ -170,7 +171,7 @@ export default function SettingsPage() {
       signOut();
       router.push('/');
     } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Could not delete account. Check your password.';
+      const msg = err?.response?.data?.error || t('deleteFailed');
       setSnack({ open: true, message: msg, severity: 'error' });
     } finally {
       setDeleting(false);
@@ -246,7 +247,7 @@ export default function SettingsPage() {
               sx={inputSx}
             />
             <TextField
-              label="Email"
+              label={tAuth('emailLabel')}
               value={customer.email}
               disabled
               fullWidth
@@ -390,21 +391,21 @@ export default function SettingsPage() {
               textTransform: 'uppercase',
             }}
           >
-            Data & Privacy
+            {t('privacySection')}
           </Typography>
           <Typography
             sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 3 }}
           >
-            Manage your personal data. These actions are irreversible.
+            {t('privacySectionDesc')}
           </Typography>
 
           {/* Export -- GDPR Art.20 */}
           <Box sx={{ mb: 2 }}>
             <Typography sx={{ fontFamily: fontMain, fontWeight: 500, fontSize: 15, color: palette.primary, mb: 0.5 }}>
-              Download My Data
+              {t('exportTitle')}
             </Typography>
             <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 1.5 }}>
-              Get a copy of your profile, addresses, and order history as a JSON file.
+              {t('exportDesc')}
             </Typography>
             <Button
               variant="outlined"
@@ -419,16 +420,16 @@ export default function SettingsPage() {
                 px: 3,
               }}
             >
-              {exporting ? 'Preparing...' : 'Download My Data'}
+              {exporting ? t('exportPreparing') : t('exportTitle')}
             </Button>
           </Box>
 
           <Box sx={{ borderTop: '1px solid', borderColor: 'error.light', pt: 2 }}>
             <Typography sx={{ fontFamily: fontMain, fontWeight: 500, fontSize: 15, color: 'error.main', mb: 0.5 }}>
-              Delete Account
+              {t('deleteAccountTitle')}
             </Typography>
             <Typography sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primaryLight, mb: 1.5 }}>
-              Permanently anonymise your account and remove saved addresses. This cannot be undone.
+              {t('deleteAccountDesc')}
             </Typography>
             <Button
               variant="outlined"
@@ -442,7 +443,7 @@ export default function SettingsPage() {
                 px: 3,
               }}
             >
-              Delete Account
+              {t('deleteAccountTitle')}
             </Button>
           </Box>
         </Box>
@@ -456,15 +457,14 @@ export default function SettingsPage() {
         fullWidth
       >
         <DialogTitle sx={{ fontFamily: fontMain, color: 'error.main' }}>
-          Delete Account
+          {t('deleteAccountTitle')}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primary, mb: 2 }}>
-            This will permanently anonymise your account and delete all saved addresses.
-            Enter your password to confirm.
+            {t('deleteAccountConfirmText')}
           </Typography>
           <TextField
-            label="Current password"
+            label={t('currentPassword')}
             type="password"
             value={deletePassword}
             onChange={(e) => setDeletePassword(e.target.value)}
@@ -479,7 +479,7 @@ export default function SettingsPage() {
             disabled={deleting}
             sx={{ fontFamily: fontMain, textTransform: 'none', color: palette.primaryLight }}
           >
-            Cancel
+            {t('addressCancel')}
           </Button>
           <Button
             variant="contained"
@@ -488,7 +488,7 @@ export default function SettingsPage() {
             disabled={!deletePassword || deleting}
             sx={{ fontFamily: fontMain, textTransform: 'none', borderRadius: '8px' }}
           >
-            {deleting ? 'Deleting...' : 'Confirm Delete'}
+            {deleting ? t('deleting') : t('deleteConfirm')}
           </Button>
         </DialogActions>
       </Dialog>

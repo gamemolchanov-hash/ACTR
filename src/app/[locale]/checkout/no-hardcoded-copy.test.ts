@@ -1,33 +1,60 @@
 /**
- * Guard: the basket and checkout pages render no copy outside next-intl keys.
+ * Guard: the storefront renders no copy outside next-intl keys.
  *
  * The i18n pass (phase 04) extracted Russian text by grepping for Cyrillic;
- * these pages were already English by then, so their copy passed the gate and
- * stayed hardcoded — the TR storefront showed "Your basket is empty", "Place
- * Order", "Postal Code"… (found at launch, 27.09.2026). This test parses the
- * TSX with the TypeScript compiler and fails on any user-visible literal:
+ * copy that was already English by then passed the gate and stayed hardcoded —
+ * the TR storefront showed "Your basket is empty", "Place Order", "Postal
+ * Code"… (found at launch, 27.09.2026), then "Track shipment", "Data &
+ * Privacy", "Delivery & Payment"… (29.09.2026). This test parses every
+ * non-test TSX file under src/ with the TypeScript compiler and fails on any
+ * user-visible literal:
  *   - JSX text with a letter;
  *   - string literals in text-bearing JSX attributes (placeholder, alt, title,
  *     aria-label, label, helperText);
  *   - string literals rendered straight from a JSX expression
  *     (`{'Free'}`, `{cond ? 'A' : 'B'}`, `{x || 'Fallback'}`);
  *   - labels handed to the local form helpers (`field('Street', …)`) and
- *     `label: '…'` properties (breadcrumbs, summary rows);
+ *     `label: '…'` properties (breadcrumbs, summary rows, nav links);
  *   - fallbacks passed to setError(...).
- * Every such string must come from t('…') (messages/*.json, Tolgee #34).
+ * Every such string must come from t('…') (messages/*.json, Tolgee #34),
+ * except the few entries in ALLOWED below, which are the same in every locale.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 import ts from 'typescript';
 
 const ROOT = resolve(__dirname, '../../../..');
-const FILES = [
-  'src/app/[locale]/basket/page.tsx',
-  'src/app/[locale]/checkout/page.tsx',
-  'src/app/[locale]/checkout/success/page.tsx',
-  'src/app/[locale]/account/addresses/page.tsx',
-];
+
+/** Every non-test .tsx under src/, as repo-relative paths. */
+function tsxFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = resolve(dir, e.name);
+    if (e.isDirectory()) return tsxFiles(full);
+    return e.name.endsWith('.tsx') && !/\.test\.tsx$/.test(e.name) ? [relative(ROOT, full)] : [];
+  });
+}
+const FILES = tsxFiles(resolve(ROOT, 'src')).sort();
+
+/**
+ * Literals that are legitimately the same in every locale. Keep this short:
+ * anything a Turkish or English reader would expect translated goes to t().
+ */
+const ALLOWED_EXACT = new Set([
+  'American Creator', // brand name (logo alt, footer)
+  '© American Creator', // copyright line: brand name only
+  '&copy; American Creator', // same, as raw JSX text with the HTML entity
+  'WhatsApp', // product name (social link label)
+  'Instagram', // product name (social link label)
+  'Troy', // Turkish card network name (payment logo alt)
+  'XP', // Creator Club points unit, shown as-is in both locales
+]);
+const isAllowed = (text: string): boolean =>
+  ALLOWED_EXACT.has(text) ||
+  // e-mail addresses (contact address, input examples) are not words to translate
+  text.includes('@') ||
+  // ETBİS registry line: the official Turkish label stays Turkish in both locales
+  text.startsWith('ETBİS Site Kayıt No');
 
 const TEXT_ATTRS = new Set(['placeholder', 'alt', 'title', 'aria-label', 'label', 'helperText']);
 const LABEL_HELPERS = new Set(['field', 'optField']);
@@ -84,8 +111,10 @@ function violations(file: string): string[] {
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const out: string[] = [];
   const report = (node: ts.Node, text: string) => {
+    const shown = text.trim().replace(/\s+/g, ' ');
+    if (isAllowed(shown)) return;
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
-    out.push(`${file}:${line + 1}: ${JSON.stringify(text.trim().replace(/\s+/g, ' '))}`);
+    out.push(`${file}:${line + 1}: ${JSON.stringify(shown)}`);
   };
 
   const visit = (node: ts.Node) => {
@@ -139,7 +168,10 @@ function violations(file: string): string[] {
   return out;
 }
 
-describe('basket / checkout copy goes through next-intl keys', () => {
+describe('storefront copy goes through next-intl keys', () => {
+  it('scans the whole app', () => {
+    expect(FILES.length).toBeGreaterThan(50);
+  });
   for (const file of FILES) {
     it(`${file} has no hardcoded user-visible text`, () => {
       expect(violations(file)).toEqual([]);

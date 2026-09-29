@@ -22,8 +22,11 @@ const authApi = vi.hoisted(() => ({
 const setAuth = vi.hoisted(() => vi.fn());
 
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace?: string) => (key: string) =>
-    namespace ? `${namespace}.${key}` : key,
+  useTranslations: (namespace?: string) => {
+    const t = (key: string) => (namespace ? `${namespace}.${key}` : key);
+    t.rich = t;
+    return t;
+  },
   useLocale: () => 'tr',
 }));
 

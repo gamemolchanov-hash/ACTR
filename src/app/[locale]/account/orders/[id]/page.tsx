@@ -180,7 +180,7 @@ export default function OrderDetailPage() {
                 }).format(new Date(order.date_created))}
               </Typography>
               {safeHttpUrl(order.track_url) && (
-                <Tooltip title="Track shipment">
+                <Tooltip title={t('trackShipment')}>
                   <IconButton
                     component="a"
                     href={safeHttpUrl(order.track_url)!}

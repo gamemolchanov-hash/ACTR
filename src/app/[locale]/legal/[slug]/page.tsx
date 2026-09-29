@@ -45,6 +45,7 @@ export default async function LegalPage({ params }: Props) {
   const slug = rawSlug as LegalSlug;
   const nsKey = slug.replace(/-/g, '_');
   const t = await getTranslations(`legal.${nsKey}` as any);
+  const tCommon = await getTranslations('common');
 
   const markdown = MARKDOWN_DOCS[slug];
   const sectionCount = SECTION_COUNT[slug];
@@ -63,7 +64,7 @@ export default async function LegalPage({ params }: Props) {
           }}
         >
           <Link href="/" style={{ color: palette.primaryLight, textDecoration: 'none' }}>
-            Home
+            {tCommon('home')}
           </Link>
           {' / '}
         </Typography>

@@ -163,7 +163,7 @@ function ForgotPasswordInner() {
                     mb: 0.75,
                   }}
                 >
-                  Email{' '}
+                  {t('emailLabel')}{' '}
                   <Box component="span" sx={{ color: palette.cartBadge }}>
                     *
                   </Box>
@@ -172,7 +172,7 @@ function ForgotPasswordInner() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
+                  placeholder={t('emailPlaceholder')}
                   sx={inputSx}
                 />
               </Box>

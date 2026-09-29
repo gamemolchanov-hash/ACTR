@@ -227,7 +227,7 @@ export default function ContactsPage() {
                   mb: 0.75,
                 }}
               >
-                Email{' '}
+                {t('fieldEmail')}{' '}
                 <Box component="span" sx={{ color: palette.cartBadge }}>
                   *
                 </Box>

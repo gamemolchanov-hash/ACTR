@@ -242,9 +242,27 @@ const EMPTY_ADDRESS = {
  * (`unsupported_destination`).
  */
 
-/** Single-line address for the Ön Bilgilendirme Formu (billing == shipping here). */
+/**
+ * Country name in `locale`. ARM `/countries` names are English ("Turkey"), so
+ * the buyer-facing name comes from Intl by ISO code; the ARM name is only a
+ * fallback (unknown code / no Intl.DisplayNames).
+ */
+function countryDisplayName(code: string, locale: string, fallback?: string): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: 'region' }).of(code) || fallback || code;
+  } catch {
+    return fallback || code;
+  }
+}
+
+/**
+ * Single-line address for the Ön Bilgilendirme Formu (billing == shipping here).
+ * The form is a Turkish document in both UI locales, so the country is named
+ * in Turkish ("Türkiye"), like the "No:/Blok:/Daire:" labels next to it.
+ */
 function formatObfAddress(f: FormData, countries: ShippingCountry[]): string {
-  const countryName = countries.find((ct) => ct.code === f.country)?.name || f.country;
+  const countryName =
+    f.country && countryDisplayName(f.country, 'tr', countries.find((ct) => ct.code === f.country)?.name);
   return [
     joinStreet(f.neighbourhood, f.street),
     f.building && `No: ${f.building}`,
@@ -1282,7 +1300,7 @@ export default function CheckoutPage() {
               renderValue={(selected) =>
                 selected ? (
                   <Typography sx={{ color: c.main, fontSize: '16px' }}>
-                    {countries.find((ct) => ct.code === selected)?.name || selected}
+                    {countryDisplayName(selected, locale, countries.find((ct) => ct.code === selected)?.name)}
                   </Typography>
                 ) : (
                   <Typography sx={{ color: c['20'], fontSize: '16px' }}>
@@ -1294,7 +1312,7 @@ export default function CheckoutPage() {
             >
               {countries.map((ct) => (
                 <MenuItem key={ct.code} value={ct.code}>
-                  {ct.name}
+                  {countryDisplayName(ct.code, locale, ct.name)}
                 </MenuItem>
               ))}
             </Select>

@@ -224,7 +224,7 @@ export default function OrdersPage() {
                         </TableCell>
                         <TableCell sx={{ fontFamily: fontBody, fontSize: 13 }}>
                           {safeHttpUrl(order.track_url) ? (
-                            <Tooltip title="Track shipment">
+                            <Tooltip title={t('trackShipment')}>
                               <IconButton
                                 component="a"
                                 href={safeHttpUrl(order.track_url)!}

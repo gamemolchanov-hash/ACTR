@@ -93,8 +93,8 @@ export function Footer() {
 
   const NAV_COL2 = [
     { label: t('nav.contacts'), href: '/contacts' },
-    { label: 'Delivery & Payment', href: '/delivery' },
-    { label: 'FAQ', href: '/faq' },
+    { label: t('nav.delivery'), href: '/delivery' },
+    { label: t('nav.faq'), href: '/faq' },
   ];
 
   const NAV_COL_LEGAL = [

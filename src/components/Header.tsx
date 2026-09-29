@@ -506,9 +506,44 @@ export function Header() {
           <Link
             href="/login"
             data-testid="sf-header-login"
-            style={{ display: 'flex', alignItems: 'center' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              height: 33,
+              color: palette.primary,
+              textDecoration: 'none',
+            }}
           >
-            <img src="/icons/login.svg" alt={t('common.signIn')} style={{ width: 86, height: 33 }} />
+            {/* Person icon from the former /icons/login.svg; its "Sign In" caption was
+                outlined English text, so the label is now live, localized text. */}
+            <svg width="35" height="33" viewBox="0 0 35 33" fill="none" aria-hidden="true">
+              <path
+                d="M17.3426 22.5652C23.2976 22.5652 28.1251 17.7376 28.1251 11.7826C28.1251 5.82752 23.2976 0.999996 17.3426 0.999996C11.3875 0.999996 6.55997 5.82752 6.55997 11.7826C6.55997 17.7376 11.3875 22.5652 17.3426 22.5652Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeMiterlimit="10"
+              />
+              <path
+                d="M1.00018 31.9998C2.65621 29.1308 5.03831 26.7484 7.90702 25.092C10.7757 23.4356 14.0299 22.5635 17.3425 22.5635C20.6551 22.5635 23.9093 23.4356 26.778 25.092C29.6467 26.7484 32.0289 29.1308 33.6849 31.9998"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <Box
+              component="span"
+              sx={{
+                fontFamily: 'LiraFix, "Jost", "Jost Fallback", "Ubuntu", Arial, sans-serif',
+                fontSize: 13,
+                fontWeight: 400,
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('common.signIn')}
+            </Box>
           </Link>
         )}
         <Link href="/basket">

@@ -174,7 +174,7 @@ export default function RegisterPage() {
     if (!agreed) {
       setSnack({
         open: true,
-        message: 'Please accept the Terms & Privacy Policy to register.',
+        message: t('acceptTermsRequired'),
         severity: 'error',
       });
       return;
@@ -321,7 +321,7 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder={t('emailPlaceholder')}
                 disabled={loading}
                 sx={inputSx}
               />
@@ -393,7 +393,7 @@ export default function RegisterPage() {
               }}
               aria-hidden="true"
             >
-              <label htmlFor="reg-website">Website</label>
+              <label htmlFor="reg-website">{t('honeypotWebsite')}</label>
               <input
                 id="reg-website"
                 name="website"
@@ -480,14 +480,18 @@ export default function RegisterPage() {
                     color: palette.primary,
                   }}
                 >
-                  I agree to the{' '}
-                  <Link href="/legal/uyelik-sozlesmesi" style={{ color: palette.primary }}>
-                    Terms of Service
-                  </Link>
-                  {' '}and{' '}
-                  <Link href="/legal/gizlilik" style={{ color: palette.primary }}>
-                    Privacy Policy
-                  </Link>
+                  {t.rich('agreeTerms', {
+                    terms: (chunks) => (
+                      <Link href="/legal/uyelik-sozlesmesi" style={{ color: palette.primary }}>
+                        {chunks}
+                      </Link>
+                    ),
+                    privacy: (chunks) => (
+                      <Link href="/legal/gizlilik" style={{ color: palette.primary }}>
+                        {chunks}
+                      </Link>
+                    ),
+                  })}
                 </Typography>
               }
               sx={{ mb: 1, alignItems: 'flex-start' }}
