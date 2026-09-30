@@ -129,9 +129,7 @@ export default function ContactsPage() {
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
             overflow: 'hidden',
-            /* mobile: centered narrow card */
-            width: { xs: 280, md: '100%' },
-            mx: { xs: 'auto', md: 0 },
+            width: '100%',
           }}
         >
           {/* Left: hero image (desktop only) */}
