@@ -1,18 +1,21 @@
 /**
  * Contacts page (BS-15, 30.09.2026): no e-mail / phone lines under the title,
  * and the form speaks the ARM `POST /contact` contract `{ name, email, message }`
- * — the OMS-era `{ email, comment, source }` got 400 on every submit.
+ * — the OMS-era `{ email, comment, source }` got 400 on every submit. `locale` is
+ * the site language: the letter to the manager comes in it.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 
 const api = vi.hoisted(() => ({ post: vi.fn() }));
+const intl = vi.hoisted(() => ({ locale: 'tr' }));
 const auth = vi.hoisted(() => ({
   customer: null as { id: string; name: string; email: string; phone: string | null } | null,
 }));
 
 vi.mock('next-intl', () => ({
+  useLocale: () => intl.locale,
   useTranslations: (namespace?: string) => (key: string) =>
     `${namespace ? `${namespace}.` : ''}${key}`,
 }));
@@ -34,6 +37,7 @@ const field = (container: HTMLElement, selector: 'textarea' | 'input') => {
 
 beforeEach(() => {
   auth.customer = null;
+  intl.locale = 'tr';
   api.post.mockReset();
   api.post.mockResolvedValue({ data: { success: true } });
 });
@@ -47,7 +51,8 @@ describe('contacts page', () => {
     expect(screen.queryByText('info@american-creator.tr')).toBeNull();
   });
 
-  it('guest: sends name + email + message (name falls back to the e-mail)', async () => {
+  it('guest on /en: sends name + email + message + locale (name falls back to the e-mail)', async () => {
+    intl.locale = 'en';
     const { container } = render(<ContactsPage />);
     fireEvent.change(field(container, 'textarea'), { target: { value: '  Merhaba  ' } });
     fireEvent.change(field(container, 'input'), { target: { value: ' guest@example.com ' } });
@@ -58,6 +63,7 @@ describe('contacts page', () => {
       name: 'guest@example.com',
       email: 'guest@example.com',
       message: 'Merhaba',
+      locale: 'en',
     });
   });
 
@@ -74,6 +80,7 @@ describe('contacts page', () => {
       name: 'Ayşe Yılmaz',
       email: 'ayse@example.com',
       message: 'Sipariş sorusu',
+      locale: 'tr',
     });
   });
 });

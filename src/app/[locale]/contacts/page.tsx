@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -23,6 +23,7 @@ const inputSx = {
 
 export default function ContactsPage() {
   const t = useTranslations('contacts');
+  const locale = useLocale();
   const { customer } = useAuth();
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
@@ -39,10 +40,13 @@ export default function ContactsPage() {
     try {
       // ARM `POST /contact` contract: name + email + message. The OMS-era
       // `{ email, comment, source }` got 400 on every submit (BS-15, 30.09.2026).
+      // `locale` — the site language the buyer writes in: the letter to the
+      // manager comes in it, so the answer goes back in the same language.
       await api.post('/contact', {
         name: customer?.name?.trim() || email.trim(),
         email: email.trim(),
         message: message.trim(),
+        locale,
       });
       setMessage('');
       setSnack({ open: true, ok: true });
