@@ -6,6 +6,8 @@ import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
 import { useTranslations } from 'next-intl';
+import { useStoreContactPhone } from '@/providers/StoreContactProvider';
+import { telHref } from '@/lib/contact-phone';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -22,6 +24,7 @@ const inputSx = {
 
 export default function ContactsPage() {
   const t = useTranslations('contacts');
+  const phone = useStoreContactPhone();
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -91,21 +94,23 @@ export default function ContactsPage() {
         >
           info@american-creator.tr
         </Typography>
-        <Typography
-          component="a"
-          href="tel:+905386089604"
-          sx={{
-            fontFamily: fontMain,
-            fontWeight: 400,
-            fontSize: { xs: 14, md: 18 },
-            lineHeight: '20px',
-            color: palette.primary,
-            textDecoration: 'none',
-            display: 'block',
-          }}
-        >
-          +90 538 608 96 04
-        </Typography>
+        {phone && (
+          <Typography
+            component="a"
+            href={telHref(phone) ?? undefined}
+            sx={{
+              fontFamily: fontMain,
+              fontWeight: 400,
+              fontSize: { xs: 14, md: 18 },
+              lineHeight: '20px',
+              color: palette.primary,
+              textDecoration: 'none',
+              display: 'block',
+            }}
+          >
+            {phone}
+          </Typography>
+        )}
       </Box>
 
       {/* ── Main Card: image + form ── */}

@@ -32,6 +32,8 @@ export type StorefrontConfig = {
   currency: string;
   country: string | null;
   locale: string | null;
+  /** Public contact phone (distributor's `contact_phone` in Portal), null when unset. */
+  contactPhone: string | null;
   /**
    * `true` when `/config` actually answered (2xx + a readable body); `false`
    * when the request failed, so every field above is a local fallback rather
@@ -56,6 +58,7 @@ interface RawConfig {
   currency?: string;
   country?: string | null;
   locale?: string | null;
+  contact_phone?: string | null;
   loyalty_program?: { program?: string | null } | null;
   data?: RawConfig;
 }
@@ -96,6 +99,7 @@ export async function getStorefrontConfig(): Promise<StorefrontConfig> {
       currency: process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY',
       country: null,
       locale: null,
+      contactPhone: null,
       available: false,
     };
   }
@@ -105,6 +109,7 @@ export async function getStorefrontConfig(): Promise<StorefrontConfig> {
       data?.data?.currency ?? data?.currency ?? process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY ?? 'TRY',
     country: data?.data?.country ?? data?.country ?? null,
     locale: data?.data?.locale ?? data?.locale ?? null,
+    contactPhone: data?.data?.contact_phone?.trim() || data?.contact_phone?.trim() || null,
     available: true,
   };
 }

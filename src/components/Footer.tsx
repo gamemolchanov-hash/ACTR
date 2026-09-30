@@ -7,11 +7,14 @@ import { palette } from '@/lib/theme';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 import { useLoyaltyProgram } from '@/providers/LoyaltyProgramProvider';
 import { useConsent } from '@/providers/CookieConsentProvider';
+import { useStoreContactPhone } from '@/providers/StoreContactProvider';
+import { whatsappHref } from '@/lib/contact-phone';
 
-const SOCIALS = [
-  { icon: '/icons/soc-whatsapp.png', href: 'https://wa.me/905386089604', label: 'WhatsApp' },
-  { icon: '/icons/soc-instagram.png', href: 'https://www.instagram.com/', label: 'Instagram' },
-];
+const INSTAGRAM = {
+  icon: '/icons/soc-instagram.png',
+  href: 'https://www.instagram.com/',
+  label: 'Instagram',
+};
 
 const PAYMENT_ICONS = [
   { cls: 'mastercard', w: 24, h: 16, bgPos: '-327px -200px' },
@@ -25,10 +28,16 @@ const navLinkSx = {
   '&:hover': { opacity: 0.8 },
 };
 
-function SocialIcons() {
+function SocialIcons({ phone }: { phone: string | null }) {
+  // WhatsApp chats go to the storefront's contact phone (Portal → distributor);
+  // without a phone there is no WhatsApp icon at all.
+  const whatsapp = whatsappHref(phone);
+  const socials = whatsapp
+    ? [{ icon: '/icons/soc-whatsapp.png', href: whatsapp, label: 'WhatsApp' }, INSTAGRAM]
+    : [INSTAGRAM];
   return (
     <Box sx={{ display: 'flex', gap: 1 }}>
-      {SOCIALS.map((s) => (
+      {socials.map((s) => (
         <a
           key={s.label}
           href={s.href}
@@ -58,6 +67,7 @@ export function Footer() {
   // Live programme (uncached /config, see LoyaltyProgramProvider): the Creator
   // Club link is rendered ONLY for a confirmed `cashback_wallet` (FBG-469).
   const loyaltyProgram = useLoyaltyProgram();
+  const phone = useStoreContactPhone();
 
   // Cookie preferences is a button (opens the Tercih Merkezi dialog), not a route,
   // so it lives outside NAV_COL_LEGAL — but shares the footer link styling.
@@ -189,17 +199,19 @@ export function Footer() {
           </Box>
 
           {/* Phone */}
-          <Box>
-            <Typography sx={{ fontSize: 20, fontWeight: 500, color: palette.footerText }}>
-              +90 538 608 96 04
-            </Typography>
-            <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-              {t('common.workingHours')}
-            </Typography>
-          </Box>
+          {phone && (
+            <Box>
+              <Typography sx={{ fontSize: 20, fontWeight: 500, color: palette.footerText }}>
+                {phone}
+              </Typography>
+              <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
+                {t('common.workingHours')}
+              </Typography>
+            </Box>
+          )}
 
           {/* Social icons */}
-          <SocialIcons />
+          <SocialIcons phone={phone} />
         </Box>
 
         {/* ============ MOBILE (xs) ============ */}
@@ -214,7 +226,7 @@ export function Footer() {
               height={114}
               style={{ width: 150, height: 'auto' }}
             />
-            <SocialIcons />
+            <SocialIcons phone={phone} />
           </Box>
 
           {/* Nav — single column */}
@@ -234,14 +246,16 @@ export function Footer() {
           </Box>
 
           {/* Phone */}
-          <Box>
-            <Typography sx={{ fontSize: 18, fontWeight: 500, color: palette.footerText }}>
-              +90 538 608 96 04
-            </Typography>
-            <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-              {t('common.workingHours')}
-            </Typography>
-          </Box>
+          {phone && (
+            <Box>
+              <Typography sx={{ fontSize: 18, fontWeight: 500, color: palette.footerText }}>
+                {phone}
+              </Typography>
+              <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
+                {t('common.workingHours')}
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         {/* ============ Bottom row (shared) ============ */}

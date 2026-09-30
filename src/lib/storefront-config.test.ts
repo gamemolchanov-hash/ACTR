@@ -38,8 +38,17 @@ describe('getStorefrontConfig — display settings', () => {
       currency: 'TRY',
       country: 'TR',
       locale: 'tr-TR',
+      contactPhone: null,
       available: true,
     });
+  });
+
+  it("passes the distributor's contact phone through, trimmed", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ data: { currency: 'TRY', contact_phone: ' +90 531 871 30 07 ' } }),
+    );
+
+    expect((await getStorefrontConfig()).contactPhone).toBe('+90 531 871 30 07');
   });
 
   it('stays on the shared 5-minute data cache (it runs on every route)', async () => {
