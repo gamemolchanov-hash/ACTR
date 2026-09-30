@@ -117,8 +117,8 @@ describe('shipping copy exists in both locales', () => {
   });
 
   it('not_configured / network copy never directs users to contact us (placeholder contacts)', () => {
-    // /contacts legal fields are placeholders (FBG-393 §7) — these two reasons
-    // must not send users there.
+    // /contacts is a form + seller requisites, not a support line (FBG-393 §7)
+    // — these two reasons must not send users there.
     for (const key of ['checkout.shipping.not_configured', 'checkout.shipping.network']) {
       expect(en[key].toLowerCase()).not.toContain('contact us');
       expect(tr[key].toLowerCase()).not.toContain('iletişime geç');

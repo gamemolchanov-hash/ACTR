@@ -3,6 +3,8 @@
  * and the form speaks the ARM `POST /contact` contract `{ name, email, message }`
  * — the OMS-era `{ email, comment, source }` got 400 on every submit. `locale` is
  * the site language: the letter to the manager comes in it.
+ * Seller requisites block (BS-19, 30.09.2026): real legal name, address,
+ * VKN / MERSİS, trade registry and KEP instead of the `[Placeholder]` lines.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -28,6 +30,12 @@ vi.mock('@/lib/api', () => ({ api: { post: api.post } }));
 vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ customer: auth.customer }) }));
 
 import ContactsPage from './page';
+import enRaw from '../../../../messages/en.json';
+import trRaw from '../../../../messages/tr.json';
+
+const en = enRaw as Record<string, string>;
+const tr = trRaw as Record<string, string>;
+const LEGAL_KEYS = [1, 2, 3, 4, 5, 6].map((n) => `contacts.legalLine${n}`);
 
 const field = (container: HTMLElement, selector: 'textarea' | 'input') => {
   const el = container.querySelector(`${selector}:not([aria-hidden="true"])`);
@@ -82,5 +90,28 @@ describe('contacts page', () => {
       message: 'Sipariş sorusu',
       locale: 'tr',
     });
+  });
+
+  it('seller requisites: six lines in order, no e-mail link for KEP', () => {
+    const { container } = render(<ContactsPage />);
+    const text = container.textContent ?? '';
+    const at = LEGAL_KEYS.map((key) => text.indexOf(key));
+    expect(at.every((i) => i >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
+  });
+
+  it('requisites are filled in both locales (no placeholders, no IBAN/bank)', () => {
+    for (const dict of [en, tr]) {
+      const block = LEGAL_KEYS.map((key) => dict[key]).join('\n');
+      expect(LEGAL_KEYS.every((key) => typeof dict[key] === 'string')).toBe(true);
+      expect(block).not.toContain('Placeholder');
+      expect(block).not.toMatch(/IBAN|Bank/i);
+      expect(block).toContain('Kızıl Kalina Kozmetik Ltd. Şti.');
+      expect(block).toContain('5601466111 / 0560146611100001');
+      expect(block).toContain('31978');
+      expect(block).toContain('kizilkalina@hs03.kep.tr');
+      expect(block).toContain('Alanya, Antalya 07460, Türkiye');
+    }
   });
 });

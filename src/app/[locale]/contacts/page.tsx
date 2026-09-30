@@ -21,6 +21,17 @@ const inputSx = {
   color: palette.primary,
 };
 
+// Seller requisites under the form (BS-19): legal name, address (two lines),
+// VKN / MERSİS, trade registry, KEP — values live in messages, labels per locale.
+const LEGAL_LINES = [
+  'legalLine1',
+  'legalLine2',
+  'legalLine3',
+  'legalLine4',
+  'legalLine5',
+  'legalLine6',
+] as const;
+
 export default function ContactsPage() {
   const t = useTranslations('contacts');
   const locale = useLocale();
@@ -284,15 +295,12 @@ export default function ContactsPage() {
               color: palette.primary,
             }}
           >
-            {t('legalLine1')}
-            <br />
-            {t('legalLine2')}
-            <br />
-            {t('legalLine3')}
-            <br />
-            {t('legalLine4')}
-            <br />
-            {t('legalLine5')}
+            {LEGAL_LINES.map((key, i) => (
+              <span key={key}>
+                {i > 0 && <br />}
+                {t(key)}
+              </span>
+            ))}
           </Typography>
         </Box>
       </Box>
