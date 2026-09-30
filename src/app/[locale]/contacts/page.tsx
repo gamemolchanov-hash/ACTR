@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Typography, InputBase, Button, Snackbar, Alert } from '@mui/material';
 import { Link } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { useTranslations } from 'next-intl';
-import { useStoreContactPhone } from '@/providers/StoreContactProvider';
-import { telHref } from '@/lib/contact-phone';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -24,18 +23,27 @@ const inputSx = {
 
 export default function ContactsPage() {
   const t = useTranslations('contacts');
-  const phone = useStoreContactPhone();
+  const { customer } = useAuth();
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
+  // Signed-in buyer: prefill the e-mail from the profile once it is known; stays editable.
+  useEffect(() => {
+    if (customer?.email) setEmail((prev) => prev || customer.email);
+  }, [customer]);
   const [sending, setSending] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; ok: boolean }>({ open: false, ok: true });
 
   const handleSubmit = async () => {
-    if (!email || !message) return;
+    if (!email.trim() || !message.trim()) return;
     setSending(true);
     try {
-      await api.post('/contact', { email, comment: message, source: 'contacts' });
-      setEmail('');
+      // ARM `POST /contact` contract: name + email + message. The OMS-era
+      // `{ email, comment, source }` got 400 on every submit (BS-15, 30.09.2026).
+      await api.post('/contact', {
+        name: customer?.name?.trim() || email.trim(),
+        email: email.trim(),
+        message: message.trim(),
+      });
       setMessage('');
       setSnack({ open: true, ok: true });
     } catch {
@@ -74,43 +82,6 @@ export default function ContactsPage() {
         >
           {t('title')}
         </Typography>
-      </Box>
-
-      {/* ── Contact Info ── */}
-      <Box sx={{ maxWidth: 1300, mx: 'auto', px: { xs: 2.5, md: 2 }, mt: 1.5 }}>
-        <Typography
-          component="a"
-          href="mailto:info@american-creator.tr"
-          sx={{
-            fontFamily: fontMain,
-            fontWeight: 400,
-            fontSize: { xs: 14, md: 18 },
-            lineHeight: '20px',
-            color: palette.primary,
-            textDecoration: 'none',
-            display: 'block',
-            mb: 0.5,
-          }}
-        >
-          info@american-creator.tr
-        </Typography>
-        {phone && (
-          <Typography
-            component="a"
-            href={telHref(phone) ?? undefined}
-            sx={{
-              fontFamily: fontMain,
-              fontWeight: 400,
-              fontSize: { xs: 14, md: 18 },
-              lineHeight: '20px',
-              color: palette.primary,
-              textDecoration: 'none',
-              display: 'block',
-            }}
-          >
-            {phone}
-          </Typography>
-        )}
       </Box>
 
       {/* ── Main Card: image + form ── */}
