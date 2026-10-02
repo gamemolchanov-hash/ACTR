@@ -37,6 +37,7 @@ import { imgCard } from '@/lib/image-url';
 import { memberPriceOf } from '@/lib/member-price';
 import { MemberPriceBadge } from '@/components/MemberPriceBadge';
 import { useCustomerId } from '@/lib/auth-context';
+import { armTrack } from '@/lib/armTrack';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 
@@ -232,6 +233,17 @@ export function ProductDetail({ productId }: ProductDetailProps) {
       ).filter((p): p is typeof p & { html: string } => !!p.html),
     [product?.detail_text, product?.usage_text, product?.application_text, t],
   );
+
+  // Own ARM analytics (nav.js): product page viewed — once per product.
+  useEffect(() => {
+    if (!product) return;
+    armTrack('view_item', {
+      product: product.id,
+      name: product.name,
+      value: memberPrice ?? product.price,
+      currency,
+    });
+  }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track in recently viewed
   useEffect(() => {

@@ -112,6 +112,7 @@ import type {
   ArmPaymentSession,
 } from '@/lib/arm-types';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
+import { armTrack } from '@/lib/armTrack';
 
 /* Stripe Embedded Checkout — client-side only */
 const StripeEmbeddedCheckout = dynamic(() => import('@/components/StripeEmbeddedCheckout'), {
@@ -342,6 +343,14 @@ export default function CheckoutPage() {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
   const { items, removeItem } = useCart();
+  // Own ARM analytics (nav.js): checkout entered — once per page visit
+  // (the cart hydrates after mount, so wait for its items).
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    armTrack('begin_checkout', { qty: items.reduce((sum, i) => sum + i.quantity, 0) });
+  }, [items]);
   const { customer, token, loading: authLoading, refreshProfile } = useAuth();
 
   const [hydrated, setHydrated] = useState(false);

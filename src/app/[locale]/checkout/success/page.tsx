@@ -20,6 +20,7 @@ import {
 } from '@/lib/checkout';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
 import { orderStatusLabel } from '@/lib/order-status';
+import { armTrack } from '@/lib/armTrack';
 
 const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
 const c = { main: palette.primary, bg: palette.bgLight };
@@ -75,6 +76,12 @@ function SuccessContent() {
   // without our query — then the checkout's own marker names the order, whoever
   // placed it (the account notice only exists for auto-registered guests).
   const effectiveOrderId = orderId || handoff?.pendingOrderId || notice?.orderId || '';
+
+  // Own ARM analytics (nav.js): order placed — the BFF links the visit to the
+  // order by its number and counts it once.
+  useEffect(() => {
+    if (order?.number) armTrack('purchase', { order: order.number });
+  }, [order?.number]);
 
   // Fetch order details from ARM GET /orders/{id}
   useEffect(() => {

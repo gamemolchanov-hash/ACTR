@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import type { CartItem } from '@/lib/api';
 import { palette } from '@/lib/theme';
 import { PRELAUNCH } from '@/lib/prelaunch';
+import { armTrack } from '@/lib/armTrack';
 
 interface CartContextValue {
   items: CartItem[];
@@ -79,6 +80,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setPrelaunchOpen(true);
       return;
     }
+    // Own ARM analytics (nav.js): item added to the cart.
+    armTrack('add_to_cart', { product: productId, qty: quantity });
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       if (existing) {

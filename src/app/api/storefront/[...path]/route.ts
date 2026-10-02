@@ -50,6 +50,13 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   if (auth) headers['Authorization'] = auth;
   const contentType = req.headers.get('content-type');
   if (contentType) headers['Content-Type'] = contentType;
+  // Own ARM analytics (nav.js): who the visitor is — the browser User-Agent and
+  // the Cloudflare country, under our own names (CF rejects foreign cf-* headers,
+  // FBG-388). Used only by the visit collector.
+  const clientUa = req.headers.get('user-agent');
+  if (clientUa) headers['X-Storefront-Client-UA'] = clientUa.slice(0, 512);
+  const clientCountry = (req.headers.get('cf-ipcountry') || '').trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(clientCountry)) headers['X-Storefront-Client-Country'] = clientCountry;
 
   // Client IP for the BFF rate-limiter (FBG-385, narrowed by FBG-388).
   //

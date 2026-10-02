@@ -20,6 +20,7 @@ import { routing } from '@/i18n/routing';
 import { getStorefrontConfig } from '@/lib/storefront-config';
 import { formatLocaleFromCountry } from '@/lib/format-locale';
 import { FONT_FACE_CSS, FONT_PRELOAD_HREF } from '@/lib/fonts';
+import { ArmNavScript } from '@/components/ArmNavScript';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -117,6 +118,7 @@ export default async function LocaleLayout({
                   <AuthProvider>
                     <CartProvider>
                       <CookieConsentProvider>
+                        <ArmNavScript />
                         <GeoLocaleInit currentLocale={locale} />
                         <LoyaltyProgramProvider>
                           <StoreContactProvider phone={contactPhone}>
