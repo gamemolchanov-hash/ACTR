@@ -26,6 +26,7 @@ import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { getMyOrder, getMyOrderDocument, safeHttpUrl, type CustomerOrder } from '@/lib/auth';
 import { fmtMoney } from '@/lib/money';
+import { orderCategoryDiscountOf } from '@/lib/member-price';
 import { orderStatusLabel } from '@/lib/order-status';
 import { useTranslations } from 'next-intl';
 import { useFormatLocale } from '@/providers/CurrencyProvider';
@@ -92,6 +93,9 @@ export default function OrderDetailPage() {
     0,
   ) ?? 0;
   const vat = order?.vat_amount != null ? Number(order.vat_amount) : null;
+  // Creator Club discount of the order: from the answer (`category_discount`) or the
+  // history (`category_discount` event); 0 — no row.
+  const categoryDiscount = order ? orderCategoryDiscountOf(order) : 0;
 
   return (
     <Box sx={{ overflow: 'hidden' }}>
@@ -354,6 +358,14 @@ export default function OrderDetailPage() {
                 {t('summary')}
               </Typography>
               <TotalRow label={t('summaryItems')} value={fmtMoney(itemsSubtotal, currency, formatLocale)} />
+              {categoryDiscount > 0 && (
+                <TotalRow
+                  label={t('summaryCategoryDiscount')}
+                  value={`−${fmtMoney(categoryDiscount, currency, formatLocale)}`}
+                  color="#2e7d32"
+                  testId="sf-account-order-category-discount"
+                />
+              )}
               {vat != null && vat > 0 && (
                 <TotalRow label={t('summaryVat')} value={fmtMoney(vat, currency, formatLocale)} />
               )}
@@ -390,17 +402,27 @@ export default function OrderDetailPage() {
   );
 }
 
-function TotalRow({ label, value }: { label: string; value: string }) {
+function TotalRow({
+  label,
+  value,
+  color,
+  testId,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  testId?: string;
+}) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-      <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: palette.primaryLight }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }} data-testid={testId}>
+      <Typography sx={{ fontFamily: fontBody, fontSize: 14, color: color ?? palette.primaryLight }}>
         {label}
       </Typography>
       <Typography
         sx={{
           fontFamily: fontBody,
           fontSize: 14,
-          color: palette.primary,
+          color: color ?? palette.primary,
           whiteSpace: 'nowrap',
         }}
       >

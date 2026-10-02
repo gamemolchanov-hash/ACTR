@@ -97,6 +97,15 @@ export interface CustomerOrder {
   }>;
   /** Юридические документы заказа (ÖBF, MSS) — ссылки на PDF под тем же JWT; нет — поля нет. */
   documents?: Array<{ kind: string; code: string; title: string; created_at: string | null; url: string }>;
+  /** Creator Club category discount of the order (number or {rate, discount}), if any. */
+  category_discount?: number | string | { rate?: number; discount?: number | string } | null;
+  /** Order history, if the BFF sends it: the `category_discount` event carries the same discount. */
+  history?: Array<{
+    event?: string | null;
+    type?: string | null;
+    amount?: number | string | null;
+    notes?: string | null;
+  }> | null;
 }
 
 export interface LoginResult {

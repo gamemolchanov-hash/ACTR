@@ -38,6 +38,9 @@ export interface ArmDistributorProduct {
   badge?: string | null;
   local_sku?: string | null;
   vat_rate?: number | null;
+  /** Creator Club member price per unit + rate (0.03) — only for a signed-in member. */
+  member_price?: number | string | null;
+  member_discount_rate?: number | string | null;
   product: ArmProductInner;
   category?: { id: string; name: string; slug: string } | null;
 }
@@ -62,6 +65,8 @@ export interface ArmCartValidationItem {
   name?: string;
   sku?: string;
   unitPrice?: number;
+  /** Creator Club member price per unit (signed-in member, discounted categories only). */
+  memberPrice?: number | string | null;
   /** Present for valid items; absent when valid=false (product_not_found). */
   quantity?: number;
   available?: number;
@@ -75,6 +80,8 @@ export interface ArmCartValidation {
   items: ArmCartValidationItem[];
   subtotal: number;
   allValid: boolean;
+  /** Creator Club category discount of the whole cart (absent/0 = none). */
+  category_discount?: number | string | null;
 }
 
 /**

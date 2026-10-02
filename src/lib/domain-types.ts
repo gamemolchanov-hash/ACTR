@@ -62,6 +62,8 @@ export interface ValidatedCartItem {
   name?: string;
   sku?: string;
   unitPrice?: number;
+  /** Creator Club member price per unit (server `memberPrice`); absent — list price. */
+  memberPrice?: number;
   quantity: number;
   available?: number;
   lineTotal?: number;

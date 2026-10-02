@@ -598,5 +598,8 @@
   "unsubscribe.invalid": "Bağlantı geçersiz. Ticari iletilerden hesabınızdaki «İletişim Tercihleri» bölümünden çıkabilirsiniz.",
   "unsubscribe.error": "İşlem tamamlanamadı. Lütfen tekrar deneyin.",
   "unsubscribe.retry": "Tekrar dene",
-  "unsubscribe.prefsLink": "İletişim Tercihleri"
+  "unsubscribe.prefsLink": "İletişim Tercihleri",
+  "checkout.categoryDiscount": "Creator Club indirimi (−%{pct}):",
+  "basket.categoryDiscount": "Creator Club indirimi (−%{pct}): −{amount}",
+  "account.summaryCategoryDiscount": "Creator Club indirimi"
 }

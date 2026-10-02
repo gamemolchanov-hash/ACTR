@@ -100,6 +100,7 @@ import {
 } from '@/lib/on-bilgilendirme';
 import { buildMesafeliSatisData, renderMesafeliSatis } from '@/lib/mesafeli-satis';
 import { buildLegalPayload } from '@/lib/legal-snapshot';
+import { memberDiscountPercentOf } from '@/lib/member-price';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import WalletWidget from '@/components/WalletWidget';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
@@ -373,6 +374,9 @@ export default function CheckoutPage() {
   }, [currency]);
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
+  // Creator Club: the tier discount on the configured categories — the server figure
+  // from cart/validate (member JWT); POST /orders takes the same amount off.
+  const [categoryDiscount, setCategoryDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -413,7 +417,10 @@ export default function CheckoutPage() {
   const [promoResult, setPromoResult] = useState<PromoValidationResult | null>(null);
   const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
   const promoActive = !!(promoResult && promoResult.valid);
-  const finalTotal = Math.max(0, subtotal - promoDiscount);
+  // The Creator Club discount comes off BEFORE the promo (as in POST /orders); the
+  // «−N%» label is derived from the line prices, not from the rate.
+  const memberPercent = memberDiscountPercentOf(validated);
+  const finalTotal = Math.max(0, subtotal - categoryDiscount - promoDiscount);
 
   // Creator Club wallet (FBG-385) — logged-in only, XOR with promo.
   const [walletApplied, setWalletApplied] = useState(0);
@@ -518,6 +525,7 @@ export default function CheckoutPage() {
     if (PRELAUNCH || items.length === 0) {
       setValidated([]);
       setSubtotal(0);
+      setCategoryDiscount(0);
       return;
     }
     let cancelled = false;
@@ -527,6 +535,7 @@ export default function CheckoutPage() {
         if (!cancelled) {
           setValidated(res.data.items);
           setSubtotal(res.data.subtotal);
+          setCategoryDiscount(Number(res.data.category_discount) || 0);
         }
       })
       .catch(() => {})
@@ -760,7 +769,14 @@ export default function CheckoutPage() {
           sku: v.sku,
           quantity: v.quantity,
           unitPrice: v.unitPrice ?? null,
-          lineTotal: v.lineTotal ?? null,
+          // Creator Club: the line's discount and its total at the member price —
+          // the documents must show what the order charges.
+          discountAmount:
+            v.memberPrice != null && v.unitPrice != null
+              ? Math.max(0, (v.unitPrice - v.memberPrice) * v.quantity)
+              : 0,
+          lineTotal:
+            v.memberPrice != null ? v.memberPrice * v.quantity : (v.lineTotal ?? null),
         })),
       subtotal,
       shippingCost,
@@ -1865,8 +1881,16 @@ export default function CheckoutPage() {
                   <FitText data-testid="sf-checkout-item-price" minPx={8} sx={{ color: c.main, ...textSm, mt: 0.5 }}>
                     {t('checkout.perPc', {
                       price:
-                        item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—',
+                        (item.memberPrice ?? item.unitPrice) != null
+                          ? fmtMoney(item.memberPrice ?? item.unitPrice!, currency, formatLocale)
+                          : '—',
                     })}
+                    {/* Creator Club: the member's line at the member price, list price struck */}
+                    {item.memberPrice != null && item.unitPrice != null && (
+                      <Box component="s" sx={{ color: c['40'], ml: 1 }}>
+                        {fmtMoney(item.unitPrice, currency, formatLocale)}
+                      </Box>
+                    )}
                   </FitText>
                 </Box>
                 {/* The basket is part of the order payload: it freezes with the
@@ -1896,6 +1920,16 @@ export default function CheckoutPage() {
                 {fmtMoney(kdvAmount, currency, formatLocale)}
               </Typography>
             </Stack>
+            {categoryDiscount > 0 && (
+              <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                <Typography data-testid="sf-checkout-category-discount" sx={{ color: '#2e7d32', ...text }}>
+                  {t('checkout.categoryDiscount', { pct: memberPercent })}
+                </Typography>
+                <Typography sx={{ color: '#2e7d32', ...text }}>
+                  −{fmtMoney(categoryDiscount, currency, formatLocale)}
+                </Typography>
+              </Stack>
+            )}
             {promoDiscount > 0 && (
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
                 <Typography sx={{ color: '#2e7d32', ...text }}>

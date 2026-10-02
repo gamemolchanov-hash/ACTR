@@ -34,6 +34,8 @@ import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 import { PRELAUNCH } from '@/lib/prelaunch';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
+import { memberDiscountPercentOf } from '@/lib/member-price';
+import { MemberPriceBadge } from '@/components/MemberPriceBadge';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
@@ -64,6 +66,8 @@ export default function BasketPage() {
   const { items, removeItem, updateQuantity } = useCart();
   const [validated, setValidated] = useState<ValidatedCartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
+  // Creator Club: the tier discount on the configured categories — server figure from cart/validate.
+  const [categoryDiscount, setCategoryDiscount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   // Promo code state
@@ -78,6 +82,7 @@ export default function BasketPage() {
     if (PRELAUNCH || items.length === 0) {
       setValidated([]);
       setSubtotal(0);
+      setCategoryDiscount(0);
       return;
     }
     let cancelled = false;
@@ -87,6 +92,7 @@ export default function BasketPage() {
         if (cancelled) return;
         setValidated(res.data.items);
         setSubtotal(res.data.subtotal);
+        setCategoryDiscount(Number(res.data.category_discount) || 0);
       })
       .catch(() => {})
       .finally(() => {
@@ -148,7 +154,14 @@ export default function BasketPage() {
   };
 
   const promoDiscount = promoResult?.valid ? promoResult.discount_amount || 0 : 0;
-  const finalTotal = Math.max(0, subtotal - promoDiscount);
+  // The Creator Club discount comes off BEFORE the promo (as in POST /orders);
+  // the «−N%» label is derived from the line prices, not from the rate.
+  const memberPercent = memberDiscountPercentOf(validated);
+  const finalTotal = Math.max(0, subtotal - categoryDiscount - promoDiscount);
+  // A member's line is priced at the member price (server figure), else at the list price.
+  const lineUnit = (item: ValidatedCartItem) => item.memberPrice ?? item.unitPrice;
+  const lineTotalOf = (item: ValidatedCartItem) =>
+    item.memberPrice != null ? item.memberPrice * item.quantity : item.lineTotal;
 
   /* ---- Breadcrumbs ---- */
   const breadcrumbs = (
@@ -336,15 +349,23 @@ export default function BasketPage() {
           }}
         >
           <Box sx={{ minWidth: 0 }}>
+            {(promoDiscount > 0 || categoryDiscount > 0) && (
+              <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
+                {t('basket.subtotal', { amount: fmtMoney(subtotal, currency, formatLocale) })}
+              </Typography>
+            )}
+            {categoryDiscount > 0 && (
+              <Typography data-testid="sf-cart-category-discount" sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
+                {t('basket.categoryDiscount', {
+                  pct: memberPercent,
+                  amount: fmtMoney(categoryDiscount, currency, formatLocale),
+                })}
+              </Typography>
+            )}
             {promoDiscount > 0 && (
-              <>
-                <Typography sx={{ ...info, color: c['40'], mb: 0.25 }}>
-                  {t('basket.subtotal', { amount: fmtMoney(subtotal, currency, formatLocale) })}
-                </Typography>
-                <Typography sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
-                  {t('basket.discount', { amount: fmtMoney(promoDiscount, currency, formatLocale) })}
-                </Typography>
-              </>
+              <Typography sx={{ ...info, color: '#2e7d32', mb: 0.5 }}>
+                {t('basket.discount', { amount: fmtMoney(promoDiscount, currency, formatLocale) })}
+              </Typography>
             )}
             <Typography sx={{ ...info, color: c.main, mb: 0.5 }}>{t('basket.total')}</Typography>
             <Typography sx={{ ...h2, color: c.main, lineHeight: 1.2 }}>
@@ -474,14 +495,28 @@ export default function BasketPage() {
                       bgcolor: c.bg,
                       borderRadius: idx === validated.length - 1 ? '0 0 0 20px' : 0,
                       display: 'flex',
+                      // Member price: three rows (price, struck list price, badge) stacked
+                      // within the column, not in a row over the neighbouring one.
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      gap: 0.5,
+                      px: 1,
+                      overflow: 'hidden',
                       borderTop: `1px solid ${c['20']}`,
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'}
+                      {lineUnit(item) != null ? fmtMoney(lineUnit(item)!, currency, formatLocale) : '—'}
                     </Typography>
+                    {item.memberPrice != null && item.unitPrice != null && (
+                      <>
+                        <Typography component="s" sx={{ fontSize: 12, color: c['40'], textAlign: 'center' }}>
+                          {fmtMoney(item.unitPrice, currency, formatLocale)}
+                        </Typography>
+                        <MemberPriceBadge listPrice={item.unitPrice} memberPrice={item.memberPrice} />
+                      </>
+                    )}
                   </Box>
                 ))}
               </Box>
@@ -608,7 +643,7 @@ export default function BasketPage() {
                     }}
                   >
                     <Typography sx={{ ...btn, color: c.main, textAlign: 'center' }}>
-                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency, formatLocale) : '—'}
+                      {lineTotalOf(item) != null ? fmtMoney(lineTotalOf(item)!, currency, formatLocale) : '—'}
                     </Typography>
                   </Box>
                 ))}
@@ -666,8 +701,20 @@ export default function BasketPage() {
                     {item.name}
                   </Typography>
                   <Typography sx={{ fontSize: 14, color: c.main, mb: 1 }}>
-                    {item.unitPrice != null ? fmtMoney(item.unitPrice, currency, formatLocale) : '—'}
+                    {lineUnit(item) != null ? fmtMoney(lineUnit(item)!, currency, formatLocale) : '—'}
+                    {item.memberPrice != null && item.unitPrice != null && (
+                      <Typography component="s" sx={{ fontSize: 12, color: c['40'], ml: 1 }}>
+                        {fmtMoney(item.unitPrice, currency, formatLocale)}
+                      </Typography>
+                    )}
                   </Typography>
+                  {item.memberPrice != null && item.unitPrice != null && (
+                    <MemberPriceBadge
+                      listPrice={item.unitPrice}
+                      memberPrice={item.memberPrice}
+                      sx={{ mb: 1 }}
+                    />
+                  )}
                   <Box
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                   >
@@ -714,7 +761,7 @@ export default function BasketPage() {
                       </IconButton>
                     </Box>
                     <Typography sx={{ fontSize: 15, fontWeight: 500, color: c.main }}>
-                      {item.lineTotal != null ? fmtMoney(item.lineTotal, currency, formatLocale) : '—'}
+                      {lineTotalOf(item) != null ? fmtMoney(lineTotalOf(item)!, currency, formatLocale) : '—'}
                     </Typography>
                   </Box>
                 </Box>

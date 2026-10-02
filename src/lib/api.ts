@@ -96,9 +96,11 @@ export async function fetchProducts(params?: {
       meta: { total: items.length, page, limit, totalPages: Math.ceil(items.length / limit) },
     };
   }
+  // Creator Club: with the member's JWT the catalogue carries member prices on the
+  // discounted categories; a guest's bearerHeader() is empty — same answer as before.
   const { data } = await api.get<ArmPaginated<ArmDistributorProduct>>(ENDPOINTS.products, {
     params,
-    headers: currencyHeader(),
+    headers: { ...currencyHeader(), ...bearerHeader() },
   });
   return { data: data.data.map(armToProduct), meta: data.meta };
 }
@@ -115,10 +117,10 @@ export async function fetchProduct(id: string, locale?: string): Promise<{ data:
   // при отсутствии cookie NEXT_LOCALE (KVKK, İşlevsel off) дописал бы дефолт tr-TR и
   // product-detail получал бы турецкий текст при EN-интерфейсе (FBG-395).
   const lang = productLangParam(locale);
-  const { data } = await api.get<{ data: ArmDistributorProduct }>(
-    ENDPOINTS.product(id),
-    lang ? { params: { lang } } : undefined,
-  );
+  const { data } = await api.get<{ data: ArmDistributorProduct }>(ENDPOINTS.product(id), {
+    ...(lang ? { params: { lang } } : {}),
+    headers: bearerHeader(),
+  });
   return { data: armToProduct(data.data) };
 }
 
@@ -185,7 +187,9 @@ export async function validatePromo(
   const { data } = await api.post(
     ENDPOINTS.promoValidate,
     { code, subtotal },
-    { headers: currencyHeader() },
+    // Member JWT: ARM takes the promo off the cart AFTER the Creator Club discount,
+    // exactly as POST /orders does.
+    { headers: { ...currencyHeader(), ...bearerHeader() } },
   );
   return { data: armToPromoResult(data.data) };
 }
@@ -223,12 +227,15 @@ export async function validateCart(items: CartItem[]): Promise<{
     items: ValidatedCartItem[];
     subtotal: number;
     allValid: boolean;
+    /** Creator Club discount of the cart (0 — none / guest). */
+    category_discount: number;
   };
 }> {
+  // Member JWT → member prices of the lines and `category_discount`; a guest gets none.
   const { data } = await api.post(
     ENDPOINTS.cartValidate,
     { items: items.map(toArm) },
-    { headers: currencyHeader() },
+    { headers: { ...currencyHeader(), ...bearerHeader() } },
   );
   return { data: armToValidatedCart(data.data) };
 }

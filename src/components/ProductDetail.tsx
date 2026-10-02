@@ -34,6 +34,9 @@ import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { imgCard } from '@/lib/image-url';
+import { memberPriceOf } from '@/lib/member-price';
+import { MemberPriceBadge } from '@/components/MemberPriceBadge';
+import { useCustomerId } from '@/lib/auth-context';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 
@@ -203,14 +206,18 @@ export function ProductDetail({ productId }: ProductDetailProps) {
 
   // FBG-258: locale входит в ключ кэша — при переключении en↔tr товар перезапрашивается
   // (иначе React Query отдал бы закэшированный текст чужого языка в пределах staleTime).
+  // Creator Club: a member gets a member price — the cache is not shared with a guest.
+  const customerId = useCustomerId();
   const { data, isLoading, error } = useQuery({
-    queryKey: ['product', productId, locale],
+    queryKey: ['product', productId, locale, customerId],
     queryFn: () => fetchProduct(productId, locale),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
   const product = data?.data;
+  // Creator Club member price of this product (server figure; null = list price).
+  const memberPrice = memberPriceOf(product?.price, product?.member_price);
 
   // Панели «Описание / Применение / Нанесение»: свёрнуты, одна раскрыта по клику (порт с ACRU 22.09).
   const [openPanel, setOpenPanel] = useState<'detail' | 'usage' | 'application' | null>(null);
@@ -410,12 +417,25 @@ export function ProductDetail({ productId }: ProductDetailProps) {
               Pre-launch (FBG-427): "coming soon" replaces the price; the per-unit
               and KDV Dahil labels are hidden (meaningless without a price). */}
           <Box sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <Typography variant="h1">
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+              <Typography
+                variant="h1"
+                data-testid={memberPrice !== null && !PRELAUNCH ? 'sf-member-price' : undefined}
+              >
                 {PRELAUNCH
                   ? t('prelaunch.comingSoon')
-                  : fmtMoney(product.price, currency, formatLocale)}
+                  : fmtMoney(memberPrice ?? product.price, currency, formatLocale)}
               </Typography>
+              {/* Creator Club: the list price struck through next to the member price */}
+              {memberPrice !== null && !PRELAUNCH && (
+                <Typography
+                  component="s"
+                  data-testid="sf-product-list-price"
+                  sx={{ fontSize: 16, color: palette.primaryLight }}
+                >
+                  {fmtMoney(product.price, currency, formatLocale)}
+                </Typography>
+              )}
               {!PRELAUNCH && (
                 <Typography variant="body1" sx={{ lineHeight: '20px' }}>
                   {t('product.perUnit')}
@@ -433,6 +453,9 @@ export function ProductDetail({ productId }: ProductDetailProps) {
               >
                 {t('price.kdvDahil')}
               </Typography>
+            )}
+            {!PRELAUNCH && (
+              <MemberPriceBadge listPrice={product.price} memberPrice={memberPrice} sx={{ mt: 1 }} />
             )}
           </Box>
 

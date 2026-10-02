@@ -135,3 +135,28 @@ describe('fetchShippingRates — il/ilçe for the per-district price', () => {
     expect(config.params.city).toBeUndefined();
   });
 });
+
+describe('Creator Club — member JWT on catalogue, cart and promo', () => {
+  it('validateCart sends the bearer and maps memberPrice + category_discount', async () => {
+    localStorage.setItem('arm_token', 'jwt-1');
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          items: [
+            { distributorProductId: 'dp1', valid: true, quantity: 1, unitPrice: '950.00', memberPrice: '921.50', lineTotal: '950.00' },
+          ],
+          subtotal: 950,
+          allValid: true,
+          category_discount: '28.50',
+        },
+      },
+    });
+    const { validateCart } = await import('./api');
+    const { data } = await validateCart([{ productId: 'dp1', quantity: 1 } as never]);
+    expect(data.category_discount).toBe(28.5);
+    expect(data.items[0]).toMatchObject({ unitPrice: 950, memberPrice: 921.5, lineTotal: 950 });
+    const [, , config] = mockPost.mock.calls[0];
+    expect(config.headers).toMatchObject({ 'X-Currency': 'TRY', Authorization: 'Bearer jwt-1' });
+    localStorage.removeItem('arm_token');
+  });
+});

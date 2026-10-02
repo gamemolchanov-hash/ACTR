@@ -115,6 +115,24 @@ describe('renderOnBilgilendirmeFormu', () => {
     expect(md).toMatch(/Ödenecek Toplam Tutar \| 230,00 TL/);
   });
 
+  it('shows the Creator Club discount per line and in the totals (AC-TR-000013 case)', () => {
+    // 2 × 950 color gels, member price 921,50: the order charged 1 900 − 57 + 144 = 1 987,
+    // the documents said 2 044 with a zero discount before (02.10.2026).
+    const md = render({
+      items: [
+        { name: 'CANARY', sku: '078', quantity: 1, unitPrice: 950, discountAmount: 28.5, lineTotal: 921.5 },
+        { name: 'MINT', sku: '129', quantity: 1, unitPrice: 950, discountAmount: 28.5, lineTotal: 921.5 },
+      ],
+      subtotal: 1900,
+      shippingCost: 144,
+      grandTotal: 1987,
+    });
+    expect(md.match(/İndirim Tutarı \| 28,50 TL/g)).toHaveLength(2);
+    expect(md).toMatch(/KDV Dâhil Toplam Ürün Bedeli \| 921,50 TL/);
+    expect(md).toMatch(/Toplam İndirim \| 57,00 TL/);
+    expect(md).toMatch(/Ödenecek Toplam Tutar \| 1\.987,00 TL/);
+  });
+
   it('shows the wallet as a payment split, not a discount, keeping the full price', () => {
     // subtotal 250 + shipping 30, no promo → order price 280; wallet 50 covers
     // part, card pays 230. "Toplam İndirim" stays 0 and "Ödenecek" is the full 280.

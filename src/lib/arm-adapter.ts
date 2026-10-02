@@ -35,6 +35,13 @@ function adaptImages(imgs?: ArmProductImage[]): ProductImage[] | undefined {
   }));
 }
 
+/** A finite number or null (absent / not a number) — Directus sends decimals as strings. */
+function finiteOrNull(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function armToProduct(dp: ArmDistributorProduct): Product {
   const p = dp.product;
   return {
@@ -50,6 +57,9 @@ export function armToProduct(dp: ArmDistributorProduct): Product {
     video_url: p.video_url ?? null,
     volume_ml: p.volume_ml ?? null,
     price: Number(dp.price),
+    // Creator Club member price: absent / not a number → null = list price.
+    member_price: finiteOrNull(dp.member_price),
+    member_discount_rate: finiteOrNull(dp.member_discount_rate),
     weight: p.weight ?? null,
     volume: null,
     length: null,
@@ -76,6 +86,7 @@ export function armToValidatedCart(v: ArmCartValidation): {
   items: ValidatedCartItem[];
   subtotal: number;
   allValid: boolean;
+  category_discount: number;
 } {
   return {
     items: v.items.map((it) => ({
@@ -83,16 +94,18 @@ export function armToValidatedCart(v: ArmCartValidation): {
       valid: it.valid,
       name: it.name,
       sku: it.sku,
-      unitPrice: it.unitPrice,
+      unitPrice: it.unitPrice != null ? Number(it.unitPrice) : undefined,
+      memberPrice: finiteOrNull(it.memberPrice) ?? undefined,
       // quantity is absent for product_not_found invalid items — default to 0
       quantity: it.quantity ?? 0,
       available: it.available,
-      lineTotal: it.lineTotal,
+      lineTotal: it.lineTotal != null ? Number(it.lineTotal) : undefined,
       image: it.image ?? null,
       error: it.error ?? null,
     })),
     subtotal: v.subtotal,
     allValid: v.allValid,
+    category_discount: finiteOrNull(v.category_discount) ?? 0,
   };
 }
 

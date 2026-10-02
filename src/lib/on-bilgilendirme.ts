@@ -20,7 +20,8 @@
  *    checkout's `totalWithShipping` (subtotal − promo + shipping, already
  *    clamped) — passed in and never recomputed here, so it can't diverge from
  *    the checkout (incl. the promo>subtotal clamp edge). "Toplam İndirim" carries
- *    the promo discount ONLY, derived as subtotal + shipping − grandTotal so the
+ *    the promo and the Creator Club category discount (also shown per line as
+ *    "İndirim Tutarı"), derived as subtotal + shipping − grandTotal so the
  *    summary reconciles.
  *  - The Creator Club wallet (FBG-385) is a payment instrument (store credit),
  *    NOT a discount on the goods: when applied it is shown as a wallet/card split
@@ -76,6 +77,11 @@ export interface OnBilgilendirmeLineInput {
   unitPrice?: number | null;
   /** KDV-inclusive line total; falls back to unitPrice × quantity. */
   lineTotal?: number | null;
+  /**
+   * Discount on this line (Creator Club tier discount on the configured
+   * categories) — "İndirim Tutarı" of the line; `lineTotal` is then after it.
+   */
+  discountAmount?: number | null;
 }
 
 export interface BuildOnBilgilendirmeInput {
@@ -236,14 +242,15 @@ export function buildOnBilgilendirmeData(input: BuildOnBilgilendirmeInput): OnBi
       essential_characteristics: NOT_APPLICABLE,
       quantity: String(it.quantity),
       unit_price_vat_included: formatObfAmount(it.unitPrice),
-      discount_amount: formatObfAmount(0),
+      discount_amount: formatObfAmount(it.discountAmount ?? 0),
       line_total: formatObfAmount(lineTotal),
       currency,
     };
   });
 
-  // "Toplam İndirim" = promo discount only, derived from the full order price so
-  // the summary reconciles (Ara Toplam − Toplam İndirim + Teslimat = Ödenecek).
+  // "Toplam İndirim" = promo + Creator Club category discount, derived from the
+  // full order price so the summary reconciles (Ara Toplam − Toplam İndirim +
+  // Teslimat = Ödenecek).
   // The wallet is NOT a discount — it splits the payment below.
   const additionalCosts = 0;
   const totalDiscount = Math.max(
