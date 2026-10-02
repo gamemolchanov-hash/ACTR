@@ -549,7 +549,15 @@ export default function CheckoutPage() {
     // is stale. Without this the auto-select below never fires (its guard sees a
     // non-empty id) and the Proceed button stays disabled (FBG-393).
     setSelectedRateId('');
-    fetchShippingRates({ country: form.country, postalCode: form.zip, items })
+    // il + ilçe: the warehouse prices delivery by district (in-zone / out-of-zone),
+    // so the quote must follow the address the order will carry.
+    fetchShippingRates({
+      country: form.country,
+      postalCode: form.zip,
+      items,
+      state: form.province,
+      city: form.city,
+    })
       .then((res) => {
         if (cancelled) return;
         if (res.rates?.length) {
@@ -577,7 +585,7 @@ export default function CheckoutPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form.country, form.zip]);
+  }, [step, form.country, form.zip, form.province, form.city]);
 
   const handleField = (name: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [name]: e.target.value }));

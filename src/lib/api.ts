@@ -240,11 +240,15 @@ export interface FetchShippingRatesParams {
   postalCode: string;
   items: CartItem[];
   currency?: string;
+  /** Province (il) — with `city` picks the warehouse's per-district price (in-zone / out-of-zone). */
+  state?: string;
+  /** District (ilçe). */
+  city?: string;
 }
 
 /**
  * Fetch available shipping rates from ARM.
- * ARM contract: GET /shipping/rates?country&postalCode&currency&items=JSON
+ * ARM contract: GET /shipping/rates?country&postalCode&currency&items=JSON&state&city
  */
 export async function fetchShippingRates(
   params: FetchShippingRatesParams,
@@ -255,6 +259,8 @@ export async function fetchShippingRates(
       postalCode: params.postalCode,
       currency: params.currency || storefrontCurrency(),
       items: JSON.stringify(params.items.map(toArm)),
+      state: params.state || undefined,
+      city: params.city || undefined,
     },
     headers: currencyHeader(),
   });

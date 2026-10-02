@@ -110,3 +110,28 @@ describe('fetchProduct — ?lang locale param (FBG-258)', () => {
     expect(data.description).toBe('English description');
   });
 });
+
+describe('fetchShippingRates — il/ilçe for the per-district price', () => {
+  it('sends state (il) and city (ilçe) with the quote', async () => {
+    mockGet.mockResolvedValue({ data: { rates: [], fedex_configured: false } });
+    const { fetchShippingRates } = await import('./api');
+    await fetchShippingRates({
+      country: 'TR',
+      postalCode: '07070',
+      items: [],
+      state: 'Antalya',
+      city: 'Konyaaltı',
+    });
+    const [, config] = mockGet.mock.calls[0];
+    expect(config.params).toMatchObject({ country: 'TR', state: 'Antalya', city: 'Konyaaltı' });
+  });
+
+  it('omits them when the address has none (the method price applies)', async () => {
+    mockGet.mockResolvedValue({ data: { rates: [], fedex_configured: false } });
+    const { fetchShippingRates } = await import('./api');
+    await fetchShippingRates({ country: 'TR', postalCode: '34000', items: [] });
+    const [, config] = mockGet.mock.calls[0];
+    expect(config.params.state).toBeUndefined();
+    expect(config.params.city).toBeUndefined();
+  });
+});
