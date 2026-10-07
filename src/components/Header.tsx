@@ -229,7 +229,7 @@ export function Header() {
         }}
       >
         <Link href="/">
-          <img src="/logo.svg?v=2" alt="American Creator" style={{ width: 240, height: 57 }} />
+          <img src="/logo.svg?v=3" alt="American Creator" style={{ width: 240, height: 57 }} />
         </Link>
 
         <Box sx={{ ml: 3, display: { xs: 'none', lg: 'block' } }}>
@@ -704,8 +704,9 @@ export function Header() {
 
       {/* Row 2: логотип + поиск + клуб + корзина */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: 48 }}>
+        {/* ?v=3: Cloudflare's Milan PoP kept a year-long cached 404 of ?v=2 from the 30.09 deploy. */}
         <Link href="/" style={{ flexShrink: 0, display: 'flex' }}>
-          <img src="/logo.svg?v=2" alt="American Creator" style={{ height: 8, width: 'auto' }} />
+          <img src="/logo.svg?v=3" alt="American Creator" style={{ height: 8, width: 'auto' }} />
         </Link>
         {/* touchEvent=false: десктопный и мобильный списки делят одно состояние, и на телефоне
             скрытый «чужой» ClickAwayListener закрывал подсказки по touchend — раньше click,

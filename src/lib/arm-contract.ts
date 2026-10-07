@@ -118,6 +118,9 @@ export const ENDPOINTS = {
     walletHistory: '/auth/me/wallet/history',
     loyaltyHistory: '/auth/me/loyalty/history',
     profile: '/auth/me/profile',
+    // Banners the buyer closed with × (ARM 21.09.2026, same endpoints as ACRU).
+    banners: '/auth/me/banners',
+    bannersDismiss: '/auth/me/banners/dismiss',
     // Ticari elektronik ileti consents (FBG-409/FBG-410): GET reads the derived
     // per-channel state, POST appends onay/ret events — same path, both methods.
     consents: '/auth/me/consents',

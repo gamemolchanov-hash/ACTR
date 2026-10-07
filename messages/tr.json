@@ -601,5 +601,11 @@
   "unsubscribe.prefsLink": "İletişim Tercihleri",
   "checkout.categoryDiscount": "Creator Club indirimi (−%{pct}):",
   "basket.categoryDiscount": "Creator Club indirimi (−%{pct}): −{amount}",
-  "account.summaryCategoryDiscount": "Creator Club indirimi"
+  "account.summaryCategoryDiscount": "Creator Club indirimi",
+  "promo.close": "Kapat",
+  "promo.deliveryAlt": "{amount} ve üzeri siparişlerde ücretsiz kargo",
+  "promo.deliveryHeadline1": "ÜCRETSİZ",
+  "promo.deliveryHeadline2": "KARGO",
+  "promo.deliveryLine1": "{amount}",
+  "promo.deliveryLine2": "VE ÜZERİ"
 }

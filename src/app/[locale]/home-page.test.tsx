@@ -19,6 +19,10 @@ vi.mock('@/components/CatalogView', () => ({
   CatalogView: () => <div data-testid="catalog-view" />,
 }));
 
+vi.mock('@/components/BannerSlot', () => ({
+  BannerSlot: () => <div data-testid="banner-slot" />,
+}));
+
 vi.mock('@/components/PrelaunchNotice', () => ({
   default: () => <div data-testid="prelaunch-notice" />,
 }));

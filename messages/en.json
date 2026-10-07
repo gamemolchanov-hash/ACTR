@@ -601,5 +601,11 @@
   "unsubscribe.prefsLink": "Communication Preferences",
   "checkout.categoryDiscount": "Creator Club discount (−{pct}%):",
   "basket.categoryDiscount": "Creator Club discount (−{pct}%): −{amount}",
-  "account.summaryCategoryDiscount": "Creator Club discount"
+  "account.summaryCategoryDiscount": "Creator Club discount",
+  "promo.close": "Close",
+  "promo.deliveryAlt": "Free shipping on orders from {amount}",
+  "promo.deliveryHeadline1": "FREE",
+  "promo.deliveryHeadline2": "SHIPPING",
+  "promo.deliveryLine1": "ORDERS FROM",
+  "promo.deliveryLine2": "{amount}"
 }

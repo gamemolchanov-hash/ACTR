@@ -78,6 +78,20 @@ export function freeShippingThreshold(
 }
 
 /**
+ * The smallest cart total that makes ANY offered method free — what the
+ * "free shipping from …" banner announces. `null` when no method has a
+ * threshold (the banner is then not shown at all).
+ */
+export function lowestFreeShippingThreshold(
+  rates: ReadonlyArray<Pick<ArmShippingRate, 'is_free' | 'free_threshold'>> | undefined,
+): number | null {
+  const values = (rates ?? [])
+    .map((r) => freeShippingThreshold({ is_free: false, free_threshold: r.free_threshold }))
+    .filter((v): v is number => v != null);
+  return values.length ? Math.min(...values) : null;
+}
+
+/**
  * Who the checkout is serving right now (FBG-477). `pending` is the honest
  * third state: the server render and the first client render BOTH look like a
  * guest to `useAuth()` (SSR has no token; the client has just read one from

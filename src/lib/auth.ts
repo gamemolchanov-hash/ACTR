@@ -287,6 +287,18 @@ export async function getMyOrder(id: string): Promise<{ data: CustomerOrder }> {
   return res.data;
 }
 
+/** Banners the buyer closed on their account (GET /auth/me/banners). */
+export async function getMyBanners(): Promise<string[]> {
+  const res = await api.get(ENDPOINTS.auth.banners, { headers: bearerHeader() });
+  return Array.isArray(res.data?.data?.dismissed) ? res.data.data.dismissed : [];
+}
+
+/** Add closed banners to the account (POST /auth/me/banners/dismiss) → the full list. */
+export async function dismissMyBanners(ids: string[]): Promise<string[]> {
+  const res = await api.post(ENDPOINTS.auth.bannersDismiss, { ids }, { headers: bearerHeader() });
+  return Array.isArray(res.data?.data?.dismissed) ? res.data.data.dismissed : ids;
+}
+
 export async function updateProfile(data: {
   name?: string;
   phone?: string;
