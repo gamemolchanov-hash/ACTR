@@ -15,7 +15,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { getLoyaltyProgram, getStorefrontConfig } from './storefront-config';
+import {
+  getLoyaltyProgram,
+  getLoyaltyProgramPublic,
+  getStorefrontConfig,
+} from './storefront-config';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
@@ -115,5 +119,40 @@ describe('getLoyaltyProgram — launch gate read', () => {
     arrange();
 
     expect(await getLoyaltyProgram()).toEqual({ program: null, available: false });
+  });
+});
+
+describe('getLoyaltyProgramPublic — the /rewards landing projection', () => {
+  const PROGRAM = {
+    program: 'cashback_wallet',
+    tiers: [{ code: 'base', min_xp: 0, cashback_rate: 0.05 }],
+    wallet_cap: 0.4,
+  };
+
+  it('returns the whole descriptor, read with NO data cache', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: { loyalty_program: PROGRAM } }));
+
+    expect(await getLoyaltyProgramPublic()).toEqual({ program: PROGRAM, available: true });
+    const init = fetchMock.mock.calls[0][1];
+    expect(init).toMatchObject({ cache: 'no-store' });
+    expect(init).not.toHaveProperty('next');
+  });
+
+  it('reads a top-level descriptor too', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ loyalty_program: PROGRAM }));
+
+    expect((await getLoyaltyProgramPublic()).program).toEqual(PROGRAM);
+  });
+
+  it('reports a storefront with no descriptor as available with a null programme', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: { currency: 'TRY' } }));
+
+    expect(await getLoyaltyProgramPublic()).toEqual({ program: null, available: true });
+  });
+
+  it('marks a failed read unavailable instead of "no programme"', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}, false, 502));
+
+    expect(await getLoyaltyProgramPublic()).toEqual({ program: null, available: false });
   });
 });

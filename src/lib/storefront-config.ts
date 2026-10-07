@@ -59,7 +59,7 @@ interface RawConfig {
   country?: string | null;
   locale?: string | null;
   contact_phone?: string | null;
-  loyalty_program?: { program?: string | null } | null;
+  loyalty_program?: ({ program?: string | null } & Record<string, unknown>) | null;
   data?: RawConfig;
 }
 
@@ -126,6 +126,29 @@ export async function getLoyaltyProgram(): Promise<LoyaltyProgramState> {
 
   const program = data?.data?.loyalty_program?.program ?? data?.loyalty_program?.program;
   return { program: program != null ? String(program) : null, available: true };
+}
+
+/** The whole public programme projection, read fresh (see `getLoyaltyProgramPublic`). */
+export type LoyaltyProgramPublicState = {
+  /** `config.loyalty_program` as the BFF sent it, or null when the storefront has none. */
+  program: Record<string, unknown> | null;
+  /** `false` → the request failed: the programme is unknown, NOT switched off. */
+  available: boolean;
+};
+
+/**
+ * The full public programme projection (tiers, thresholds, wallet cap, XP window
+ * and lifetime, category discounts) for the /rewards landing. Uncached like
+ * `getLoyaltyProgram()`: the owner's switch must show up immediately.
+ */
+export async function getLoyaltyProgramPublic(): Promise<LoyaltyProgramPublicState> {
+  const data = await readConfig({ cache: 'no-store' });
+  if (!data) return { program: null, available: false };
+  const program = data?.data?.loyalty_program ?? data?.loyalty_program ?? null;
+  return {
+    program: program && typeof program === 'object' ? (program as Record<string, unknown>) : null,
+    available: true,
+  };
 }
 
 /** @deprecated Use `getStorefrontConfig()` — kept for backwards-compat call sites. */
