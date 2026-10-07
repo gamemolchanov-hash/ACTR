@@ -38,17 +38,5 @@ export function fmtMoney(
  * (₺3.000, not ₺3.000,00); a fractional one keeps two digits like everywhere else.
  */
 export function fmtMoneyShort(amount: number, currency?: string, locale?: string): string {
-  if (!Number.isInteger(amount)) return fmtMoney(amount, currency, locale);
-  const curr = currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
-  const loc = locale || 'en-US';
-  try {
-    return new Intl.NumberFormat(loc, {
-      style: 'currency',
-      currency: curr,
-      currencyDisplay: 'narrowSymbol',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${new Intl.NumberFormat(loc).format(amount)} ${curr}`;
-  }
+  return fmtMoney(amount, currency, locale, Number.isInteger(amount) ? 0 : 2);
 }
