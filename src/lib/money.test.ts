@@ -25,6 +25,11 @@ describe('fmtMoney()', () => {
     expect(result).toContain('₺');
   });
 
+  it('can drop the decimals for a unit label (₺1 = 1 XP)', () => {
+    expect(fmtMoney(1, 'TRY', 'tr-TR', 0)).toBe('₺1');
+    expect(fmtMoney(1, 'TRY', 'tr-TR')).toBe('₺1,00');
+  });
+
   it('formats USD amount with en-US locale', () => {
     const result = fmtMoney(9.99, 'USD', 'en-US');
     expect(result).toBe('$9.99');

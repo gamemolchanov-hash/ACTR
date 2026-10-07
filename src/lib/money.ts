@@ -8,8 +8,15 @@
  * @param amount - The amount to format
  * @param currency - ISO 4217 currency code. Falls back to NEXT_PUBLIC_STOREFRONT_CURRENCY → 'TRY' (WR-05)
  * @param locale - BCP-47 locale string (e.g. 'tr-TR', 'en-US'). Falls back to 'en-US'
+ * @param fractionDigits - Decimals to show (default 2). 0 is for unit labels such as
+ *   "₺1 = 1 XP" on the Creator Club page, never for prices or balances.
  */
-export function fmtMoney(amount: number, currency?: string, locale?: string): string {
+export function fmtMoney(
+  amount: number,
+  currency?: string,
+  locale?: string,
+  fractionDigits = 2,
+): string {
   const curr = currency || process.env.NEXT_PUBLIC_STOREFRONT_CURRENCY || 'TRY';
   const loc = locale || 'en-US';
   try {
@@ -17,8 +24,8 @@ export function fmtMoney(amount: number, currency?: string, locale?: string): st
       style: 'currency',
       currency: curr,
       currencyDisplay: 'narrowSymbol',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(amount);
   } catch {
     // Unknown currency code — fall back to plain number + code

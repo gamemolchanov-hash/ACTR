@@ -14,8 +14,8 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
  * JS runs. Bots, curl and JS-less clients see the redirect too, and the route is
  * additionally marked noindex while the programme is dormant.
  *
- * The page itself is a client component (it needs the session for the member
- * view), so its title, description and hreflang alternates live here as well.
+ * Title, description and hreflang alternates live here too; the page reads the
+ * full programme projection itself and renders the client view.
  */
 
 // The gate depends on live backend state, so it must be evaluated per request:
@@ -73,8 +73,7 @@ export default async function RewardsLayout({
 }) {
   const { locale } = await params;
   // Only a storefront that CONFIRMS another programme closes the route. When
-  // /config is unreadable the page renders and handles it client-side (its own
-  // fetch either succeeds, or shows the error + retry).
+  // /config is unreadable the page renders its own error + retry instead.
   if ((await readProgramme()) === 'dormant') redirect({ href: '/', locale });
 
   return children;
