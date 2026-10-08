@@ -622,5 +622,17 @@
   "promo.deliveryHeadline1": "FREE",
   "promo.deliveryHeadline2": "SHIPPING",
   "promo.deliveryLine1": "ORDERS FROM",
-  "promo.deliveryLine2": "{amount}"
+  "promo.deliveryLine2": "{amount}",
+  "auth.firstNameLabel": "First name",
+  "auth.firstNamePlaceholder": "First name",
+  "auth.firstNameHint": "Enter your first name.",
+  "auth.lastNameLabel": "Last name",
+  "auth.lastNamePlaceholder": "Last name",
+  "auth.lastNameHint": "Your first and last name appear on your invoice.",
+  "auth.lastNameRequired": "Please enter your last name.",
+  "account.firstNameLabel": "First name",
+  "account.lastNameLabel": "Last name",
+  "checkout.form.firstName": "First name",
+  "checkout.form.lastName": "Last name",
+  "checkout.errors.lastNameRequired": "Please enter your last name — it appears on your invoice."
 }

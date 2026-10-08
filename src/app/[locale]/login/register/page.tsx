@@ -34,6 +34,7 @@ import {
   type UiChannel,
 } from '@/lib/ticari-ileti';
 import { useTranslations, useLocale } from 'next-intl';
+import { isCompleteName, joinFullName } from '@/lib/full-name';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -91,7 +92,9 @@ export default function RegisterPage() {
   const tConsent = useTranslations('ticariIleti');
   const locale = useLocale();
 
-  const [name, setName] = useState('');
+  // Ad + Soyad — два поля, в аккаунт уходит одной строкой (фатуре нужна фамилия).
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -138,7 +141,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !phone || !password || !confirmPassword) return;
+    if (!isCompleteName(firstName, lastName) || !email || !phone || !password || !confirmPassword)
+      return;
 
     // honeypot check
     if (website) return;
@@ -191,7 +195,7 @@ export default function RegisterPage() {
       const emailNorm = email.trim().toLowerCase();
       const consents = buildRegisterConsents(consentSel, { email: emailNorm, phone });
       await register({
-        name: name.trim(),
+        name: joinFullName(firstName, lastName),
         email: emailNorm,
         phone: phone || undefined,
         password,
@@ -235,7 +239,14 @@ export default function RegisterPage() {
 
   // NOTE: the ticari ileti boxes are deliberately absent from `isValid` — canon
   // §9 forbids making consent a condition of registration.
-  const isValid = name && email && phone && password && confirmPassword && captchaInput && agreed;
+  const isValid =
+    isCompleteName(firstName, lastName) &&
+    email &&
+    phone &&
+    password &&
+    confirmPassword &&
+    captchaInput &&
+    agreed;
 
   const phoneGrantUnusable =
     (consentSel.sms === true || consentSel.arama === true || consentSel.whatsapp === true) &&
@@ -296,18 +307,25 @@ export default function RegisterPage() {
           }}
         >
           <Box component="form" onSubmit={handleSubmit} autoComplete="off">
-            {/* Name */}
-            <FieldBlock
-              label={t('nameLabel')}
-              required
-              hint={t('nameHint')}
-            >
+            {/* Ad + Soyad */}
+            <FieldBlock label={t('firstNameLabel')} required hint={t('firstNameHint')}>
               <InputBase
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t('namePlaceholder')}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder={t('firstNamePlaceholder')}
                 disabled={loading}
                 sx={inputSx}
+                inputProps={{ 'data-testid': 'register-first-name', autoComplete: 'given-name' }}
+              />
+            </FieldBlock>
+            <FieldBlock label={t('lastNameLabel')} required hint={t('lastNameHint')}>
+              <InputBase
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder={t('lastNamePlaceholder')}
+                disabled={loading}
+                sx={inputSx}
+                inputProps={{ 'data-testid': 'register-last-name', autoComplete: 'family-name' }}
               />
             </FieldBlock>
 

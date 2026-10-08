@@ -42,6 +42,7 @@ import {
   provinceByZip,
 } from '@/lib/tr-provinces';
 import { districtsOf, matchDistrict } from '@/lib/tr-districts';
+import { isCompleteName, joinFullName, splitFullName } from '@/lib/full-name';
 import {
   fillFromZip,
   joinStreet,
@@ -192,7 +193,9 @@ const btnSx = {
 
 interface FormData {
   email: string;
-  name: string;
+  /** Ad + Soyad — два поля; в заказ уходит одной строкой (e-Arşiv: нужна фамилия). */
+  firstName: string;
+  lastName: string;
   phone: string;
   /** ISO-3166-1 alpha-2; empty until picked (or the warehouse ships to one country only). */
   country: string;
@@ -211,7 +214,8 @@ interface FormData {
 
 const INITIAL_FORM: FormData = {
   email: '',
-  name: '',
+  firstName: '',
+  lastName: '',
   phone: '',
   country: '',
   province: '',
@@ -471,10 +475,15 @@ export default function CheckoutPage() {
 
   // Hydrate from sessionStorage on mount (client only)
   useEffect(() => {
-    const saved = loadFromSession<Partial<FormData>>(CHECKOUT_FORM_KEY, {});
+    const saved = loadFromSession<Partial<FormData> & { name?: string }>(CHECKOUT_FORM_KEY, {});
+    // Черновик до разделения Ad/Soyad хранил одно `name`.
+    const { name: legacyName, ...savedRest } = saved;
+    const legacy =
+      legacyName && !saved.firstName && !saved.lastName ? splitFullName(legacyName) : null;
     setForm((prev) => ({
       ...prev,
-      ...saved,
+      ...savedRest,
+      ...(legacy ? { firstName: legacy.first, lastName: legacy.last } : {}),
       // An old draft (no province key) or a tampered/non-canonical value must
       // not reach shipping.state — the buyer just re-picks.
       province: isTrProvince(saved.province) ? saved.province : '',
@@ -498,7 +507,11 @@ export default function CheckoutPage() {
     if (!hydrated || !customer) return;
     setForm((prev) => ({
       ...prev,
-      name: prev.name || customer.name || '',
+      ...(prev.firstName || prev.lastName
+        ? {}
+        : (({ first, last }) => ({ firstName: first, lastName: last }))(
+            splitFullName(customer.name),
+          )),
       email: prev.email || customer.email || '',
       phone: prev.phone || customer.phone || '',
     }));
@@ -717,7 +730,7 @@ export default function CheckoutPage() {
     return !!(
       form.email &&
       (!guestEmailStrict || looksLikeEmail(form.email)) &&
-      form.name &&
+      isCompleteName(form.firstName, form.lastName) &&
       form.phone &&
       form.country &&
       (form.country !== 'TR' ||
@@ -768,7 +781,11 @@ export default function CheckoutPage() {
   // Один сборщик на превью в модале и на снимок для ARM при отправке заказа.
   const buildLegalDocInput = (generatedAt: Date): BuildOnBilgilendirmeInput => ({
       generatedAt,
-      customer: { name: form.name, phone: form.phone, email: form.email },
+      customer: {
+        name: joinFullName(form.firstName, form.lastName),
+        phone: form.phone,
+        email: form.email,
+      },
       address: formatObfAddress(form, countries),
       currencyLabel: currency === 'TRY' ? 'TL' : currency,
       items: validated
@@ -872,7 +889,7 @@ export default function CheckoutPage() {
         const legal = buildLegalPayload(legalDocInput ?? buildLegalDocInput(acceptedAt), acceptedAt);
         const orderRes = await createOrder({
           customer: {
-            name: form.name,
+            name: joinFullName(form.firstName, form.lastName),
             phone: form.phone,
             email: email || undefined,
           },
@@ -1121,6 +1138,7 @@ export default function CheckoutPage() {
         disabled={inputsLocked}
         error={!!errorText}
         helperText={errorText || undefined}
+        inputProps={{ 'aria-label': label }}
         sx={inputSx}
       />
     </Box>
@@ -1174,7 +1192,7 @@ export default function CheckoutPage() {
       {step > 1 && (
         <Stack spacing={'9px'} sx={{ mt: 1, mb: 1 }}>
           {[
-            { label: t('checkout.form.name'), value: form.name },
+            { label: t('checkout.form.name'), value: joinFullName(form.firstName, form.lastName) },
             { label: t('checkout.form.email'), value: form.email },
             {
               label: t('checkout.form.districtProvince'),
@@ -1315,7 +1333,15 @@ export default function CheckoutPage() {
           true,
           emailInvalid ? t('checkout.errors.invalid_email') : null,
         )}
-        {field(t('checkout.form.fullName'), 'name')}
+        {field(t('checkout.form.firstName'), 'firstName')}
+        {field(
+          t('checkout.form.lastName'),
+          'lastName',
+          true,
+          form.firstName.trim() && !form.lastName.trim()
+            ? t('checkout.errors.lastNameRequired')
+            : null,
+        )}
         {field(t('checkout.form.phone'), 'phone')}
 
         <Box>

@@ -21,6 +21,7 @@ import { useRouter } from '@/i18n/navigation';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
 import { updateProfile, changePassword, exportAccount, deleteAccount } from '@/lib/auth';
+import { isCompleteName, joinFullName, splitFullName } from '@/lib/full-name';
 import { useTranslations } from 'next-intl';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
@@ -42,7 +43,9 @@ export default function SettingsPage() {
   const { customer, loading: authLoading, refreshProfile, signOut } = useAuth();
   const router = useRouter();
 
-  const [name, setName] = useState('');
+  // Ad + Soyad: в аккаунте имя одной строкой, здесь — два поля (фатуре нужна фамилия).
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -74,13 +77,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (customer) {
-      setName(customer.name || '');
+      const { first, last } = splitFullName(customer.name);
+      setFirstName(first);
+      setLastName(last);
       setPhone(customer.phone || '');
     }
   }, [customer]);
 
   const profileChanged =
-    customer && (name !== (customer.name || '') || phone !== (customer.phone || ''));
+    customer &&
+    (joinFullName(firstName, lastName) !== (customer.name || '') ||
+      phone !== (customer.phone || ''));
+  const nameComplete = isCompleteName(firstName, lastName);
 
   // Both handlers read their fields once, before the first await, and the
   // profile one then re-seeds them from the server (refreshProfile). The inputs
@@ -89,7 +97,7 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await updateProfile({ name: name.trim(), phone });
+      await updateProfile({ name: joinFullName(firstName, lastName), phone });
       await refreshProfile();
       setSnack({ open: true, message: t('profileSaved'), severity: 'success' });
     } catch (err: any) {
@@ -239,12 +247,24 @@ export default function SettingsPage() {
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
-              label={t('nameLabel')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              label={t('firstNameLabel')}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               fullWidth
               disabled={saving}
               sx={inputSx}
+              inputProps={{ 'data-testid': 'settings-first-name' }}
+            />
+            <TextField
+              label={t('lastNameLabel')}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              fullWidth
+              disabled={saving}
+              sx={inputSx}
+              error={!lastName.trim()}
+              helperText={!lastName.trim() ? tAuth('lastNameRequired') : ' '}
+              inputProps={{ 'data-testid': 'settings-last-name' }}
             />
             <TextField
               label={tAuth('emailLabel')}
@@ -267,7 +287,7 @@ export default function SettingsPage() {
           <Button
             variant="contained"
             onClick={handleSaveProfile}
-            disabled={!profileChanged || saving}
+            disabled={!profileChanged || !nameComplete || saving}
             sx={{
               mt: 3,
               bgcolor: palette.primary,

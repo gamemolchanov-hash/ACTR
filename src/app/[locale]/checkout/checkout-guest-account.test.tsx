@@ -403,9 +403,34 @@ describe('saved address → province', () => {
     is_default: true,
   };
 
-  it('normalizes a canonical-but-differently-cased saved province', async () => {
+  it('an account with a one-word name asks for the surname before continuing', async () => {
     auth.value = {
       customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      token: 't',
+      loading: false,
+    };
+    vi.mocked(getMyAddresses).mockResolvedValueOnce({
+      data: [{ ...SAVED_ADDRESS, state: 'İstanbul' }],
+    });
+    sessionStorage.setItem('checkout_step', '1');
+    render(<CheckoutPage />);
+
+    await screen.findByText('checkout.errors.lastNameRequired');
+    expect(
+      (screen.getByRole('button', { name: 'checkout.continue' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByRole('textbox', { name: 'checkout.form.firstName' })).toHaveProperty('value', 'Ada');
+    fireEvent.change(screen.getByRole('textbox', { name: 'checkout.form.lastName' }), {
+      target: { value: 'Yılmaz' },
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('checkout.errors.lastNameRequired')).toBeNull(),
+    );
+  });
+
+  it('normalizes a canonical-but-differently-cased saved province', async () => {
+    auth.value = {
+      customer: { id: 'c1', name: 'Ada Yılmaz', email: 'ada@example.com', phone: '+905000000000' },
       token: 't',
       loading: false,
     };
@@ -425,7 +450,7 @@ describe('saved address → province', () => {
 
   it('leaves province and district empty for a non-canonical saved state', async () => {
     auth.value = {
-      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      customer: { id: 'c1', name: 'Ada Yılmaz', email: 'ada@example.com', phone: '+905000000000' },
       token: 't',
       loading: false,
     };
@@ -470,7 +495,7 @@ describe('neighbourhood (mahalle)', () => {
 
   it('splits the neighbourhood off a saved street line, also from an address-book entry', async () => {
     auth.value = {
-      customer: { id: 'c1', name: 'Ada', email: 'ada@example.com', phone: '+905000000000' },
+      customer: { id: 'c1', name: 'Ada Yılmaz', email: 'ada@example.com', phone: '+905000000000' },
       token: 't',
       loading: false,
     };

@@ -622,5 +622,17 @@
   "promo.deliveryHeadline1": "ÜCRETSİZ",
   "promo.deliveryHeadline2": "KARGO",
   "promo.deliveryLine1": "{amount}",
-  "promo.deliveryLine2": "VE ÜZERİ"
+  "promo.deliveryLine2": "VE ÜZERİ",
+  "auth.firstNameLabel": "Ad",
+  "auth.firstNamePlaceholder": "Ad",
+  "auth.firstNameHint": "Adınızı girin.",
+  "auth.lastNameLabel": "Soyad",
+  "auth.lastNamePlaceholder": "Soyad",
+  "auth.lastNameHint": "Faturanızda adınız ve soyadınız yer alır.",
+  "auth.lastNameRequired": "Lütfen soyadınızı girin.",
+  "account.firstNameLabel": "Ad",
+  "account.lastNameLabel": "Soyad",
+  "checkout.form.firstName": "Ad",
+  "checkout.form.lastName": "Soyad",
+  "checkout.errors.lastNameRequired": "Lütfen soyadınızı girin — faturanızda yer alır."
 }

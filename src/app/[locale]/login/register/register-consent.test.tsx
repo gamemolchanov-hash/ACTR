@@ -81,8 +81,11 @@ const consentBox = (channel: string) =>
 const input = (selector: string) => document.querySelector(selector) as HTMLInputElement;
 
 function fillRequiredFields(phone = '5551234567') {
-  fireEvent.change(input('input[placeholder="auth.namePlaceholder"]'), {
-    target: { value: 'Ada Yılmaz' },
+  fireEvent.change(input('input[data-testid="register-first-name"]'), {
+    target: { value: 'Ada' },
+  });
+  fireEvent.change(input('input[data-testid="register-last-name"]'), {
+    target: { value: 'Yılmaz' },
   });
   fireEvent.change(input('input[type="email"]'), { target: { value: ' Ada@Example.com ' } });
   fireEvent.change(input('input[placeholder="+90 (5__) ___ __ __"]'), {
