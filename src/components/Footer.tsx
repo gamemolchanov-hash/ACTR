@@ -8,13 +8,14 @@ import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 import { useLoyaltyProgram } from '@/providers/LoyaltyProgramProvider';
 import { useConsent } from '@/providers/CookieConsentProvider';
 import { useStoreContactPhone } from '@/providers/StoreContactProvider';
-import { whatsappHref } from '@/lib/contact-phone';
 
-const INSTAGRAM = {
-  icon: '/icons/soc-instagram.png',
-  href: 'https://www.instagram.com/',
-  label: 'Instagram',
-};
+const SOCIALS = [
+  {
+    icon: '/icons/soc-instagram.png',
+    href: 'https://www.instagram.com/americancreator.turkiye?stkn=NWt4ZXZtYmwxNDMz',
+    label: 'Instagram',
+  },
+];
 
 const PAYMENT_ICONS = [
   { cls: 'mastercard', w: 24, h: 16, bgPos: '-327px -200px' },
@@ -28,16 +29,10 @@ const navLinkSx = {
   '&:hover': { opacity: 0.8 },
 };
 
-function SocialIcons({ phone }: { phone: string | null }) {
-  // WhatsApp chats go to the storefront's contact phone (Portal → distributor);
-  // without a phone there is no WhatsApp icon at all.
-  const whatsapp = whatsappHref(phone);
-  const socials = whatsapp
-    ? [{ icon: '/icons/soc-whatsapp.png', href: whatsapp, label: 'WhatsApp' }, INSTAGRAM]
-    : [INSTAGRAM];
+function SocialIcons() {
   return (
     <Box sx={{ display: 'flex', gap: 1 }}>
-      {socials.map((s) => (
+      {SOCIALS.map((s) => (
         <a
           key={s.label}
           href={s.href}
@@ -211,7 +206,7 @@ export function Footer() {
           )}
 
           {/* Social icons */}
-          <SocialIcons phone={phone} />
+          <SocialIcons />
         </Box>
 
         {/* ============ MOBILE (xs) ============ */}
@@ -226,7 +221,7 @@ export function Footer() {
               height={114}
               style={{ width: 150, height: 'auto' }}
             />
-            <SocialIcons phone={phone} />
+            <SocialIcons />
           </Box>
 
           {/* Nav — single column */}

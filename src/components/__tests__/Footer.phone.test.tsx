@@ -1,7 +1,7 @@
 /**
- * The footer phone and the WhatsApp icon come from the storefront config
- * (`/config` → `contact_phone`, the distributor's phone in Portal) — never from a
- * hardcoded copy. No phone → neither the number nor the WhatsApp icon is shown.
+ * The footer phone comes from the storefront config (`/config` → `contact_phone`,
+ * the distributor's phone in Portal) — never from a hardcoded copy. No phone → no
+ * number. The only social icon is the brand's Turkish Instagram (no WhatsApp).
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -49,21 +49,29 @@ function renderFooter(phone: string | null) {
 afterEach(() => cleanup());
 
 describe('Footer — contact phone from the storefront config', () => {
-  it('shows the configured phone (desktop + mobile) and links WhatsApp to it', () => {
+  it('shows the configured phone (desktop + mobile)', () => {
     renderFooter('+90 531 871 30 07');
 
     expect(screen.getAllByText('+90 531 871 30 07')).toHaveLength(2);
-    const whatsapp = screen.getAllByRole('link', { name: 'WhatsApp' });
-    expect(whatsapp.length).toBeGreaterThan(0);
-    for (const a of whatsapp) expect(a.getAttribute('href')).toBe('https://wa.me/905318713007');
   });
 
-  it('hides the phone and the WhatsApp icon when no phone is configured', () => {
+  it('hides the phone when no phone is configured', () => {
     const { container } = renderFooter(null);
 
     expect(container.textContent).not.toMatch(/\+90/);
+  });
+
+  it('links Instagram to the Turkish brand page and has no WhatsApp icon', () => {
+    const { container } = renderFooter('+90 531 871 30 07');
+
     expect(screen.queryAllByRole('link', { name: 'WhatsApp' })).toHaveLength(0);
-    // Instagram stays.
-    expect(screen.getAllByRole('link', { name: 'Instagram' }).length).toBeGreaterThan(0);
+    expect(container.querySelector('a[href*="wa.me"]')).toBeNull();
+    const instagram = screen.getAllByRole('link', { name: 'Instagram' });
+    expect(instagram).toHaveLength(2); // desktop + mobile
+    for (const a of instagram) {
+      expect(a.getAttribute('href')).toBe(
+        'https://www.instagram.com/americancreator.turkiye?stkn=NWt4ZXZtYmwxNDMz',
+      );
+    }
   });
 });

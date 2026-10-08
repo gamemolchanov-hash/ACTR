@@ -8,8 +8,7 @@ import { createContext, useContext, type ReactNode } from 'react';
  * Read once per render in the locale layout from `getStorefrontConfig()` (BFF
  * `/config` → `contact_phone`, i.e. the distributor's phone in Portal) and handed
  * down here, so the number is changed in Portal instead of in code. The 5-minute
- * config cache is fine for a phone. Null → the phone and the WhatsApp icon are
- * simply not shown.
+ * config cache is fine for a phone. Null → the phone is simply not shown.
  */
 const StoreContactContext = createContext<string | null>(null);
 

@@ -19,9 +19,3 @@ export function telHref(phone: string | null | undefined): string | null {
   const digits = digitsOf(phone);
   return digits ? `tel:+${digits}` : null;
 }
-
-/** `https://wa.me/905318713007` — WhatsApp click-to-chat wants digits only. */
-export function whatsappHref(phone: string | null | undefined): string | null {
-  const digits = digitsOf(phone);
-  return digits ? `https://wa.me/${digits}` : null;
-}
