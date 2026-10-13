@@ -74,6 +74,8 @@ export interface LoyaltyLedgerEntry {
   currency?: string;
   /** XP row status (loyalty rows only): active | expired | revoked. */
   status?: string;
+  /** XP bonus code of an order-less XP grant (loyalty rows only, 13.10.2026). */
+  promoCode?: string;
 }
 
 /** A page of merged ledger entries plus the paginator's page count. */
@@ -162,7 +164,14 @@ export function adaptLoyaltyEntry(raw: unknown, idx = 0): LoyaltyLedgerEntry {
     // Lapsed/clawed-back grants must not render as live credits (XpLedgerEntry
     // status: active | expired | revoked).
     status: r.status != null ? String(r.status) : undefined,
+    promoCode: promoCodeOf(r.promo_code),
   };
+}
+
+/** `promo_code: { code }` of a bonus-code XP row; undefined for an order grant. */
+function promoCodeOf(raw: unknown): string | undefined {
+  const code = raw && typeof raw === 'object' ? (raw as { code?: unknown }).code : undefined;
+  return typeof code === 'string' && code ? code : undefined;
 }
 
 /** Merge ledger entries newest-first (stable for equal/empty dates). */
@@ -412,4 +421,53 @@ export async function fetchLoyaltyLedger(page = 1, limit = 10): Promise<LedgerPa
     }
   }
   return { entries: mergeLedger(entries), totalPages };
+}
+
+// ---------------------------------------------------------------------------
+// XP bonus code (13.10.2026)
+// ---------------------------------------------------------------------------
+
+export interface XpCodeActivation {
+  xp: number;
+  code: string;
+  tierCode: string | null;
+}
+
+/** BFF error codes of `POST /auth/me/loyalty/xp-code` the form translates. */
+export const XP_CODE_ERRORS = [
+  'xp_code_invalid',
+  'xp_code_checkout_only',
+  'xp_code_not_yet_valid',
+  'xp_code_expired',
+  'xp_code_used_up',
+  'xp_code_already_used',
+  'xp_code_unavailable',
+  'xp_code_personal_discount',
+] as const;
+export type XpCodeError = (typeof XP_CODE_ERRORS)[number] | 'rate_limited' | 'unknown';
+
+/** The translatable reason of a failed activation (axios error → code). */
+export function xpCodeErrorOf(err: unknown): XpCodeError {
+  const res = (err as { response?: { status?: number; data?: { code?: unknown } } })?.response;
+  if (res?.status === 429) return 'rate_limited';
+  const code = res?.data?.code;
+  return (XP_CODE_ERRORS as readonly unknown[]).includes(code) ? (code as XpCodeError) : 'unknown';
+}
+
+/**
+ * Activate an XP bonus code for the signed-in member: the BFF credits its XP once
+ * and recomputes the tier. Throws the axios error on refusal — read it with
+ * `xpCodeErrorOf`.
+ */
+export async function activateXpCode(code: string): Promise<XpCodeActivation> {
+  const { data } = await api.post(
+    ENDPOINTS.auth.loyaltyXpCode,
+    { code },
+    { headers: bearerHeader() },
+  );
+  return {
+    xp: toNum(data?.xp),
+    code: data?.code != null ? String(data.code) : code,
+    tierCode: data?.tier_code != null ? String(data.tier_code) : null,
+  };
 }

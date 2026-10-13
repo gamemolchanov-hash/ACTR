@@ -88,7 +88,9 @@ export type PromoRejectReason =
   | 'expired'
   | 'used_up'
   | 'customer_limit'
-  | 'min_order';
+  | 'min_order'
+  /** A Creator Club XP bonus code — activated in the account, not at checkout. */
+  | 'xp_bonus';
 
 export interface PromoValidationResult {
   valid: boolean;

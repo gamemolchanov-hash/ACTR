@@ -162,6 +162,7 @@ export function armToPromoResult(p: ArmPromoValidation): PromoValidationResult {
       used_up: 'Promo code has been used up',
       customer_limit: 'Promo code usage limit reached',
       min_order: 'Order total does not meet the minimum for this promo',
+      xp_bonus: 'This is a Creator Club bonus code — activate it in your account, Creator Club section',
     };
     return {
       valid: false,

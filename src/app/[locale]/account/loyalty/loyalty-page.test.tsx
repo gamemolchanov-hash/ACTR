@@ -16,6 +16,7 @@ import type { LoyaltyConfig } from '@/lib/loyalty';
 
 const fetchLoyaltyConfig = vi.hoisted(() => vi.fn());
 const fetchLoyaltyLedger = vi.hoisted(() => vi.fn());
+const activateXpCode = vi.hoisted(() => vi.fn());
 const routerSpy = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 const authState = vi.hoisted(() => ({
   customer: { id: 'c1', name: 'Ada' } as { id: string; name: string } | null,
@@ -58,6 +59,7 @@ vi.mock('@/lib/loyalty', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/loyalty')>()),
   fetchLoyaltyConfig,
   fetchLoyaltyLedger,
+  activateXpCode,
 }));
 
 import LoyaltyPage from './page';
@@ -158,5 +160,59 @@ describe('LoyaltyPage — launch gate backstop', () => {
 
     await waitFor(() => expect(fetchLoyaltyConfig).toHaveBeenCalled());
     expect(rewardsLinks()).toHaveLength(0);
+  });
+});
+
+describe('LoyaltyPage — XP bonus code (13.10.2026)', () => {
+  it('offers the form only once the programme is confirmed live', async () => {
+    fetchLoyaltyConfig.mockRejectedValue(new Error('BFF down'));
+    render(<LoyaltyPage />);
+
+    expect(await screen.findByText('loyalty.error')).toBeTruthy();
+    expect(screen.queryByTestId('sf-xp-code')).toBeNull();
+  });
+
+  it('activates a code, then re-reads the profile and the history', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    activateXpCode.mockResolvedValue({ xp: 500, code: 'CLUB500', tierCode: 'silver' });
+    render(<LoyaltyPage />);
+
+    const input = await screen.findByTestId('sf-xp-code-input');
+    await waitFor(() => expect(fetchLoyaltyLedger).toHaveBeenCalledTimes(1));
+    authState.refreshProfile.mockClear();
+    fireEvent.change(input, { target: { value: 'club500' } });
+    fireEvent.click(screen.getByTestId('sf-xp-code-submit'));
+
+    expect(await screen.findByTestId('sf-xp-code-success')).toBeTruthy();
+    expect(activateXpCode).toHaveBeenCalledWith('CLUB500');
+    expect(authState.refreshProfile).toHaveBeenCalled();
+    await waitFor(() => expect(fetchLoyaltyLedger).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows the translated refusal', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    activateXpCode.mockRejectedValue({
+      response: { status: 409, data: { code: 'xp_code_already_used', error: 'x' } },
+    });
+    render(<LoyaltyPage />);
+
+    fireEvent.change(await screen.findByTestId('sf-xp-code-input'), { target: { value: 'X' } });
+    fireEvent.click(screen.getByTestId('sf-xp-code-submit'));
+
+    expect(await screen.findByText('loyalty.xpCode.errors.xp_code_already_used')).toBeTruthy();
+    expect(authState.refreshProfile).toHaveBeenCalledTimes(1); // only the entry re-read
+  });
+
+  it('labels a bonus-code row of the history with its code', async () => {
+    fetchLoyaltyConfig.mockResolvedValue(ACTIVE);
+    fetchLoyaltyLedger.mockResolvedValue({
+      entries: [
+        { id: 'x1', kind: 'loyalty', date: '2026-10-13', description: null, amount: 500, status: 'active', promoCode: 'CLUB500' },
+      ],
+      totalPages: 1,
+    });
+    render(<LoyaltyPage />);
+
+    expect(await screen.findByText('loyalty.xpCode.entry {"code":"CLUB500"}')).toBeTruthy();
   });
 });

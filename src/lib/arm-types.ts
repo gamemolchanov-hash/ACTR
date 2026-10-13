@@ -106,7 +106,9 @@ export type ArmPromoValidation =
   | { status: 'expired' }
   | { status: 'used_up' }
   | { status: 'customer_limit'; limit: number }
-  | { status: 'min_order'; minAmount: number };
+  | { status: 'min_order'; minAmount: number }
+  /** A Creator Club XP bonus code (13.10.2026) — activated in the account. */
+  | { status: 'xp_bonus' };
 
 /**
  * ARM Creator Club wallet preview (`POST /wallet/validate { total }`, FBG-385).

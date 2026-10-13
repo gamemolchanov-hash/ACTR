@@ -40,6 +40,7 @@ import {
   type LoyaltyLedgerEntry,
 } from '@/lib/loyalty';
 import { useTranslations } from 'next-intl';
+import XpCodeForm from '@/components/XpCodeForm';
 
 const fontMain = 'LiraFix, "Jost", "Jost Fallback", Helvetica, sans-serif';
 const fontBody = '"Open Sans", Helvetica, sans-serif';
@@ -68,6 +69,8 @@ export default function LoyaltyPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [ledgerLoading, setLedgerLoading] = useState(true);
   const [ledgerError, setLedgerError] = useState(false);
+  // Re-read the history after an XP bonus code is activated (13.10.2026).
+  const [ledgerReload, setLedgerReload] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !customer) router.replace('/login');
@@ -121,7 +124,7 @@ export default function LoyaltyPage() {
         setLedgerError(true);
       })
       .finally(() => setLedgerLoading(false));
-  }, [customer, page]);
+  }, [customer, page, ledgerReload]);
 
   if (authLoading || !customer) return null;
   // Dormant (a successful non-cashback answer) → the effect above is redirecting.
@@ -199,6 +202,17 @@ export default function LoyaltyPage() {
             <CreatorClubError onRetry={() => setConfigAttempt((n) => n + 1)} />
           ) : (
             <CreatorTierBar tiers={tiers} xpActive={xpActive} tierCode={loyalty?.tier_code} />
+          )}
+
+          {program === CASHBACK_WALLET_PROGRAM && (
+            <XpCodeForm
+              onActivated={() => {
+                // XP and tier come from /me; the new row is first on page 1 of the history.
+                refreshProfile();
+                setPage(1);
+                setLedgerReload((n) => n + 1);
+              }}
+            />
           )}
 
           {/* Only a CONFIRMED live programme may link to /rewards. In the
@@ -301,8 +315,10 @@ export default function LoyaltyPage() {
                         />
                       </TableCell>
                       <TableCell sx={{ fontFamily: fontBody, fontSize: 13, color: palette.primary }}>
-                        {e.description ||
-                          (e.kind === 'wallet' ? t('walletEntry') : t('loyaltyEntry'))}
+                        {e.promoCode
+                          ? t('xpCode.entry', { code: e.promoCode })
+                          : e.description ||
+                            (e.kind === 'wallet' ? t('walletEntry') : t('loyaltyEntry'))}
                       </TableCell>
                       <TableCell
                         align="right"

@@ -117,6 +117,9 @@ export const ENDPOINTS = {
     // (contract spec lives in the AutoCRM/ACTR vault, not the clone).
     walletHistory: '/auth/me/wallet/history',
     loyaltyHistory: '/auth/me/loyalty/history',
+    // XP bonus code (13.10.2026): the member enters a code in the Creator Club
+    // account page and gets its XP once — POST { code } → { xp, code, tier_code }.
+    loyaltyXpCode: '/auth/me/loyalty/xp-code',
     profile: '/auth/me/profile',
     // Banners the buyer closed with × (ARM 21.09.2026, same endpoints as ACRU).
     banners: '/auth/me/banners',
