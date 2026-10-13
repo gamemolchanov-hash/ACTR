@@ -47,6 +47,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { fetchCategories } from '@/lib/api';
 import { palette } from '@/lib/theme';
 import { useAuth } from '@/lib/auth-context';
+import XpCodeForm from '@/components/XpCodeForm';
 import { useHydrated } from '@/lib/use-hydrated';
 import { fmtMoney } from '@/lib/money';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
@@ -404,6 +405,13 @@ export function RewardsView({ program }: { program: RewardsProgram }) {
           </Typography>
         )}
       </Box>
+
+      {/* ── XP bonus code (13.10.2026): members only ── */}
+      {showPersonal && (
+        <Box sx={{ mb: 1.5 }}>
+          <XpCodeForm onActivated={() => refreshProfile?.()} />
+        </Box>
+      )}
 
       {/* ── Progress: segmented XP bar and tier dots ── */}
       {tiers.length > 1 && (

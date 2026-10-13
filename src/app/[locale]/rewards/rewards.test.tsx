@@ -276,6 +276,8 @@ describe('RewardsView — guest', () => {
     expect(screen.getByText('Sign in').getAttribute('href')).toBe('/login');
     expect(textOf(container)).toContain('Already a member? Sign in to see your balance.');
     expect(textOf(container)).toContain('To the Silver level — 25.000 XP');
+    // No XP bonus code form for a guest.
+    expect(screen.queryByTestId('sf-xp-code')).toBeNull();
   });
 });
 
@@ -313,6 +315,9 @@ describe('RewardsView — member', () => {
     // The CTA sends a member shopping, not to registration.
     expect(screen.getByTestId('sf-rewards-cta').textContent).toContain('Go to the catalog');
     expect(screen.queryByText('Sign in')).toBeNull();
+    // A member can activate an XP bonus code right here (13.10.2026).
+    expect(screen.getByTestId('sf-xp-code')).toBeTruthy();
+    expect(screen.getByText(enFlat['loyalty.xpCode.title'])).toBeTruthy();
   });
 
   it('re-reads the /me snapshot on entry (a balance spent at checkout must not linger)', () => {
