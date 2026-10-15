@@ -16,9 +16,15 @@
  */
 export const WALLET_DEFAULT_RATIO = 0.4;
 
-/** Round to 2 decimals (kuruş) — kills FP dust in the previewed amount. */
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
+/**
+ * A wallet spend in whole lira, rounded DOWN (owner, 15.10.2026): the BFF spends
+ * the wallet in whole lira — never above the balance or the cap, the kuruş stay
+ * in the wallet — so an e-Arşiv fatura can carry the order total to the kuruş.
+ * The widget offers exactly what the order will charge. Kuruş first, then the
+ * floor, so FP dust (0.1 + 0.2) never costs a lira.
+ */
+function wholeLira(n: number): number {
+  return Math.floor(Math.round((n + Number.EPSILON) * 100) / 100);
 }
 
 /**
@@ -44,7 +50,7 @@ export function walletCeiling(
 ): number {
   const safeBalance = Number.isFinite(balance) ? Math.max(0, balance) : 0;
   const ceiling = (Number.isFinite(total) ? Math.max(0, total) : 0) * safeCap(cap);
-  return round2(Math.min(safeBalance, ceiling));
+  return wholeLira(Math.min(safeBalance, ceiling));
 }
 
 /**
@@ -59,7 +65,7 @@ export function clampWalletAmount(
   cap: number = WALLET_DEFAULT_RATIO,
 ): number {
   if (!Number.isFinite(requested) || requested <= 0) return 0;
-  return round2(Math.min(requested, walletCeiling(balance, total, cap)));
+  return wholeLira(Math.min(requested, walletCeiling(balance, total, cap)));
 }
 
 /**

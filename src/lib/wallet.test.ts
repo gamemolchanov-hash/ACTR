@@ -45,6 +45,14 @@ describe('walletCeiling — min(balance, total × cap), default cap fallback', (
     // 40% of 100.01 = 40.004 → 40.00
     expect(walletCeiling(1000, 100.01)).toBe(40);
   });
+
+  it('offers whole lira, rounded down — what the order spends (15.10.2026)', () => {
+    // balance 401.47 below the cap → 401; cap 40 % of 1001 = 400.40 → 400
+    expect(walletCeiling(401.47, 8029)).toBe(401);
+    expect(walletCeiling(5000, 1001)).toBe(400);
+    // FP dust on a whole amount is not a lira lost: 0.1 + 0.2 + 99.7 = 100
+    expect(walletCeiling(0.1 + 0.2 + 99.7, 1000)).toBe(100);
+  });
 });
 
 describe('walletCeiling — honours the server cap', () => {
@@ -85,6 +93,11 @@ describe('clampWalletAmount — [0, ceiling]', () => {
 
   it('passes a request within bounds through unchanged', () => {
     expect(clampWalletAmount(150, 900, 1000)).toBe(150);
+  });
+
+  it('floors a request with kuruş to the lira', () => {
+    expect(clampWalletAmount(37.5, 900, 1000)).toBe(37);
+    expect(clampWalletAmount(999, 30.75, 1000)).toBe(30);
   });
 
   it('returns 0 for a non-positive request', () => {

@@ -184,11 +184,12 @@ export default function WalletWidget({
             <TextField
               value={input}
               onChange={(e) => {
-                const digits = e.target.value.replace(/[^\d.]/g, '');
+                // Whole lira only — the order spends the wallet in whole lira.
+                const digits = e.target.value.replace(/\D/g, '');
                 setInput(digits);
-                commit(parseFloat(digits) || 0);
+                commit(parseInt(digits, 10) || 0);
               }}
-              inputProps={{ inputMode: 'decimal', 'aria-label': t('checkout.wallet.applyLabel') }}
+              inputProps={{ inputMode: 'numeric', 'aria-label': t('checkout.wallet.applyLabel') }}
               disabled={disabled}
               size="small"
               sx={{ width: 120, bgcolor: 'white', '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
