@@ -26,7 +26,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "isomorphic-dompurify": "^3.19.0",
-    "next": "15.5.20",
+    "next": "15.5.28",
     "next-intl": "^4.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -40,7 +40,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.20",
+    "eslint-config-next": "^15.5.28",
     "jsdom": "^29.1.1",
     "typescript": "^5",
     "vite": "^8.0.16",
@@ -48,6 +48,6 @@
   },
   "//": "overrides.sharp: pins sharp to ^0.35.0, above next's optional ^0.34.3 (a caret range that will not admit 0.35), to close GHSA-f88m-g3jw-g9cj — inherited libvips CVE-2026-33327/33328/35590/35591. undici (CVE-2026-12151), fast-uri (CVE-2026-13676/16221), form-data (CVE-2026-12143) and brace-expansion (GHSA-3jxr-9vmj-r5cp) are fixed within their existing parent ranges via npm update, so they need no override.",
   "overrides": {
-    "sharp": "^0.35.0"
+    "sharp": "^0.35.5"
   }
 }
