@@ -91,6 +91,7 @@ export function Footer() {
   const NAV_COL1 = [
     { label: t('nav.catalog'), href: '/catalog' },
     { label: t('nav.new'), href: '/catalog?sort=-date_created' },
+    { label: t('nav.studios'), href: '/studios' },
     ...(loyaltyProgram === CASHBACK_WALLET_PROGRAM
       ? [{ label: t('rewards.navLabel'), href: '/rewards' }]
       : []),

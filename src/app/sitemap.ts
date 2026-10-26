@@ -30,6 +30,7 @@ const STATIC_PATHS = [
   '/delivery',
   '/faq',
   '/contacts',
+  '/studios',
 ];
 
 /**

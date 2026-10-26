@@ -56,6 +56,7 @@ describe('sitemap()', () => {
     expect(urls).toContain(`${SITE_URL}/tr`); // home
     expect(urls).toContain(`${SITE_URL}/tr/catalog`);
     expect(urls).toContain(`${SITE_URL}/tr/delivery`);
+    expect(urls).toContain(`${SITE_URL}/tr/studios`); // for nail studios (26.10.2026)
     expect(urls).toContain(`${SITE_URL}/tr/catalog/base_gel`); // category
     expect(urls).toContain(`${SITE_URL}/tr/catalog/base_gel/198`); // product
 
