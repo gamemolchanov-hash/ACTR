@@ -52,21 +52,21 @@ const REVALIDATE_SECONDS = 300;
  * absent — that is the BFF's own application error, identical on every replay — and
  * so is every 4xx (404 → `null`, 401/403 → final).
  */
-const RETRYABLE_STATUSES = new Set([502, 503, 504, 522, 524]);
+export const RETRYABLE_STATUSES = new Set([502, 503, 504, 522, 524]);
 
 /** Backoff before retry #1 and #2; +25% jitter keeps the total under ~1.5 s. */
-const RETRY_BACKOFF_MS = [300, 900] as const;
+export const RETRY_BACKOFF_MS = [300, 900] as const;
 
 /** Pause between retries; injected in tests so the suite never sleeps. */
 export type RetryDelay = (ms: number) => Promise<void>;
 
-const sleep: RetryDelay = (ms) =>
+export const sleep: RetryDelay = (ms) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
 /** Backoff for the given attempt (0-based), spread by jitter so parallel renders don't sync up. */
-function backoffMs(attempt: number): number {
+export function backoffMs(attempt: number): number {
   return Math.round(RETRY_BACKOFF_MS[attempt] * (1 + Math.random() * 0.25));
 }
 

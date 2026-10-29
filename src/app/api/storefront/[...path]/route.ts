@@ -8,10 +8,12 @@
  *
  * Заменяет прежний next.config rewrite на OMS (`/public/oms/storefront/*`).
  * Картинки идут тем же путём: `/api/storefront/images/:tenantId/*` (ARM-эндпоинт публичен).
+ * Сбой сети до BFF повторяется по правилам `lib/proxy-retry.ts` (FBG-766).
  */
 import type { NextRequest } from 'next/server';
 
 import { tenantId, ARM_STOREFRONT_BASE_PATH, LOCALE_TO_BCP47 } from '@/lib/arm-contract';
+import { fetchWithRetry } from '@/lib/proxy-retry';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -99,7 +101,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
     init.body = await req.text();
   }
 
-  const upstream = await fetch(target, init);
+  const upstream = await fetchWithRetry(target, init);
   const body = await upstream.arrayBuffer();
   return new Response(body, {
     status: upstream.status,
