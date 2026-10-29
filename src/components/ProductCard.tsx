@@ -33,6 +33,12 @@ interface ProductCardProps {
  */
 const PRIORITY_CARD_COUNT = 4;
 
+/**
+ * Подписи карточки (объём/категория, «KDV Dahil»): primaryLight на белом почти не виден
+ * (контраст 1,4:1) — основной цвет на 80 %, 4,8:1 (владелец 29.10.2026).
+ */
+const CAPTION_COLOR = 'rgba(51,74,159,0.8)';
+
 export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 0 }: ProductCardProps) {
   // Creator Club member price of this row (server-side figure; null = list price).
   const memberPrice = memberPriceOf(product.price, product.member_price);
@@ -182,7 +188,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
                 fontFamily: '"Open Sans", Helvetica, sans-serif',
                 fontSize: 12,
                 lineHeight: '16px',
-                color: palette.primaryLight,
+                color: CAPTION_COLOR,
                 textAlign: { xs: 'left', md: 'center' },
               }}
             >
@@ -265,7 +271,7 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
             <Typography
               sx={{
                 fontSize: 11,
-                color: palette.primaryLight,
+                color: CAPTION_COLOR,
                 fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica',
                 textAlign: 'center',
               }}

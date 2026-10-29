@@ -458,7 +458,8 @@ export function ProductDetail({ productId }: ProductDetailProps) {
               <Typography
                 sx={{
                   fontSize: 12,
-                  color: palette.primaryLight,
+                  // primaryLight на белом почти не виден (1,4:1) — как подписи карточки, 4,8:1 (владелец 29.10)
+                  color: 'rgba(51,74,159,0.8)',
                   fontFamily: 'LiraFix, "Jost", "Jost Fallback", Helvetica',
                   mt: 0.5,
                 }}
