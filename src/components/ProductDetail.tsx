@@ -198,7 +198,7 @@ export function ProductDetail({ productId }: ProductDetailProps) {
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
 
-  const { addItem, items: cartItems = [] } = useCart();
+  const { addItem, updateQuantity, removeItem, items: cartItems = [] } = useCart();
   const { items: recentlyViewed, addViewed } = useRecentlyViewed(productId);
   const recentScrollRef = useRef<HTMLDivElement>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -257,9 +257,31 @@ export function ProductDetail({ productId }: ProductDetailProps) {
 
   const available = product?.bp_available ?? 0;
 
+  // Товар уже в корзине — степпер правит её строку сразу (владелец 29.10.2026, как на .store):
+  // «+» до остатка, «−» на единице убирает товар. Пока товара в корзине нет, степпер выбирает,
+  // сколько положит кнопка.
+  const inCartQuantity = product ? (cartItems.find((c) => c.productId === product.id)?.quantity ?? 0) : 0;
+  const canIncrease =
+    inCartQuantity === 0 || product?.bp_available == null || inCartQuantity < product.bp_available;
+
+  const handleDecrease = useCallback(() => {
+    if (!product) return;
+    if (inCartQuantity > 1) updateQuantity(product.id, inCartQuantity - 1);
+    else if (inCartQuantity === 1) removeItem(product.id);
+    else setQuantity((q) => Math.max(1, q - 1));
+  }, [product, inCartQuantity, updateQuantity, removeItem]);
+
+  const handleIncrease = useCallback(() => {
+    if (!product) return;
+    if (inCartQuantity > 0) updateQuantity(product.id, inCartQuantity + 1);
+    else setQuantity((q) => Math.min(available || 99, q + 1));
+  }, [product, inCartQuantity, available, updateQuantity]);
+
   const handleAddToCart = useCallback(() => {
-    if (product) addItem(product.id, quantity);
-  }, [product, quantity, addItem]);
+    if (!product) return;
+    addItem(product.id, inCartQuantity > 0 ? 1 : quantity);
+    setQuantity(1);
+  }, [product, quantity, inCartQuantity, addItem]);
 
   // Loading
   if (isLoading) {
@@ -472,8 +494,9 @@ export function ProductDetail({ productId }: ProductDetailProps) {
             )}
           </Box>
 
-          {/* Quantity + Add to cart */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Quantity + Add to cart — одной строкой и на узком телефоне, без переноса (владелец 29.10):
+              на телефоне кнопка занимает остаток строки, боковые поля у неё меньше */}
+          <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center' }}>
             {/* Quantity selector */}
             <Box
               sx={{
@@ -486,12 +509,14 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 borderRadius: '10px',
                 border: `1px solid ${palette.primary}`,
                 height: '51px',
+                flexShrink: 0,
               }}
             >
-              <IconButton onClick={() => setQuantity((q) => Math.max(1, q - 1))} sx={{ p: 0 }}>
+              <IconButton data-testid="sf-product-qty-dec" onClick={handleDecrease} sx={{ p: 0 }}>
                 <RemoveIcon sx={{ color: palette.primary, width: 30, height: 30 }} />
               </IconButton>
               <Typography
+                data-testid="sf-product-qty-value"
                 sx={{
                   fontFamily: fontMain,
                   fontWeight: 500,
@@ -503,18 +528,21 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                   userSelect: 'none',
                 }}
               >
-                {quantity}
+                {inCartQuantity > 0 ? inCartQuantity : quantity}
               </Typography>
               <IconButton
-                onClick={() => setQuantity((q) => Math.min(available || 99, q + 1))}
-                sx={{ p: 0 }}
+                data-testid="sf-product-qty-inc"
+                onClick={handleIncrease}
+                disabled={!canIncrease}
+                sx={{ p: 0, '&.Mui-disabled': { opacity: 0.35 } }}
               >
                 <AddIcon sx={{ color: palette.primary, width: 30, height: 30 }} />
               </IconButton>
             </Box>
 
-            {/* Add to cart — красный кружок с количеством этого товара в корзине (порт с ACRU 22.09) */}
-            <CartQtyBadge count={cartItems.find((c) => c.productId === product.id)?.quantity ?? 0}>
+            {/* Add to cart — красный кружок с количеством этого товара в корзине (порт с ACRU 22.09);
+                у товара в корзине кнопка добавляет ещё одну штуку */}
+            <CartQtyBadge count={inCartQuantity} sx={{ flex: { xs: 1, sm: '0 0 auto' }, minWidth: 0 }}>
               <Button
                 data-testid="sf-product-add-to-cart"
                 variant="contained"
@@ -524,8 +552,10 @@ export function ProductDetail({ productId }: ProductDetailProps) {
                 sx={{
                   bgcolor: palette.primary,
                   borderRadius: '10px',
-                  px: '40px',
+                  width: { xs: '100%', sm: 'auto' },
+                  px: { xs: '10px', sm: '40px' },
                   py: '15px',
+                  whiteSpace: 'nowrap',
                   fontFamily: fontMain,
                   fontWeight: 500,
                   fontSize: 18,

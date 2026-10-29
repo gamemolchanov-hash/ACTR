@@ -20,6 +20,8 @@ import { CartQtyBadge } from '@/components/CartQtyBadge';
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (productId: string, quantity: number) => void;
+  /** Новое количество этого товара в корзине (0 — убрать): степпер правит корзину, когда товар в ней. */
+  onChangeCartQuantity?: (productId: string, quantity: number) => void;
   /** Сколько этого товара уже в корзине — красный кружок на кнопке (0 — без кружка). */
   inCartQuantity?: number;
   /** 0-based position in the catalog grid. Leading cards get LCP priority. */
@@ -39,7 +41,13 @@ const PRIORITY_CARD_COUNT = 4;
  */
 const CAPTION_COLOR = 'rgba(51,74,159,0.8)';
 
-export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 0 }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onAddToCart,
+  onChangeCartQuantity,
+  index = 0,
+  inCartQuantity = 0,
+}: ProductCardProps) {
   // Creator Club member price of this row (server-side figure; null = list price).
   const memberPrice = memberPriceOf(product.price, product.member_price);
   const t = useTranslations();
@@ -52,6 +60,24 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
   // LCP optimisation (FBG-226): eagerly fetch + prioritise the first row of
   // cards, lazy-load the rest so they don't compete with the LCP image.
   const priority = index < PRIORITY_CARD_COUNT;
+
+  // Товар уже в корзине — степпер правит её строку сразу (владелец 29.10.2026, как на .store):
+  // «+» до остатка, «−» на единице убирает товар. Пока товара в корзине нет, степпер выбирает,
+  // сколько положит кнопка.
+  const inCart = inCartQuantity > 0;
+  const canIncrease = !inCart || product.bp_available == null || inCartQuantity < product.bp_available;
+  const decrease = () => {
+    if (inCart) onChangeCartQuantity?.(product.id, inCartQuantity - 1);
+    else setQuantity((q) => Math.max(1, q - 1));
+  };
+  const increase = () => {
+    if (inCart) onChangeCartQuantity?.(product.id, inCartQuantity + 1);
+    else setQuantity((q) => Math.min(available || 99, q + 1));
+  };
+  const addToCart = () => {
+    onAddToCart?.(product.id, inCart ? 1 : quantity);
+    setQuantity(1);
+  };
 
   return (
     <Card
@@ -281,53 +307,88 @@ export function ProductCard({ product, onAddToCart, index = 0, inCartQuantity = 
           )}
         </Box>
 
-        {/* Actions: quantity + "Add to cart" */}
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: { xs: 0, md: 'auto' }, flexShrink: 0 }}>
-          {/* Quantity selector — на телефоне скрыт, «в корзину» кладёт одну штуку */}
+        {/* Actions: quantity + "Add to cart". На телефоне степпер товара в корзине занимает место
+            справа от цены и сжимается под него (владелец 29.10: «Зачем перенос?»). */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            alignItems: 'center',
+            mt: { xs: 0, md: 'auto' },
+            flex: { xs: inCart ? '1 1 64px' : '0 0 auto', md: '0 0 auto' },
+          }}
+        >
+          {/* Quantity selector — на телефоне только у товара в корзине (на месте кнопки),
+              иначе «в корзину» кладёт одну штуку */}
           <Box
             sx={{
-              display: { xs: 'none', md: 'flex' },
+              display: { xs: inCart ? 'flex' : 'none', md: 'flex' },
               alignItems: 'center',
               justifyContent: 'center',
               border: `1px solid ${palette.primary}`,
               borderRadius: '10px',
-              height: 40,
+              height: { xs: 36, md: 40 },
               flex: 1,
             }}
           >
             <IconButton
               size="small"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              sx={{ color: palette.primary, width: 36, height: 40, borderRadius: '10px 0 0 10px' }}
+              data-testid="sf-catalog-qty-dec"
+              onClick={decrease}
+              sx={{
+                color: palette.primary,
+                p: 0,
+                flex: { xs: 1, md: 'none' },
+                minWidth: { xs: 22, md: 36 },
+                width: { xs: 'auto', md: 36 },
+                height: { xs: 36, md: 40 },
+                borderRadius: '10px 0 0 10px',
+              }}
             >
               <RemoveIcon sx={{ fontSize: 16 }} />
             </IconButton>
             <Typography
+              data-testid="sf-catalog-qty-value"
               sx={{
                 fontSize: 14,
                 fontWeight: 500,
                 color: palette.primary,
-                minWidth: 24,
+                minWidth: { xs: 18, md: 24 },
                 textAlign: 'center',
                 userSelect: 'none',
               }}
             >
-              {quantity}
+              {inCart ? inCartQuantity : quantity}
             </Typography>
             <IconButton
               size="small"
-              onClick={() => setQuantity((q) => Math.min(available || 99, q + 1))}
-              sx={{ color: palette.primary, width: 36, height: 40, borderRadius: '0 10px 10px 0' }}
+              data-testid="sf-catalog-qty-inc"
+              onClick={increase}
+              disabled={!canIncrease}
+              sx={{
+                color: palette.primary,
+                p: 0,
+                flex: { xs: 1, md: 'none' },
+                minWidth: { xs: 22, md: 36 },
+                width: { xs: 'auto', md: 36 },
+                height: { xs: 36, md: 40 },
+                borderRadius: '0 10px 10px 0',
+              }}
             >
               <AddIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Box>
 
-          {/* Add to cart — красный кружок с количеством этого товара в корзине (владелец 22.09) */}
-          <CartQtyBadge count={inCartQuantity} sx={{ flex: { xs: '0 0 auto', md: 1 }, display: 'flex' }}>
+          {/* Add to cart — красный кружок с количеством этого товара в корзине (владелец 22.09);
+              у товара в корзине кнопка добавляет ещё одну штуку, на телефоне её место занимает степпер */}
+          <CartQtyBadge
+            count={inCartQuantity}
+            sx={{ flex: { xs: '0 0 auto', md: 1 }, display: { xs: inCart ? 'none' : 'flex', md: 'flex' } }}
+          >
             <Box
               component="button"
-              onClick={() => onAddToCart?.(product.id, quantity)}
+              data-testid="sf-catalog-add-to-cart"
+              onClick={addToCart}
               sx={{
                 display: 'flex',
                 alignItems: 'center',

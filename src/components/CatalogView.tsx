@@ -74,7 +74,13 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
     }
   }, [searchParams, categorySlug]);
 
-  const { addItem, items: cartItems = [] } = useCart();
+  const { addItem, updateQuantity, removeItem, items: cartItems = [] } = useCart();
+  // Степпер карточки правит строку корзины сразу: 0 — товар убирается (владелец 29.10.2026).
+  const changeCartQuantity = useCallback(
+    (productId: string, quantity: number) =>
+      quantity > 0 ? updateQuantity(productId, quantity) : removeItem(productId),
+    [updateQuantity, removeItem],
+  );
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const { data: categoriesData } = useQuery({
@@ -458,6 +464,7 @@ export function CatalogView({ categorySlug }: CatalogViewProps) {
                     product={product}
                     index={i}
                     onAddToCart={addItem}
+                    onChangeCartQuantity={changeCartQuantity}
                     inCartQuantity={cartItems.find((c) => c.productId === product.id)?.quantity ?? 0}
                   />
                 ))}
