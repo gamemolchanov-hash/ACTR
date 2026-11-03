@@ -126,3 +126,45 @@ describe('Authorization on the post-checkout order calls', () => {
     expect(res.data).toEqual({ type: 'manual' });
   });
 });
+
+describe('createOrder — the attempt key (REL-02, usability audit 03.11.2026)', () => {
+  it('sends Idempotency-Key derived from the exact JSON body axios will send', async () => {
+    const seen: string[] = [];
+    const { createOrder } = await import('./api');
+    await createOrder(
+      {
+        ...orderPayload,
+        legal: {
+          acceptedAt: '2026-11-03T10:00:00.000Z',
+          documents: [
+            {
+              kind: 'mesafeli_satis',
+              code: 'MSS',
+              title: 'Mesafeli Satış Sözleşmesi',
+              markdown: '# Mesafeli Satış Sözleşmesi',
+              shownAt: '2026-11-03T10:00:00.000Z',
+            },
+          ],
+        },
+      },
+      {
+        attemptKey: (json) => {
+          seen.push(json);
+          return 'attempt-key-0123456789';
+        },
+      },
+    );
+    const [, body, config] = mockPost.mock.calls[0];
+    expect((config.headers as Record<string, string>)['Idempotency-Key']).toBe('attempt-key-0123456789');
+    // The legal snapshot is part of that body — the key covers it as ARM's hash does.
+    expect(seen).toEqual([JSON.stringify(body)]);
+    expect(seen[0]).toContain('"acceptedAt":"2026-11-03T10:00:00.000Z"');
+  });
+
+  it('sends no key without the option (other callers, older pages)', async () => {
+    const { createOrder } = await import('./api');
+    await createOrder(orderPayload);
+    const [, , config] = mockPost.mock.calls[0];
+    expect((config.headers as Record<string, string>)['Idempotency-Key']).toBeUndefined();
+  });
+});

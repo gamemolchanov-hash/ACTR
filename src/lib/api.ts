@@ -321,12 +321,25 @@ export interface CreateOrderPayload {
   legal?: OrderLegalPayload;
 }
 
+export interface CreateOrderOptions {
+  /**
+   * The attempt key for this request (REL-02, 03.11.2026): gets the JSON body about to
+   * be sent and returns the `Idempotency-Key` for it — the same key for the same body,
+   * so a retry after a lost answer gets ARM's first order back instead of a second
+   * order. See orderAttemptKey in lib/checkout. Without it no key is sent.
+   */
+  attemptKey?: (requestBody: string) => string;
+}
+
 /**
  * Create a guest order via ARM.
  * ARM contract: POST /orders CreateOrder → { data:{id,number,total,currency} }
  * Items are mapped to {distributorProductId,quantity} internally.
  */
-export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrderCreateResponse> {
+export async function createOrder(
+  payload: CreateOrderPayload,
+  opts: CreateOrderOptions = {},
+): Promise<ArmOrderCreateResponse> {
   // D-06: bearerHeader() attaches Authorization for logged-in users; returns {} for guests
   const auth = bearerHeader();
   const hasJwt = 'Authorization' in auth;
@@ -345,8 +358,10 @@ export async function createOrder(payload: CreateOrderPayload): Promise<ArmOrder
     body.walletAmountToApply = payload.walletAmountToApply;
   }
   if (payload.legal) body.legal = payload.legal;
+  // axios serialises the body with JSON.stringify — the same string the key is derived from.
+  const key = opts.attemptKey?.(JSON.stringify(body));
   const { data } = await api.post(ENDPOINTS.orders, body, {
-    headers: { ...currencyHeader(), ...auth },
+    headers: { ...currencyHeader(), ...auth, ...(key ? { 'Idempotency-Key': key } : {}) },
   });
   return data;
 }

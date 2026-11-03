@@ -15,7 +15,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 // @ts-ignore — dynamic route directory with bracket name; valid FS path
-import { GET } from '../[...path]/route';
+import { GET, POST } from '../[...path]/route';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -272,5 +272,34 @@ describe('ARM storefront proxy — per-visitor rate-limit headers (FBG-390)', ()
     expect(Object.keys(h).map((k) => k.toLowerCase())).not.toContain('cf-connecting-ip');
     // The visitor IP still reaches the BFF via the dedicated header, not cf-*.
     expect(h['X-Storefront-Client-IP']).toBe('1.2.3.4');
+  });
+});
+
+describe('ARM storefront proxy — the order attempt key (REL-02, 03.11.2026)', () => {
+  const orderPost = (key?: string) =>
+    new NextRequest('http://localhost:3000/api/storefront/orders', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}) },
+      body: JSON.stringify({ items: [], locale: 'tr' }),
+    });
+
+  it('passes a well-formed key on to ARM, with the body unchanged', async () => {
+    await POST(orderPost('attempt-key-for-tests-000001'), makeCtx(['orders']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toBe('attempt-key-for-tests-000001');
+    // ARM hashes the body it receives: it must be the very string the browser sent.
+    expect(init.body).toBe(JSON.stringify({ items: [], locale: 'tr' }));
+  });
+
+  it('drops a malformed key instead of forwarding it', async () => {
+    await POST(orderPost('short'), makeCtx(['orders']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toBeUndefined();
+  });
+
+  it('sends no key when the browser sent none', async () => {
+    await POST(orderPost(), makeCtx(['orders']));
+    const [, init] = mockFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['Idempotency-Key']).toBeUndefined();
   });
 });

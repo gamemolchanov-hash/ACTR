@@ -626,6 +626,7 @@ export function Header() {
         <IconButton
           onClick={() => setMenuOpen(true)}
           data-testid="sf-header-menu"
+          aria-label={t('nav.menu')}
           sx={{ p: 0, flexShrink: 0, height: 20 }}
         >
           <MenuIcon sx={{ fontSize: 20, color: palette.primary }} />
@@ -1031,7 +1032,7 @@ export function Header() {
           >
             {t('nav.menu')}
           </Typography>
-          <IconButton onClick={() => setMenuOpen(false)}>
+          <IconButton onClick={() => setMenuOpen(false)} aria-label={t('nav.closeMenu')}>
             <CloseIcon sx={{ color: palette.primary }} />
           </IconButton>
         </Box>

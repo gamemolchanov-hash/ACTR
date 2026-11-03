@@ -8,6 +8,8 @@ import {
 } from '@/lib/tr-neighbourhoods';
 
 interface Props {
+  /** The input's id, so the page's caption can be a <label htmlFor> for it. */
+  id?: string;
   options: Neighbourhood[];
   value: string;
   /** `zip` comes with a neighbourhood picked from the list (or typed exactly as listed). */
@@ -24,6 +26,7 @@ interface Props {
  * list lacks never blocks the address. Copy comes from the caller.
  */
 export default function NeighbourhoodInput({
+  id,
   options,
   value,
   onChange,
@@ -33,6 +36,7 @@ export default function NeighbourhoodInput({
 }: Props) {
   return (
     <Autocomplete<Neighbourhood, false, false, true>
+      id={id}
       freeSolo
       options={options}
       getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}

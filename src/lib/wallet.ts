@@ -97,6 +97,10 @@ const CHECKOUT_ERROR_CODES = new Set([
   'account_deactivated',
   // 19.09.2026: the destination is outside the zone of the warehouse.
   'unsupported_destination',
+  // REL-02 (03.11.2026): the previous press of this order is still being booked, and
+  // the attempt key came back with another order body (the key is dropped and renewed).
+  'order_in_progress',
+  'idempotency_key_mismatch',
 ]);
 
 /** i18n key for a known checkout error code, or null → use the server text. */

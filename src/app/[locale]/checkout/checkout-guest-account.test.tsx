@@ -670,10 +670,12 @@ describe('guest-only UI', () => {
     render(<CheckoutPage />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'checkout.continue' })).toBeDefined());
-    const emailLabel = Array.from(document.querySelectorAll('p')).find((el) =>
-      el.textContent?.startsWith('checkout.form.email'),
-    );
+    // The caption is the field's <label> (UX-02, 03.11.2026) and keeps its `*`…
+    const emailLabel = document.querySelector('label[for="checkout-email"]');
+    expect(emailLabel?.textContent).toContain('checkout.form.email');
     expect(emailLabel?.textContent).toContain('*');
+    // …and the field itself tells a screen reader it is required.
+    expect((document.getElementById('checkout-email') as HTMLInputElement).required).toBe(true);
   });
 });
 

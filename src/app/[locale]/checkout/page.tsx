@@ -60,6 +60,7 @@ import {
   type ShippingCountry,
   createOrder,
   createPaymentSession,
+  type CreateOrderPayload,
   type ValidatedCartItem,
   type PromoValidationResult,
 } from '@/lib/api';
@@ -76,10 +77,15 @@ import {
   checkoutAuthState,
   checkoutBlockReason,
   clearAccountNotice,
+  clearOrderAttempt,
   clearPendingOrder,
   freeShippingThreshold,
   guestEmailRequired,
   looksLikeEmail,
+  orderAnswerLost,
+  OrderAnswerError,
+  orderAttemptKey,
+  orderAttemptMoments,
   paymentFailureKey,
   paymentRetryHopeless,
   paymentSessionFailure,
@@ -211,6 +217,34 @@ interface FormData {
   apartment: string;
   zip: string;
 }
+
+/** The id of a form field's input — its caption is a <label> pointing at it (UX-02). */
+const fieldId = (name: keyof FormData) => `checkout-${name}`;
+/** The id of a select's caption — the select is named by it through `labelId` (UX-02). */
+const fieldLabelId = (name: keyof FormData) => `checkout-${name}-label`;
+
+/**
+ * What the browser needs to fill a field by itself (UX-02, usability audit 03.11.2026):
+ * the HTML autofill token, plus the e-mail type and the e-mail / phone keyboard. The
+ * Turkish address by its levels: il (`province`) → address-level1, ilçe (`city`, the
+ * district) → address-level2, mahalle (`neighbourhood`) → address-level3. The building
+ * number and the block have no token of their own; the country is a select the shopper
+ * picks.
+ */
+const FIELD_AUTOFILL: Partial<
+  Record<keyof FormData, { autoComplete: string; type?: 'email'; inputMode?: 'email' | 'tel' }>
+> = {
+  email: { autoComplete: 'email', type: 'email', inputMode: 'email' },
+  firstName: { autoComplete: 'given-name' },
+  lastName: { autoComplete: 'family-name' },
+  phone: { autoComplete: 'tel', inputMode: 'tel' },
+  province: { autoComplete: 'address-level1' },
+  city: { autoComplete: 'address-level2' },
+  neighbourhood: { autoComplete: 'address-level3' },
+  street: { autoComplete: 'address-line1' },
+  apartment: { autoComplete: 'address-line2' },
+  zip: { autoComplete: 'postal-code' },
+};
 
 const INITIAL_FORM: FormData = {
   email: '',
@@ -569,16 +603,35 @@ export default function CheckoutPage() {
     };
   }, [items]);
 
+  // What the rate depends on in the basket (REL-01, usability audit 03.11.2026): the
+  // lines and their quantities. A line removed in the summary of this page, or a
+  // quantity changed in another tab, changes the parcel — the rate is asked again, not
+  // kept from the previous basket (ARM charges the rate the page quoted).
+  const ratesCartKey = useMemo(
+    () =>
+      items
+        .map((i) => `${i.productId}:${i.quantity}`)
+        .sort()
+        .join(','),
+    [items],
+  );
+  // The last service chosen, so a re-ask keeps it while the warehouse still offers it.
+  const lastRateIdRef = useRef('');
+  useEffect(() => {
+    if (selectedRateId) lastRateIdRef.current = selectedRateId;
+  }, [selectedRateId]);
+
   // Fetch ARM shipping rates when on step 2 with country+zip filled
   useEffect(() => {
     if (!hydrated || step !== 2 || !form.country || !form.zip || items.length === 0) return;
     let cancelled = false;
+    const previousRateId = lastRateIdRef.current;
     setShippingLoading(true);
     setShippingRates([]);
     setShippingError(null);
-    // Reset the selection too: the address changed, so any previously chosen rate
-    // is stale. Without this the auto-select below never fires (its guard sees a
-    // non-empty id) and the Proceed button stays disabled (FBG-393).
+    // Reset the selection too: the address or the basket changed, so any previously
+    // chosen rate is stale. Without this the auto-select below never fires (its guard
+    // sees a non-empty id) and the Proceed button stays disabled (FBG-393).
     setSelectedRateId('');
     // il + ilçe: the warehouse prices delivery by district (in-zone / out-of-zone),
     // so the quote must follow the address the order will carry.
@@ -593,9 +646,11 @@ export default function CheckoutPage() {
         if (cancelled) return;
         if (res.rates?.length) {
           setShippingRates(res.rates);
-          // Fresh fetch → always auto-select the first rate (the selection was
-          // just cleared above, so there is nothing to preserve).
-          setSelectedRateId(res.rates[0].id);
+          // Fresh fetch → the service chosen before it, if this answer still offers
+          // it (now at the new price), otherwise the first rate. The selection was
+          // cleared above, so the Proceed button waits for this answer.
+          const kept = res.rates.find((r) => r.id === previousRateId);
+          setSelectedRateId((kept ?? res.rates[0]).id);
         } else {
           // No rates. Prefer ARM's explicit reason. Otherwise `not_configured`
           // only when FedEx is explicitly off; a configured-but-empty result is
@@ -616,7 +671,7 @@ export default function CheckoutPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form.country, form.zip, form.province, form.city]);
+  }, [step, form.country, form.zip, form.province, form.city, ratesCartKey]);
 
   const handleField = (name: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [name]: e.target.value }));
@@ -883,11 +938,7 @@ export default function CheckoutPage() {
           .join(', ');
 
         const email = form.email.trim();
-        // Снимок принятых документов: форма могла не открываться — тогда она
-        // формируется сейчас, моментом принятия (§ 6 договора: бремя доказательства на продавце).
-        const acceptedAt = new Date();
-        const legal = buildLegalPayload(legalDocInput ?? buildLegalDocInput(acceptedAt), acceptedAt);
-        const orderRes = await createOrder({
+        const order: CreateOrderPayload = {
           customer: {
             name: joinFullName(form.firstName, form.lastName),
             phone: form.phone,
@@ -914,29 +965,56 @@ export default function CheckoutPage() {
           // ARM addresses the guest welcome ("set your password") email with this
           // raw tag — without it a Turkish buyer would get English copy.
           locale,
-          legal,
+        };
+        // Who orders (REL-02): signing in between two presses makes a different order.
+        const principal = customer?.id ?? 'guest';
+        // Snapshot of the accepted documents: if the form was never opened it is drawn
+        // up now, at the moment of acceptance (§ 6 of the agreement: the burden of proof
+        // is on the seller). REL-02: a press that repeats the attempt of a lost answer
+        // carries that press's stamps — ARM compares the whole body with the one it may
+        // have booked.
+        const { acceptedAt, shownAt } = orderAttemptMoments(JSON.stringify(order), principal, () => {
+          const now = new Date();
+          return { acceptedAt: now, shownAt: obfGeneratedAt ?? now };
         });
+        const legal = buildLegalPayload(buildLegalDocInput(shownAt), acceptedAt);
+        const orderRes = await createOrder(
+          { ...order, legal },
+          {
+            // REL-02: the same key while the order stays the same — a press after a
+            // lost answer gets ARM's first order back instead of booking a second one.
+            attemptKey: (body) => orderAttemptKey(body, principal),
+          },
+        );
+        // A 2xx that does not name the order (a proxy page, a cut body) is a lost
+        // answer, not an order — the next press asks again under the same key.
+        const created = orderRes?.data;
+        if (!created || typeof created.id !== 'string' || !created.id) {
+          throw new OrderAnswerError();
+        }
         // The amount travels with the id: from here on the live basket no
         // longer describes what is being paid. ARM charges the order total minus
         // the wallet it already debited, so that is what gets stored — quoting
         // the gross total above the Stripe form would name the wrong price.
         const placed: PendingOrder = {
-          orderId: orderRes.data.id,
-          number: orderRes.data.number,
-          amountDue: Math.max(0, orderRes.data.total - (orderRes.data.walletApplied ?? 0)),
-          currency: orderRes.data.currency,
+          orderId: created.id,
+          number: created.number,
+          amountDue: Math.max(0, created.total - (created.walletApplied ?? 0)),
+          currency: created.currency,
         };
         orderId = placed.orderId;
         setPendingOrder(placed);
         pendingOrderRef.current = orderId;
         // Survives the reload a shopper reaches for when payment fails.
         savePendingOrder(placed);
+        // The order is booked: this attempt is over, a next order gets its own key.
+        clearOrderAttempt();
 
         // What ARM did with the buyer's account is reported here and nowhere else
         // (GET /orders/{id} doesn't repeat it), and the shopper leaves this page
         // through a full navigation — so hand it over via sessionStorage. Exactly
         // one write per order, so a previous order's notice can never linger.
-        const account = orderRes.data.account;
+        const account = created.account;
         if (account && (account.status === 'created' || account.status === 'email_taken')) {
           saveAccountNotice({
             orderId,
@@ -989,8 +1067,11 @@ export default function CheckoutPage() {
       }
     } catch (err: any) {
       // Known machine-readable codes get localized en/tr text; anything else
-      // falls back to the BFF's English `error` string (FBG-385 review).
-      const codeKey = checkoutErrorKey(err?.response?.data?.code);
+      // falls back to the BFF's English `error` string (FBG-385 review). Never
+      // the exception's own text ("Network Error", "timeout of 30000ms exceeded",
+      // "Cannot read properties of undefined") — REL-02, usability audit 03.11.2026.
+      const code = err?.response?.data?.code;
+      const codeKey = checkoutErrorKey(code);
       // ARM writes storefront error texts in Russian (its .ru rule) — never show
       // Cyrillic on this storefront; say it generically instead.
       const serverText: unknown = err?.response?.data?.error || err?.response?.data?.message;
@@ -1001,8 +1082,14 @@ export default function CheckoutPage() {
       const msg =
         (codeKey ? t(codeKey) : null) || readableServerText || t('checkout.errors.orderFailed');
       if (!orderId) {
-        // The order itself failed — nothing was booked, the server text stands.
-        setError(msg);
+        // The answer never came: the order may exist, and the next press repeats this
+        // attempt (same key, same body), so ARM answers with that order instead of a
+        // second one — likewise while the first press is still being placed. Anything
+        // else ARM refused itself: nothing was booked, its text stands, and the next
+        // press is a new attempt, stamped anew under a new key.
+        const lost = orderAnswerLost(err);
+        if (!lost && code !== 'order_in_progress') clearOrderAttempt();
+        setError(lost ? t('checkout.errors.connectionLost') : msg);
         setSubmitting(false);
         return;
       }
@@ -1037,6 +1124,7 @@ export default function CheckoutPage() {
    */
   const startNewOrder = () => {
     clearPendingOrder();
+    clearOrderAttempt();
     setPendingOrder(null);
     setPaymentFailure(null);
     setError(null);
@@ -1115,6 +1203,10 @@ export default function CheckoutPage() {
   // boxes once, before createOrder — so every one of them freezes while the
   // order is in flight. Otherwise a shopper could change the address (or
   // withdraw a KVKK/Mesafeli consent) that ARM has already been given.
+  //
+  // The visible caption is the field's <label> (UX-02, usability audit 03.11.2026):
+  // a screen reader names the field by it and a tap on it focuses the field; `name`,
+  // `autoComplete` and the e-mail `type` let the browser fill the form on a phone.
   const field = (
     label: string,
     name: keyof FormData,
@@ -1122,15 +1214,24 @@ export default function CheckoutPage() {
     errorText: string | null = null,
   ) => (
     <Box>
-      <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+      <Typography
+        component="label"
+        htmlFor={fieldId(name)}
+        sx={{ display: 'block', color: c.main, ...textSm, mb: '9px' }}
+      >
         {label}{' '}
         {required && (
-          <Box component="span" sx={{ color: c.red }}>
+          <Box component="span" aria-hidden sx={{ color: c.red }}>
             *
           </Box>
         )}
       </Typography>
       <TextField
+        id={fieldId(name)}
+        name={name}
+        type={FIELD_AUTOFILL[name]?.type}
+        autoComplete={FIELD_AUTOFILL[name]?.autoComplete}
+        required={required}
         fullWidth
         variant="outlined"
         value={form[name]}
@@ -1138,15 +1239,24 @@ export default function CheckoutPage() {
         disabled={inputsLocked}
         error={!!errorText}
         helperText={errorText || undefined}
-        inputProps={{ 'aria-label': label }}
+        inputProps={{ inputMode: FIELD_AUTOFILL[name]?.inputMode }}
         sx={inputSx}
       />
     </Box>
   );
   const optField = (label: string, name: keyof FormData) => (
     <Box>
-      <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>{label}</Typography>
+      <Typography
+        component="label"
+        htmlFor={fieldId(name)}
+        sx={{ display: 'block', color: c.main, ...textSm, mb: '9px' }}
+      >
+        {label}
+      </Typography>
       <TextField
+        id={fieldId(name)}
+        name={name}
+        autoComplete={FIELD_AUTOFILL[name]?.autoComplete}
         fullWidth
         variant="outlined"
         value={form[name]}
@@ -1345,14 +1455,16 @@ export default function CheckoutPage() {
         {field(t('checkout.form.phone'), 'phone')}
 
         <Box>
-          <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+          {/* The select is named by this caption (UX-02): `labelId` → aria-labelledby. */}
+          <Typography id={fieldLabelId('country')} sx={{ color: c.main, ...textSm, mb: '9px' }}>
             {t('checkout.form.country')}{' '}
-            <Box component="span" sx={{ color: c.red }}>
+            <Box component="span" aria-hidden sx={{ color: c.red }}>
               *
             </Box>
           </Typography>
           <FormControl fullWidth>
             <Select
+              labelId={fieldLabelId('country')}
               value={form.country}
               onChange={handleCountry}
               displayEmpty
@@ -1485,13 +1597,20 @@ export default function CheckoutPage() {
             data-testid="zip-first"
             sx={{ border: `1.5px solid ${c.main}`, borderRadius: '10px', p: 2, bgcolor: c.main + '08' }}
           >
-            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+            <Typography
+              component="label"
+              htmlFor={fieldId('zip')}
+              sx={{ display: 'block', color: c.main, ...textSm, mb: '9px' }}
+            >
               {t('checkout.form.postalCode')}{' '}
-              <Box component="span" sx={{ color: c.red }}>
+              <Box component="span" aria-hidden sx={{ color: c.red }}>
                 *
               </Box>
             </Typography>
             <TextField
+              id={fieldId('zip')}
+              name="zip"
+              required
               fullWidth
               variant="outlined"
               value={form.zip}
@@ -1501,7 +1620,6 @@ export default function CheckoutPage() {
                 inputMode: 'numeric',
                 maxLength: 5,
                 autoComplete: 'postal-code',
-                'aria-label': t('checkout.form.postalCode'),
               }}
               sx={inputSx}
             />
@@ -1512,19 +1630,22 @@ export default function CheckoutPage() {
         )}
         {trAddress && (
           <Box>
-            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+            <Typography id={fieldLabelId('province')} sx={{ color: c.main, ...textSm, mb: '9px' }}>
               {t('checkout.form.province')}{' '}
-              <Box component="span" sx={{ color: c.red }}>
+              <Box component="span" aria-hidden sx={{ color: c.red }}>
                 *
               </Box>
             </Typography>
             <FormControl fullWidth>
+              {/* Named by its caption (`labelId`); the token reaches MUI's hidden native
+                  input, which MUI keeps for the browser's autofill. */}
               <Select
+                labelId={fieldLabelId('province')}
+                autoComplete={FIELD_AUTOFILL.province?.autoComplete}
                 value={form.province}
                 onChange={handleProvince}
                 displayEmpty
                 disabled={inputsLocked}
-                inputProps={{ 'aria-label': t('checkout.form.province') }}
                 renderValue={(selected) =>
                   selected ? (
                     <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
@@ -1550,19 +1671,20 @@ export default function CheckoutPage() {
           // District (ilçe) of the picked province — the FulfillmentTR tariff list
           // (lib/tr-districts). A draft/saved value outside it shows as unset.
           <Box>
-            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+            <Typography id={fieldLabelId('city')} sx={{ color: c.main, ...textSm, mb: '9px' }}>
               {t('checkout.form.district')}{' '}
-              <Box component="span" sx={{ color: c.red }}>
+              <Box component="span" aria-hidden sx={{ color: c.red }}>
                 *
               </Box>
             </Typography>
             <FormControl fullWidth>
               <Select
+                labelId={fieldLabelId('city')}
+                autoComplete={FIELD_AUTOFILL.city?.autoComplete}
                 value={districtsOf(form.province).includes(form.city) ? form.city : ''}
                 onChange={handleDistrict}
                 displayEmpty
                 disabled={inputsLocked || !isTrProvince(form.province)}
-                inputProps={{ 'aria-label': t('checkout.form.district') }}
                 renderValue={(selected) =>
                   selected ? (
                     <Typography sx={{ color: c.main, fontSize: '16px' }}>{selected}</Typography>
@@ -1589,21 +1711,29 @@ export default function CheckoutPage() {
         {trAddress && (
           // Neighbourhood (mahalle): the district's PTT list or free text.
           <Box>
-            <Typography sx={{ color: c.main, ...textSm, mb: '9px' }}>
+            <Typography
+              component="label"
+              htmlFor={fieldId('neighbourhood')}
+              sx={{ display: 'block', color: c.main, ...textSm, mb: '9px' }}
+            >
               {t('checkout.form.neighbourhood')}{' '}
-              <Box component="span" sx={{ color: c.red }}>
+              <Box component="span" aria-hidden sx={{ color: c.red }}>
                 *
               </Box>
             </Typography>
             <NeighbourhoodInput
+              id={fieldId('neighbourhood')}
               options={withZipFirst(neighbourhoods.options, form.zip)}
               loading={neighbourhoods.loading}
               value={form.neighbourhood}
               onChange={handleNeighbourhood}
               disabled={inputsLocked || !form.city}
               textFieldProps={{
+                name: 'neighbourhood',
+                required: true,
                 placeholder: t('checkout.form.neighbourhoodPlaceholder'),
-                inputProps: { 'aria-label': t('checkout.form.neighbourhood') },
+                // Over the Autocomplete's own `off`: the browser may fill the mahalle too.
+                inputProps: { autoComplete: FIELD_AUTOFILL.neighbourhood?.autoComplete },
                 sx: { ...inputSx, '& .MuiOutlinedInput-root.MuiAutocomplete-inputRoot': { py: 0 } },
               }}
             />
@@ -1934,10 +2064,14 @@ export default function CheckoutPage() {
                     order — removing a line then would only hide the items the
                     shopper still owes for. */}
                 {!inputsLocked && (
-                  <DeleteOutlineIcon
+                  // A button with a name (UX-02): reachable with Tab, read as «Remove … from basket».
+                  <IconButton
                     onClick={() => removeItem(item.productId)}
-                    sx={{ color: c.main, fontSize: 28, cursor: 'pointer', flexShrink: 0 }}
-                  />
+                    aria-label={t('basket.removeItem', { name: item.name ?? '' })}
+                    sx={{ p: 0, color: c.main, flexShrink: 0 }}
+                  >
+                    <DeleteOutlineIcon sx={{ fontSize: 28 }} />
+                  </IconButton>
                 )}
               </Stack>
             ))}

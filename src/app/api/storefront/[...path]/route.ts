@@ -13,6 +13,7 @@
 import type { NextRequest } from 'next/server';
 
 import { tenantId, ARM_STOREFRONT_BASE_PATH, LOCALE_TO_BCP47 } from '@/lib/arm-contract';
+import { ATTEMPT_KEY_PATTERN } from '@/lib/checkout';
 import { fetchWithRetry } from '@/lib/proxy-retry';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   if (currency) headers['X-Currency'] = currency;
   const auth = req.headers.get('authorization');
   if (auth) headers['Authorization'] = auth;
+  // The attempt key of POST /orders (REL-02, 03.11.2026): a retry after a lost answer
+  // repeats it and ARM returns the order it already made. Only a well-formed key travels.
+  const idempotencyKey = req.headers.get('idempotency-key');
+  if (idempotencyKey && ATTEMPT_KEY_PATTERN.test(idempotencyKey)) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
   const contentType = req.headers.get('content-type');
   if (contentType) headers['Content-Type'] = contentType;
   // Own ARM analytics (nav.js): who the visitor is — the browser User-Agent and

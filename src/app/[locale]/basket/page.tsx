@@ -268,7 +268,12 @@ export default function BasketPage() {
                     ? `−${promoResult.discount_value}%`
                     : `−${fmtMoney(promoResult.discount_value || 0, currency, formatLocale)}`}
                 </Typography>
-                <IconButton size="small" onClick={handleRemovePromo} sx={{ ml: 0.5, p: 0.25 }}>
+                <IconButton
+                  size="small"
+                  onClick={handleRemovePromo}
+                  aria-label={t('basket.removePromo')}
+                  sx={{ ml: 0.5, p: 0.25 }}
+                >
                   <CloseIcon sx={{ fontSize: 18, color: '#2e7d32' }} />
                 </IconButton>
               </Box>
@@ -418,6 +423,7 @@ export default function BasketPage() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: '40px', py: '10px' }}>
                     <IconButton
                       onClick={() => removeItem(item.productId)}
+                      aria-label={t('basket.removeItem', { name: item.name ?? '' })}
                       sx={{ color: c['20'], p: 0.5, flexShrink: 0 }}
                     >
                       <TrashIcon size={28} />
@@ -579,6 +585,7 @@ export default function BasketPage() {
                           if (item.quantity <= 1) removeItem(item.productId);
                           else updateQuantity(item.productId, item.quantity - 1);
                         }}
+                        aria-label={t('basket.decreaseQty', { name: item.name ?? '' })}
                         sx={{ color: c.main, p: 0 }}
                       >
                         <RemoveIcon sx={{ fontSize: 18 }} />
@@ -598,6 +605,7 @@ export default function BasketPage() {
                         size="small"
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                         disabled={item.available != null && item.quantity >= item.available}
+                        aria-label={t('basket.increaseQty', { name: item.name ?? '' })}
                         sx={{ color: c.main, p: 0 }}
                       >
                         <AddIcon sx={{ fontSize: 18 }} />
@@ -735,6 +743,7 @@ export default function BasketPage() {
                           if (item.quantity <= 1) removeItem(item.productId);
                           else updateQuantity(item.productId, item.quantity - 1);
                         }}
+                        aria-label={t('basket.decreaseQty', { name: item.name ?? '' })}
                         sx={{ color: c.main, p: 0 }}
                       >
                         <RemoveIcon sx={{ fontSize: 14 }} />
@@ -754,6 +763,7 @@ export default function BasketPage() {
                         size="small"
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                         disabled={item.available != null && item.quantity >= item.available}
+                        aria-label={t('basket.increaseQty', { name: item.name ?? '' })}
                         sx={{ color: c.main, p: 0 }}
                       >
                         <AddIcon sx={{ fontSize: 14 }} />
@@ -766,6 +776,7 @@ export default function BasketPage() {
                 </Box>
                 <IconButton
                   onClick={() => removeItem(item.productId)}
+                  aria-label={t('basket.removeItem', { name: item.name ?? '' })}
                   sx={{ color: c['20'], p: 0.5, flexShrink: 0 }}
                 >
                   <TrashIcon size={20} />

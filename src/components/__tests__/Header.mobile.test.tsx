@@ -156,4 +156,10 @@ describe('Header — mobile language switcher & Drawer sign out (FBG-429)', () =
     expect(screen.queryByText('account.myOrders')).toBeNull();
     expect(screen.getAllByText('common.signIn').length).toBeGreaterThanOrEqual(1);
   });
+
+  it('names the burger and the button that closes the menu (UX-02, usability audit 03.11.2026)', () => {
+    render(<Header />);
+    fireEvent.click(screen.getByRole('button', { name: 'nav.menu' }));
+    expect(screen.getByRole('button', { name: 'nav.closeMenu' })).toBeDefined();
+  });
 });

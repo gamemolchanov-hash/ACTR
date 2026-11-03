@@ -367,6 +367,175 @@ export function clearPendingOrder(): void {
   } catch {}
 }
 
+// ---------------------------------------------------------------------------
+// Order attempt key (REL-02, usability audit 03.11.2026)
+// ---------------------------------------------------------------------------
+
+/**
+ * One order the shopper is placing = one attempt key. It travels with POST /orders
+ * (`Idempotency-Key`): when the answer is lost — the connection drops, the 30 s timeout
+ * fires, a gateway answers with its own error page — the next press repeats the SAME
+ * key and ARM answers with the order it has already made instead of booking a second
+ * one. A changed order (another basket, address or shopper) gets a new key: it is a
+ * different order, not a retry.
+ *
+ * Only a hash of the request body is kept, never the body: the draft in sessionStorage
+ * is personal data enough for one tab. Same lifetime as the draft (clearCheckoutDraft).
+ */
+const ORDER_ATTEMPT_KEY = 'checkout_order_attempt';
+
+/** What ARM accepts as a key (`packs/arm/bff/services/order-idempotency.ts`). */
+export const ATTEMPT_KEY_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
+
+/** 53-bit string hash (cyrb53): tells one request body from another, nothing more. */
+function hash53(text: string): string {
+  let h1 = 0xdeadbeef ^ text.length;
+  let h2 = 0x41c6ce57 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+function newAttemptKey(): string {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID();
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * The key for this POST /orders: the saved one when the body and the shopper are the
+ * same as on the previous press, a fresh one (saved) otherwise. `principal` is who
+ * orders — the customer id or `guest`: signing in between two presses makes a
+ * different order (ARM books a member's order differently).
+ */
+export function orderAttemptKey(requestBody: string, principal: string): string {
+  const fingerprint = hash53(`${principal}\n${requestBody}`);
+  try {
+    const raw = sessionStorage.getItem(ORDER_ATTEMPT_KEY);
+    const saved = raw ? (JSON.parse(raw) as { key?: unknown; fingerprint?: unknown }) : null;
+    if (
+      saved &&
+      saved.fingerprint === fingerprint &&
+      typeof saved.key === 'string' &&
+      ATTEMPT_KEY_PATTERN.test(saved.key)
+    ) {
+      return saved.key;
+    }
+  } catch {}
+  const key = newAttemptKey();
+  try {
+    sessionStorage.setItem(ORDER_ATTEMPT_KEY, JSON.stringify({ key, fingerprint }));
+  } catch {}
+  return key;
+}
+
+/**
+ * The body of an order on this storefront also carries the legal snapshot (Ön
+ * Bilgilendirme Formu + Mesafeli Satış Sözleşmesi, lib/legal-snapshot), stamped with
+ * the moment the shopper accepted it and the moment the documents were drawn up. ARM
+ * keeps the hash of the first body under the key and answers 422 to any other — so a
+ * press that repeats the attempt must carry the stamps of the press whose answer was
+ * lost, or it would never get that order back. The attempt keeps them: while the
+ * order (the body without the snapshot) and the shopper are the attempt's, its stamps
+ * come back; any other order is stamped now. Only a hash and the two times are kept.
+ */
+const ORDER_ATTEMPT_MOMENTS_KEY = 'checkout_order_attempt_moments';
+
+/** The two moments the legal snapshot of an order is stamped with. */
+export interface OrderAttemptMoments {
+  /** The press of the order button — `legal.acceptedAt`. */
+  acceptedAt: Date;
+  /** When the documents were drawn up: opened in the modal, else that press — `shownAt`. */
+  shownAt: Date;
+}
+
+function momentOf(value: unknown): Date | null {
+  if (typeof value !== 'string') return null;
+  const moment = new Date(value);
+  return Number.isNaN(moment.getTime()) ? null : moment;
+}
+
+/**
+ * The stamps for this order: the saved ones when `order` (the JSON body without the
+ * legal snapshot) and `principal` are those of the open attempt, otherwise `stamp()`'s,
+ * saved for the presses that may repeat it.
+ */
+export function orderAttemptMoments(
+  order: string,
+  principal: string,
+  stamp: () => OrderAttemptMoments,
+): OrderAttemptMoments {
+  const fingerprint = hash53(`${principal}\n${order}`);
+  try {
+    const raw = sessionStorage.getItem(ORDER_ATTEMPT_MOMENTS_KEY);
+    const saved = raw
+      ? (JSON.parse(raw) as { fingerprint?: unknown; acceptedAt?: unknown; shownAt?: unknown })
+      : null;
+    if (saved && saved.fingerprint === fingerprint) {
+      const acceptedAt = momentOf(saved.acceptedAt);
+      const shownAt = momentOf(saved.shownAt);
+      if (acceptedAt && shownAt) return { acceptedAt, shownAt };
+    }
+  } catch {}
+  const moments = stamp();
+  try {
+    sessionStorage.setItem(
+      ORDER_ATTEMPT_MOMENTS_KEY,
+      JSON.stringify({
+        fingerprint,
+        acceptedAt: moments.acceptedAt.toISOString(),
+        shownAt: moments.shownAt.toISOString(),
+      }),
+    );
+  } catch {}
+  return moments;
+}
+
+/** The order is booked, abandoned or refused for its content: the next press is a new order. */
+export function clearOrderAttempt(): void {
+  try {
+    sessionStorage.removeItem(ORDER_ATTEMPT_KEY);
+    sessionStorage.removeItem(ORDER_ATTEMPT_MOMENTS_KEY);
+  } catch {}
+}
+
+/** A 2xx from POST /orders that does not name the order — as good as a lost answer. */
+export class OrderAnswerError extends Error {
+  constructor() {
+    super('order_answer_without_id');
+    this.name = 'OrderAnswerError';
+  }
+}
+
+/**
+ * POST /orders gave no answer to act on: no HTTP response at all (connection drop,
+ * the axios timeout), a gateway error page instead of ARM's own error (5xx without
+ * `error`), or a 2xx without an order (OrderAnswerError). The order may exist all the
+ * same — so the shopper is told that pressing again continues THIS order (the attempt
+ * key does that), not "Network Error" or "timeout of 30000ms exceeded".
+ * Anything ARM answered itself (400 with its text, 409 `order_in_progress`, 429) is not lost.
+ */
+export function orderAnswerLost(err: unknown): boolean {
+  if (err instanceof OrderAnswerError) return true;
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { isAxiosError?: unknown; response?: { status?: unknown; data?: unknown } };
+  if (e.isAxiosError !== true) return false; // a bug in this page, not the network
+  if (!e.response) return true;
+  const status = typeof e.response.status === 'number' ? e.response.status : 0;
+  const data = e.response.data as { error?: unknown } | null | undefined;
+  const armText = !!data && typeof data === 'object' && typeof data.error === 'string';
+  return status >= 500 && !armText;
+}
+
 /** sessionStorage keys of the checkout draft — one definition, two pages. */
 export const CHECKOUT_FORM_KEY = 'checkout_form';
 export const CHECKOUT_STEP_KEY = 'checkout_step';
@@ -386,6 +555,7 @@ export function clearCheckoutDraft(): void {
     sessionStorage.removeItem(CHECKOUT_PROMO_KEY);
   } catch {}
   clearPendingOrder();
+  clearOrderAttempt();
 }
 
 // ---------------------------------------------------------------------------
