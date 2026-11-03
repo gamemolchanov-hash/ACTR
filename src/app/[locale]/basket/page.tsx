@@ -452,9 +452,8 @@ export default function BasketPage() {
                       >
                         {item.name}
                       </Typography>
-                      {item.sku && (
-                        <Typography sx={{ ...text, color: c.main }}>{item.sku}</Typography>
-                      )}
+                      {/* Артикул под названием не показываем (владелец 03.11.2026: «скрыть артикул
+                          товара из корзины»); в мобильной корзине его и не было. */}
                       {item.error && (
                         <Typography sx={{ fontSize: 13, color: '#d32f2f', mt: 0.5 }}>
                           {item.error}

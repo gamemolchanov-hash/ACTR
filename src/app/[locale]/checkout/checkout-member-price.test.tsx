@@ -139,3 +139,21 @@ describe('checkout — Creator Club member price', () => {
     expect(container.querySelector('s')).toBeNull();
   });
 });
+
+describe('checkout — no SKU (owner 03.11.2026)', () => {
+  it('a line without a photo shows the no-photo label, not its SKU', async () => {
+    auth.value = { customer: null, token: null, loading: false };
+    apiMock.validateCart.mockResolvedValue({
+      data: {
+        items: [{ ...line('canary', 'CANARY'), sku: 'AC-TR-CAN-015' }, line('mint', 'MINT')],
+        subtotal: 1900,
+        allValid: true,
+        category_discount: 0,
+      },
+    });
+    const { container } = render(<CheckoutPage />);
+    await waitFor(() => expect(container.textContent).toContain(money(1900)));
+    expect(container.textContent).toContain('basket.noPhoto');
+    expect(container.textContent).not.toContain('AC-TR-CAN-015');
+  });
+});

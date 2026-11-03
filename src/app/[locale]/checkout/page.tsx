@@ -1898,7 +1898,8 @@ export default function CheckoutPage() {
                       sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
-                    <Typography sx={{ color: c['40'], fontSize: 11 }}>{item.sku}</Typography>
+                    // Без фото — подпись как в корзине; артикул не показываем (владелец 03.11.2026).
+                    <Typography sx={{ color: c['40'], fontSize: 11 }}>{t('basket.noPhoto')}</Typography>
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
