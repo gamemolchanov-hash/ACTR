@@ -101,6 +101,12 @@ const CHECKOUT_ERROR_CODES = new Set([
   // the attempt key came back with another order body (the key is dropped and renewed).
   'order_in_progress',
   'idempotency_key_mismatch',
+  // 04.11.2026 (port of ACRU d16418a): the warehouse does not cover a basket line — the
+  // stock ran out between the basket check and the order; localized text instead of
+  // ARM's English "There is not enough stock…".
+  'insufficient_stock',
+  'product_unavailable',
+  'product_not_found',
 ]);
 
 /** i18n key for a known checkout error code, or null → use the server text. */

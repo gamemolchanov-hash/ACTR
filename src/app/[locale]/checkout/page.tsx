@@ -98,7 +98,12 @@ import {
   shippingErrorKey,
   shippingPanelState,
   showUyelikConsent,
+  STOCK_ERROR_CODES,
+  stockFix,
+  stockLabel,
+  stockProblems,
 } from '@/lib/checkout';
+import { StockNote } from '@/components/StockNote';
 import { iyzicoReturnErrorKey } from '@/lib/iyzico-return';
 import {
   buildOnBilgilendirmeData,
@@ -380,7 +385,7 @@ export default function CheckoutPage() {
   const locale = useLocale();
   const currency = useCurrency();
   const formatLocale = useFormatLocale();
-  const { items, removeItem } = useCart();
+  const { items, removeItem, updateQuantity } = useCart();
   // Own ARM analytics (nav.js): checkout entered — once per page visit
   // (the cart hydrates after mount, so wait for its items).
   const checkoutTracked = useRef(false);
@@ -424,6 +429,10 @@ export default function CheckoutPage() {
   // Creator Club: the tier discount on the configured categories — the server figure
   // from cart/validate (member JWT); POST /orders takes the same amount off.
   const [categoryDiscount, setCategoryDiscount] = useState(0);
+  // Lines the warehouse does not cover right now (cart/validate): the order would be
+  // refused with them — "Your order" names them and offers to remove them (04.11.2026,
+  // port of ACRU d16418a; they used to be hidden, the summary showed ₺0.00).
+  const stockIssues = useMemo(() => stockProblems(validated), [validated]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -773,6 +782,7 @@ export default function CheckoutPage() {
     agreedUyelik,
     email: form.email,
     selectedRateId,
+    stockProblems: stockIssues.length,
     orderPlaced: placedOrderId !== null,
     paymentBlocked,
   };
@@ -903,6 +913,17 @@ export default function CheckoutPage() {
     [legalDocInput],
   );
 
+  // A fresh cart/validate answer goes into "Your order" (like the basket check effect above).
+  const applyValidation = (data: {
+    items: ValidatedCartItem[];
+    subtotal: number;
+    category_discount?: number;
+  }) => {
+    setValidated(data.items);
+    setSubtotal(data.subtotal);
+    setCategoryDiscount(Number(data.category_discount) || 0);
+  };
+
   const handleSubmit = async () => {
     // One gate for every reason the order can't be placed (D-04/COMP-02,
     // Pitfall 3 — gate the handler, not only the button). Same predicate the
@@ -926,6 +947,16 @@ export default function CheckoutPage() {
     let orderId = placedOrderId;
     try {
       if (!orderId) {
+        // The stock may have run out while the shopper filled in the form: the basket is
+        // checked again right before the order. A line without stock — no order, "Your
+        // order" is refreshed and the warning with "Remove and continue" appears above the
+        // button. A failed check does not hold the order — ARM checks the stock anyway.
+        const fresh = await validateCart(items).catch(() => null);
+        if (fresh && stockProblems(fresh.data.items).length > 0) {
+          applyValidation(fresh.data);
+          setSubmitting(false);
+          return;
+        }
         // TR: the neighbourhood heads the street line (lib/tr-neighbourhoods).
         const streetLine = joinStreet(form.neighbourhood, form.street);
         const addressParts = [
@@ -1089,6 +1120,17 @@ export default function CheckoutPage() {
         // press is a new attempt, stamped anew under a new key.
         const lost = orderAnswerLost(err);
         if (!lost && code !== 'order_in_progress') clearOrderAttempt();
+        // The warehouse refused a basket line (the stock ran out after the check above):
+        // refresh "Your order" — the warning names the item and offers to remove it.
+        if (!lost && STOCK_ERROR_CODES.has(code)) {
+          const fresh = await validateCart(items).catch(() => null);
+          if (fresh && stockProblems(fresh.data.items).length > 0) {
+            applyValidation(fresh.data);
+            setError(null);
+            setSubmitting(false);
+            return;
+          }
+        }
         setError(lost ? t('checkout.errors.connectionLost') : msg);
         setSubmitting(false);
         return;
@@ -1365,6 +1407,55 @@ export default function CheckoutPage() {
     </Alert>
   ) : null;
 
+  // "Remove and continue": lines without stock leave the basket, partly covered ones
+  // shrink to the stock; the basket is checked again by itself (the effect on items),
+  // the chosen rate stays while the warehouse still offers it.
+  const fixStock = () => {
+    for (const p of stockIssues) {
+      const fix = stockFix(p);
+      if (fix.remove) removeItem(p.productId);
+      else updateQuantity(p.productId, fix.quantity);
+    }
+    setError(null);
+  };
+  // Step 1 — on top of the form (seen at once), step 2 — above "Proceed to Payment",
+  // where the shopper presses (the steps are never mounted together).
+  const stockAlert =
+    !placedOrderId && stockIssues.length > 0 ? (
+      <Alert severity="warning" data-testid="sf-checkout-stock" sx={{ mb: 2, borderRadius: '12px' }}>
+        <Typography sx={{ ...textSm, fontWeight: 500 }}>
+          {t('checkout.stock.title', { count: stockIssues.length })}
+        </Typography>
+        <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2.5 }}>
+          {stockIssues.map((p) => {
+            const label = stockLabel({ valid: false, quantity: p.quantity, available: p.available });
+            return (
+              <Typography component="li" key={p.productId} data-testid="sf-checkout-stock-item" sx={textSm}>
+                {p.name ?? t('checkout.stock.unnamed')} —{' '}
+                {label?.key === 'basket.stock.short'
+                  ? t(label.key, { count: label.count })
+                  : t('basket.stock.out')}
+              </Typography>
+            );
+          })}
+        </Box>
+        <Typography sx={{ ...textSm, mt: 0.5 }}>
+          {t('checkout.stock.hint', { count: stockIssues.length })}
+        </Typography>
+        <Button
+          variant="outlined"
+          color="inherit"
+          size="small"
+          onClick={fixStock}
+          disabled={submitting}
+          data-testid="sf-checkout-stock-fix"
+          sx={{ mt: 1.5, fontWeight: 700 }}
+        >
+          {t('checkout.stock.fix')}
+        </Button>
+      </Alert>
+    ) : null;
+
   /* ---- ARM has booked the order: from here the page is about THAT order and
          nothing else. The basket is no longer what is being paid for (it can
          still be edited from /basket or another tab), so the live summary would
@@ -1436,6 +1527,7 @@ export default function CheckoutPage() {
   const step1Content = (
     <>
       {errorAlert}
+      {stockAlert}
       <Stack spacing={2.5}>
         {field(
           t('checkout.form.email'),
@@ -1934,6 +2026,7 @@ export default function CheckoutPage() {
             />
           )}
 
+          {stockAlert}
           {errorAlert}
 
           <Button
@@ -1996,8 +2089,9 @@ export default function CheckoutPage() {
         </Box>
       ) : (
         <>
+          {/* Lines without stock are not hidden: they are in the basket and would go into
+              the order, so they show with "Out of stock" and the remove icon (04.11.2026). */}
           {validated
-            .filter((v) => v.valid)
             .map((item) => (
               <Stack
                 key={item.productId}
@@ -2058,6 +2152,7 @@ export default function CheckoutPage() {
                       </Box>
                     )}
                   </FitText>
+                  <StockNote item={item} sx={{ ...textSm, mt: 0.5 }} />
                 </Box>
                 {/* The basket is part of the order payload: it freezes with the
                     rest of the form, and stays frozen once ARM has booked the

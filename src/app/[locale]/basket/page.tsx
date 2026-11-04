@@ -36,6 +36,7 @@ import { PRELAUNCH } from '@/lib/prelaunch';
 import PrelaunchNotice from '@/components/PrelaunchNotice';
 import { memberDiscountPercentOf } from '@/lib/member-price';
 import { MemberPriceBadge } from '@/components/MemberPriceBadge';
+import { StockNote } from '@/components/StockNote';
 
 /* ---- Figma design tokens (from styleguide.css) ---- */
 const font = 'LiraFix, "Jost", "Jost Fallback", Helvetica';
@@ -460,11 +461,8 @@ export default function BasketPage() {
                       </Typography>
                       {/* Артикул под названием не показываем (владелец 03.11.2026: «скрыть артикул
                           товара из корзины»); в мобильной корзине его и не было. */}
-                      {item.error && (
-                        <Typography sx={{ fontSize: 13, color: '#d32f2f', mt: 0.5 }}>
-                          {item.error}
-                        </Typography>
-                      )}
+                      {/* Код ошибки сервера (`insufficient_stock`) покупателю не показываем (04.11.2026). */}
+                      <StockNote item={item} sx={{ fontSize: 13, mt: 0.5 }} />
                     </Box>
                   </Box>
                   {idx < validated.length - 1 && <Box sx={{ height: '1px', bgcolor: c['20'] }} />}
@@ -707,6 +705,7 @@ export default function BasketPage() {
                   >
                     {item.name}
                   </Typography>
+                  <StockNote item={item} sx={{ fontSize: 13, mb: 0.5 }} />
                   <Typography sx={{ fontSize: 14, color: c.main, mb: 1 }}>
                     {lineUnit(item) != null ? fmtMoney(lineUnit(item)!, currency, formatLocale) : '—'}
                     {item.memberPrice != null && item.unitPrice != null && (

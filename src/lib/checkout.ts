@@ -9,6 +9,7 @@ import type {
   ArmShippingRate,
   ArmShippingUnavailableReason,
 } from './arm-types';
+import type { ValidatedCartItem } from './domain-types';
 
 /**
  * Runtime list of the shipping-unavailable reasons. ARM sends the first three in
@@ -214,6 +215,7 @@ export type CheckoutBlockReason =
   | 'consent'
   | 'uyelik'
   | 'guest_email'
+  | 'out_of_stock'
   | 'shipping_rate';
 
 export interface CheckoutGateOpts {
@@ -224,6 +226,13 @@ export interface CheckoutGateOpts {
   agreedUyelik: boolean;
   email: string;
   selectedRateId: string;
+  /**
+   * How many basket lines the warehouse does not cover right now (`stockProblems`,
+   * cart/validate). While they are in the basket POST /orders answers 400
+   * `insufficient_stock`, so the shopper removes them first with the warning's
+   * button (port of ACRU d16418a, 04.11.2026).
+   */
+  stockProblems?: number;
   /**
    * ARM has already answered 201 for this checkout. Everything below was
    * validated when the order was created and the inputs are frozen since, so
@@ -264,6 +273,7 @@ export function checkoutBlockReason(opts: CheckoutGateOpts): CheckoutBlockReason
   if (!opts.agreedKvkk || !opts.agreedMesafeli) return 'consent';
   if (showUyelikConsent(opts.authState) && !opts.agreedUyelik) return 'uyelik';
   if (guestEmailRequired(opts.authState) && !looksLikeEmail(opts.email)) return 'guest_email';
+  if (opts.stockProblems) return 'out_of_stock';
   if (!opts.selectedRateId) return 'shipping_rate';
   return null;
 }
@@ -282,7 +292,8 @@ export function proceedButtonDisabled(opts: CheckoutGateOpts): boolean {
 
 /**
  * i18n key explaining a block to the shopper. `submitting`/`auth_pending` are
- * transient, `shipping_rate` already has its own hint under the button, and
+ * transient, `shipping_rate` already has its own hint under the button,
+ * `out_of_stock` has its own warning with the remove button (`stockProblems`), and
  * `payment_blocked` keeps the message the failed attempt put on screen — so
  * those stay silent.
  */
@@ -297,6 +308,66 @@ export function blockReasonKey(reason: CheckoutBlockReason | null): string | nul
     default:
       return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Warehouse stock of the basket lines (port of ACRU d16418a, 04.11.2026)
+// ---------------------------------------------------------------------------
+
+/**
+ * A basket line the warehouse does not cover right now. `available` — how many
+ * pieces can be bought (0 — out of stock or no longer sold).
+ */
+export interface StockProblem {
+  productId: string;
+  name: string | null;
+  quantity: number;
+  available: number;
+}
+
+/** POST /orders refusals meaning "the warehouse does not cover a basket line". */
+export const STOCK_ERROR_CODES = new Set<string>([
+  'insufficient_stock',
+  'product_unavailable',
+  'product_not_found',
+]);
+
+/**
+ * The lines POST /orders would refuse (`insufficient_stock` / `product_unavailable` /
+ * `product_not_found`): cart/validate marks them `valid: false`. The checkout used to
+ * hide them from "Your order" but still sent them with the order — the shopper saw a
+ * ₺0.00 summary and an error without the item's name.
+ */
+export function stockProblems(validated: readonly ValidatedCartItem[]): StockProblem[] {
+  return validated
+    .filter((v) => !v.valid)
+    .map((v) => ({
+      productId: v.productId,
+      name: v.name || v.sku || null,
+      quantity: v.quantity,
+      available: Math.max(0, Math.floor(v.available ?? 0)),
+    }));
+}
+
+/**
+ * What "Remove and continue" does with a line: keep what the warehouse has when part
+ * of the quantity is in stock, otherwise drop the line from the basket.
+ */
+export function stockFix(p: StockProblem): { remove: true } | { remove: false; quantity: number } {
+  return p.available > 0 && p.available < p.quantity
+    ? { remove: false, quantity: p.available }
+    : { remove: true };
+}
+
+/** The note under a basket line without stock (basket and "Your order"); null — the line is fine. */
+export function stockLabel(
+  item: Pick<ValidatedCartItem, 'valid' | 'quantity' | 'available'>,
+): { key: 'basket.stock.out' } | { key: 'basket.stock.short'; count: number } | null {
+  if (item.valid) return null;
+  const available = Math.max(0, Math.floor(item.available ?? 0));
+  return available > 0 && available < item.quantity
+    ? { key: 'basket.stock.short', count: available }
+    : { key: 'basket.stock.out' };
 }
 
 // ---------------------------------------------------------------------------
