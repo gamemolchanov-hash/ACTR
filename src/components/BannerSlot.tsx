@@ -6,10 +6,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
-import { fetchShippingRates } from '@/lib/api';
+import { api, fetchShippingRates } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { dismissMyBanners, getMyBanners } from '@/lib/auth';
 import { lowestFreeShippingThreshold } from '@/lib/checkout';
+import { imgOriginal } from '@/lib/image-url';
 import { fmtMoneyShort } from '@/lib/money';
 import { palette } from '@/lib/theme';
 import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
@@ -23,13 +24,52 @@ import { useCurrency, useFormatLocale } from '@/providers/CurrencyProvider';
  *
  * The amount is the smallest `free_threshold` of the shipping methods ARM offers
  * for Turkey (the same number checkout shows under a paid method) — never
- * hardcoded. No threshold → no banner.
+ * hardcoded. No threshold → no delivery slide.
+ *
+ * Banners uploaded by managers in the back office (`GET /banners`) are the first
+ * slides, in the order of the reply; the delivery slide follows them and the
+ * slides rotate.
  */
 
+interface UploadedBannerImage {
+  /** Image key — served by the same public route as product photos (`imgOriginal`). */
+  path: string;
+  width: number;
+  height: number;
+}
+
+/** A back-office banner: the reply holds only the ones active now, in display order. */
+interface UploadedBanner {
+  id: string;
+  alt: string;
+  /** Storefront path ("/catalog"), "https://…" or null — a banner without a link. */
+  href: string | null;
+  desktop: UploadedBannerImage;
+  mobile: UploadedBannerImage | null;
+  /** ISO, end of the show window. */
+  ends_at: string | null;
+}
+
+type Slide =
+  | { id: string; kind: 'uploaded'; banner: UploadedBanner }
+  | { id: string; kind: 'delivery'; threshold: number };
+
+/**
+ * Close button: a closed banner stays hidden until the managers publish a new
+ * one — slide ids are `delivery` and `banner:<id>` for an uploaded banner.
+ */
 export const DISMISSED_BANNERS_KEY = 'storefront_dismissed_banners';
 export const DELIVERY_BANNER_ID = 'delivery';
+export const uploadedBannerId = (id: string) => `banner:${id}`;
 
+const ROTATE_MS = 5000;
 const MOBILE = '(max-width: 599px)';
+const SLIDE_STYLE = {
+  display: 'block',
+  position: 'relative',
+  borderRadius: 20,
+  overflow: 'hidden',
+} as const;
 /**
  * The rates endpoint needs a destination; the threshold is a property of the
  * method, not of the address, so any Turkish postcode answers the same.
@@ -108,6 +148,74 @@ function writeLocalDismissed(ids: string[]) {
 }
 
 const union = (a: string[], b: string[]) => Array.from(new Set([...a, ...b]));
+
+/** The `/banners` reply is outside data: an entry without an id or an image is not drawn. */
+function isUploadedBanner(v: unknown): v is UploadedBanner {
+  if (!v || typeof v !== 'object') return false;
+  const { id, desktop } = v as Partial<UploadedBanner>;
+  return typeof id === 'string' && !!id && typeof desktop?.path === 'string' && !!desktop.path;
+}
+
+/** The show window is still open: a cached reply must not outlive `ends_at`. */
+function isLive(banner: UploadedBanner, now: number): boolean {
+  if (!banner.ends_at) return true;
+  const end = new Date(banner.ends_at).getTime();
+  return Number.isNaN(end) || end > now;
+}
+
+/**
+ * Where a banner leads: a storefront path ("/catalog") or "http(s)://…"; anything
+ * else (including "//host" and "javascript:") — a banner without a link.
+ */
+function bannerHref(href: unknown): { internal: boolean; href: string } | null {
+  if (typeof href !== 'string') return null;
+  if (/^\/(?![/\\])/.test(href)) return { internal: true, href };
+  if (/^https?:\/\//i.test(href)) return { internal: false, href };
+  return null;
+}
+
+/**
+ * Slide of an uploaded banner. `width`/`height` come from the reply so the browser
+ * reserves the room before the image loads (`<source>` carries its own: the mobile
+ * image has another aspect ratio).
+ */
+function UploadedSlide({ banner }: { banner: UploadedBanner }) {
+  const { desktop, mobile } = banner;
+  const picture = (
+    <picture>
+      {mobile?.path && (
+        <source
+          media={MOBILE}
+          srcSet={imgOriginal(mobile.path)}
+          width={mobile.width}
+          height={mobile.height}
+        />
+      )}
+      <img
+        data-testid="sf-banner-uploaded"
+        src={imgOriginal(desktop.path)}
+        alt={banner.alt ?? ''}
+        width={desktop.width}
+        height={desktop.height}
+        style={{ display: 'block', width: '100%', height: 'auto' }}
+      />
+    </picture>
+  );
+  const link = bannerHref(banner.href);
+  if (!link) return <div style={SLIDE_STYLE}>{picture}</div>;
+  if (link.internal) {
+    return (
+      <Link href={link.href} style={SLIDE_STYLE}>
+        {picture}
+      </Link>
+    );
+  }
+  return (
+    <a href={link.href} style={SLIDE_STYLE}>
+      {picture}
+    </a>
+  );
+}
 
 /**
  * SVG text that shrinks to `maxWidth` when a translation or an amount is longer
@@ -217,12 +325,53 @@ function DeliveryArt({
   );
 }
 
+/** The built-in "free shipping from <amount>" slide. */
+function DeliverySlide({ threshold }: { threshold: number }) {
+  const t = useTranslations('promo');
+  const currency = useCurrency();
+  const formatLocale = useFormatLocale();
+  const mobile = useMediaQuery(MOBILE, { noSsr: true });
+
+  const amount = fmtMoneyShort(threshold, currency, formatLocale);
+  // The line that carries the amount is set large; which line it is depends on
+  // the language ("ORDERS FROM / ₺3.000" vs "₺3.000 / VE ÜZERİ").
+  const lines: BlockLine[] = (['deliveryLine1', 'deliveryLine2'] as const).map((key) => ({
+    text: t(key, { amount }),
+    big: String(t.raw(key)).includes('{amount}'),
+  }));
+
+  return (
+    <Link
+      href="/delivery"
+      data-testid="sf-banner-delivery"
+      style={SLIDE_STYLE}
+      aria-label={t('deliveryAlt', { amount })}
+    >
+      <picture>
+        <source media={MOBILE} srcSet="/promo-delivery/banner-mobile.png" />
+        <img
+          src="/promo-delivery/banner-desktop.png"
+          alt={t('deliveryAlt', { amount })}
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+        />
+      </picture>
+      <DeliveryArt
+        art={mobile ? MOBILE_ART : DESKTOP}
+        headline={[t('deliveryHeadline1'), t('deliveryHeadline2')]}
+        lines={lines}
+      />
+    </Link>
+  );
+}
+
 export function BannerSlot() {
   const t = useTranslations('promo');
   const { token } = useAuth();
   const currency = useCurrency();
-  const formatLocale = useFormatLocale();
-  const mobile = useMediaQuery(MOBILE, { noSsr: true });
+  // null — `/banners` has not answered yet: the slot is not drawn, otherwise the
+  // delivery slide flashes and is replaced by an uploaded banner of another height
+  const [uploaded, setUploaded] = useState<UploadedBanner[] | null>(null);
+  const [slide, setSlide] = useState(0);
   // null — the closed list is not read yet (the slot is not drawn until then, no flash)
   const [dismissed, setDismissed] = useState<string[] | null>(null);
 
@@ -253,22 +402,55 @@ export function BannerSlot() {
     };
   }, [token]);
 
+  // A failure or a 404 (BFF not deployed yet) means "no uploaded banners": the
+  // built-in slide stays.
+  useEffect(() => {
+    let alive = true;
+    api
+      .get<{ data: unknown }>('/banners')
+      .then((res) => {
+        if (!alive) return;
+        const list = res.data?.data;
+        setUploaded(Array.isArray(list) ? list.filter(isUploadedBanner) : []);
+      })
+      .catch(() => {
+        if (alive) setUploaded([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const now = Date.now();
+  const slides: Slide[] = [
+    ...(uploaded ?? [])
+      .filter((b) => isLive(b, now))
+      .map((b) => ({ id: uploadedBannerId(b.id), kind: 'uploaded' as const, banner: b })),
+    ...(threshold != null
+      ? [{ id: DELIVERY_BANNER_ID, kind: 'delivery' as const, threshold }]
+      : []),
+  ].filter((sl) => !(dismissed ?? []).includes(sl.id));
+
+  useEffect(() => {
+    if (slides.length < 2) return;
+    const id = setInterval(() => setSlide((s) => (s + 1) % slides.length), ROTATE_MS);
+    return () => clearInterval(id);
+  }, [slides.length]);
+
   const close = useCallback(() => {
-    const next = union(dismissed ?? [], [DELIVERY_BANNER_ID]);
+    // Close everything published now: a new banner = a new id, it shows again.
+    const ids = slides.map((sl) => sl.id);
+    const next = union(dismissed ?? [], ids);
     setDismissed(next);
     writeLocalDismissed(next);
-    if (token) dismissMyBanners([DELIVERY_BANNER_ID]).catch(() => undefined);
-  }, [dismissed, token]);
+    if (token) dismissMyBanners(ids).catch(() => undefined);
+  }, [slides, dismissed, token]);
 
-  if (dismissed === null || dismissed.includes(DELIVERY_BANNER_ID) || threshold == null) return null;
+  if (dismissed === null || uploaded === null || slides.length === 0) return null;
 
-  const amount = fmtMoneyShort(threshold, currency, formatLocale);
-  // The line that carries the amount is set large; which line it is depends on
-  // the language ("ORDERS FROM / ₺3.000" vs "₺3.000 / VE ÜZERİ").
-  const lines: BlockLine[] = (['deliveryLine1', 'deliveryLine2'] as const).map((key) => ({
-    text: t(key, { amount }),
-    big: String(t.raw(key)).includes('{amount}'),
-  }));
+  // The list may have changed (the threshold arrived, a banner's window closed) —
+  // the index is taken modulo its length.
+  const current = slides[slide % slides.length];
 
   return (
     <Box
@@ -296,26 +478,11 @@ export function BannerSlot() {
       >
         <CloseIcon sx={{ fontSize: { xs: 15, sm: 18 } }} />
       </IconButton>
-      <Link
-        href="/delivery"
-        data-testid="sf-banner-delivery"
-        style={{ display: 'block', position: 'relative', borderRadius: 20, overflow: 'hidden' }}
-        aria-label={t('deliveryAlt', { amount })}
-      >
-        <picture>
-          <source media={MOBILE} srcSet="/promo-delivery/banner-mobile.png" />
-          <img
-            src="/promo-delivery/banner-desktop.png"
-            alt={t('deliveryAlt', { amount })}
-            style={{ display: 'block', width: '100%', height: 'auto' }}
-          />
-        </picture>
-        <DeliveryArt
-          art={mobile ? MOBILE_ART : DESKTOP}
-          headline={[t('deliveryHeadline1'), t('deliveryHeadline2')]}
-          lines={lines}
-        />
-      </Link>
+      {current.kind === 'uploaded' ? (
+        <UploadedSlide key={current.id} banner={current.banner} />
+      ) : (
+        <DeliverySlide threshold={current.threshold} />
+      )}
     </Box>
   );
 }

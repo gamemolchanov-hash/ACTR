@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
 import enFlat from '../../../messages/en.json';
@@ -27,7 +27,8 @@ vi.mock('@/providers/CurrencyProvider', () => ({
 const auth = { value: { token: null as string | null } };
 vi.mock('@/lib/auth-context', () => ({ useAuth: () => auth.value }));
 
-const apiMock = vi.hoisted(() => ({ fetchShippingRates: vi.fn() }));
+// `api.get` serves `GET /banners` (uploaded banners — BannerSlot.uploaded.test.tsx); none here
+const apiMock = vi.hoisted(() => ({ fetchShippingRates: vi.fn(), api: { get: vi.fn() } }));
 vi.mock('@/lib/api', () => apiMock);
 
 const authApi = vi.hoisted(() => ({ getMyBanners: vi.fn(), dismissMyBanners: vi.fn() }));
@@ -68,12 +69,19 @@ const rates = (thresholds: Array<number | null>) =>
 const svgText = (slot: HTMLElement) =>
   Array.from(slot.querySelectorAll('svg text')).map((el) => el.textContent);
 
+/** The slot waits for `/banners` and the rates — let them settle before asserting "no banner". */
+const settled = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+
 beforeEach(() => {
   localStorage.clear();
   auth.value = { token: null };
   authApi.getMyBanners.mockResolvedValue([]);
   authApi.dismissMyBanners.mockResolvedValue([]);
   rates([3000]);
+  apiMock.api.get.mockResolvedValue({ data: { data: [] } });
 });
 afterEach(() => {
   cleanup();
@@ -109,6 +117,7 @@ describe('BannerSlot — free shipping from the ARM threshold', () => {
     rates([null]);
     renderSlot('en');
     await waitFor(() => expect(apiMock.fetchShippingRates).toHaveBeenCalled());
+    await settled();
     expect(screen.queryByTestId('sf-banner-slot')).toBeNull();
   });
 
@@ -116,6 +125,7 @@ describe('BannerSlot — free shipping from the ARM threshold', () => {
     apiMock.fetchShippingRates.mockRejectedValue(new Error('down'));
     renderSlot('en');
     await waitFor(() => expect(apiMock.fetchShippingRates).toHaveBeenCalled());
+    await settled();
     expect(screen.queryByTestId('sf-banner-slot')).toBeNull();
   });
 });
@@ -134,6 +144,7 @@ describe('BannerSlot — close button', () => {
     localStorage.setItem(DISMISSED_BANNERS_KEY, JSON.stringify(['delivery']));
     renderSlot('en');
     await waitFor(() => expect(apiMock.fetchShippingRates).toHaveBeenCalled());
+    await settled();
     expect(screen.queryByTestId('sf-banner-slot')).toBeNull();
   });
 
@@ -143,6 +154,7 @@ describe('BannerSlot — close button', () => {
     authApi.getMyBanners.mockResolvedValue(['delivery']);
     renderSlot('en');
     await waitFor(() => expect(authApi.getMyBanners).toHaveBeenCalled());
+    await settled();
     await waitFor(() => expect(screen.queryByTestId('sf-banner-slot')).toBeNull());
     expect(authApi.dismissMyBanners).toHaveBeenCalledWith(['promo:OLD']);
     expect(JSON.parse(localStorage.getItem(DISMISSED_BANNERS_KEY)!)).toEqual(['delivery', 'promo:OLD']);
