@@ -1,7 +1,6 @@
 /**
- * The footer phone comes from the storefront config (`/config` → `contact_phone`,
- * the distributor's phone in Portal) — never from a hardcoded copy. No phone → no
- * number. The only social icon is the brand's Turkish Instagram (no WhatsApp).
+ * The footer shows no phone number at all (owner's decision 18.11.2026) — even
+ * when the storefront config carries `contact_phone`. The only social icon is the brand's Turkish Instagram (no WhatsApp).
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -48,17 +47,12 @@ function renderFooter(phone: string | null) {
 
 afterEach(() => cleanup());
 
-describe('Footer — contact phone from the storefront config', () => {
-  it('shows the configured phone (desktop + mobile)', () => {
-    renderFooter('+90 531 871 30 07');
-
-    expect(screen.getAllByText('+90 531 871 30 07')).toHaveLength(2);
-  });
-
-  it('hides the phone when no phone is configured', () => {
-    const { container } = renderFooter(null);
+describe('Footer — no phone, Instagram only', () => {
+  it('never shows a phone number, even when one is configured (owner, 18.11.2026)', () => {
+    const { container } = renderFooter('+90 531 871 30 07');
 
     expect(container.textContent).not.toMatch(/\+90/);
+    expect(container.textContent).not.toMatch(/9:00/);
   });
 
   it('links Instagram to the Turkish brand page and has no WhatsApp icon', () => {

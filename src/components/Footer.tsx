@@ -7,7 +7,6 @@ import { palette } from '@/lib/theme';
 import { CASHBACK_WALLET_PROGRAM } from '@/lib/loyalty';
 import { useLoyaltyProgram } from '@/providers/LoyaltyProgramProvider';
 import { useConsent } from '@/providers/CookieConsentProvider';
-import { useStoreContactPhone } from '@/providers/StoreContactProvider';
 
 const SOCIALS = [
   {
@@ -62,7 +61,6 @@ export function Footer() {
   // Live programme (uncached /config, see LoyaltyProgramProvider): the Creator
   // Club link is rendered ONLY for a confirmed `cashback_wallet` (FBG-469).
   const loyaltyProgram = useLoyaltyProgram();
-  const phone = useStoreContactPhone();
 
   // Cookie preferences is a button (opens the Tercih Merkezi dialog), not a route,
   // so it lives outside NAV_COL_LEGAL — but shares the footer link styling.
@@ -194,18 +192,6 @@ export function Footer() {
             </Box>
           </Box>
 
-          {/* Phone */}
-          {phone && (
-            <Box>
-              <Typography sx={{ fontSize: 20, fontWeight: 500, color: palette.footerText }}>
-                {phone}
-              </Typography>
-              <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-                {t('common.workingHours')}
-              </Typography>
-            </Box>
-          )}
-
           {/* Social icons */}
           <SocialIcons />
         </Box>
@@ -240,18 +226,6 @@ export function Footer() {
             ))}
             {CookiePreferencesLink}
           </Box>
-
-          {/* Phone */}
-          {phone && (
-            <Box>
-              <Typography sx={{ fontSize: 18, fontWeight: 500, color: palette.footerText }}>
-                {phone}
-              </Typography>
-              <Typography sx={{ fontSize: 14, color: palette.footerSecondary }}>
-                {t('common.workingHours')}
-              </Typography>
-            </Box>
-          )}
         </Box>
 
         {/* ============ Bottom row (shared) ============ */}
