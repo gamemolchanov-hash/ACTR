@@ -229,7 +229,7 @@ export default function StudiosPage() {
               />
               <Box
                 component="img"
-                src="/images/studios/product-bottle.png"
+                src="/images/studios/product-bottle.png?v=2"
                 alt=""
                 sx={{ width: '100%', display: 'block', position: 'relative', zIndex: 1 }}
               />
